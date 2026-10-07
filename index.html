@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0D0E11">
+<title>ARC Tools</title>
+<meta name="description" content="Avatar Realms Collide tools: Migration Scout and the Z3 Temple War planner.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230D0E11'/%3E%3Cpath d='M16 6l10 10-10 10L6 16z' fill='%23F4BF41'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+
+<!-- ─────────────────────────────────────────────────────────────────────
+     TOOLS — the only part you should ever need to edit.
+
+     Each entry is one tab. "file" is a .jsx file sitting in the same
+     folder as this index.html, exactly as it was downloaded from Claude.
+     To update a tool, replace its .jsx in the repo. To add a tool, add a
+     line here and drop its .jsx next to this file.
+     ───────────────────────────────────────────────────────────────────── -->
+<script>
+  window.TOOLS = [
+    { id: "migration", label: "Migration Scout", file: "migration-scout.jsx" },
+    { id: "z3",        label: "Z3 Temple War",   file: "z3-temple-war-planner-v5.jsx" },
+  ];
+</script>
+
+<style>
+  :root {
+    --ink: #0D0E11;
+    --panel: #14161B;
+    --line: #23262E;
+    --text: #E7E9EE;
+    --mut: #8B909C;
+    --gold: #F4BF41;
+    --red: #FF7A7A;
+    --bar-h: 48px;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { background: var(--ink); color-scheme: dark; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--text);
+    font: 14px/1.5 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── top bar ── */
+  .bar {
+    display: flex;
+    align-items: stretch;
+    gap: 28px;
+    min-height: calc(var(--bar-h) + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) max(18px, env(safe-area-inset-right, 0px)) 0 max(18px, env(safe-area-inset-left, 0px));
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 22px;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    color: var(--mut);
+    font-weight: 500;
+    font-size: 13.5px;
+    text-decoration: none;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab:hover { color: var(--text); }
+  .tab[aria-current="page"] { color: var(--text); }
+  .tab[aria-current="page"]::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 2px;
+    background: var(--gold);
+  }
+  .tab:focus-visible, .btn:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+  .clock {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--mut);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .clock time { color: var(--text); font-weight: 500; }
+
+  @media (max-width: 540px) {
+    .brand { display: none; }
+    .bar { gap: 16px; }
+    .tabs { gap: 18px; }
+  }
+  @media (max-width: 340px) { .clock { display: none; } }
+
+  /* ── tool panes ── */
+  .pane[hidden] { display: none; }
+
+  /* ── loading + error states (only shown before / instead of a tool) ── */
+  .note {
+    max-width: 62ch;
+    padding: 44px max(20px, env(safe-area-inset-right, 0px)) 60px max(20px, env(safe-area-inset-left, 0px));
+  }
+  .note h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+  .note p { margin: 0 0 12px; color: var(--mut); }
+  .note code {
+    font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 1px 5px;
+  }
+  .note pre {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    max-height: 260px;
+    overflow: auto;
+    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--red);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .btn {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 14px;
+    cursor: pointer;
+  }
+  .btn:hover { border-color: #3A3F4A; }
+  .loading { display: flex; align-items: center; gap: 10px; color: var(--mut); }
+  .loading i {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--gold);
+    animation: pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { opacity: 0.25; } }
+  @media (prefers-reduced-motion: reduce) { .loading i { animation: none; } }
+</style>
+</head>
+
+<body>
+<header class="bar">
+  <div class="brand">ARC Tools</div>
+  <nav class="tabs" id="tabs" aria-label="Tools"></nav>
+  <div class="clock" title="Game time (UTC)"><time id="utc">--:--</time> UTC</div>
+</header>
+
+<main id="stage">
+  <noscript><div class="note"><h2>JavaScript is off</h2><p>These tools need JavaScript to run.</p></div></noscript>
+</main>
+
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+
+<script>
+(() => {
+  "use strict";
+
+  const TOOLS = window.TOOLS || [];
+  const BABEL_URL = "https://cdn.jsdelivr.net/npm/@babel/standalone@7.29.9/babel.min.js";
+  const BUILD = 1;               // bump to invalidate every cached compile
+  const NS = "arc-tools:";       // prefix for everything this page keeps in localStorage
+  const stage = document.getElementById("stage");
+
+  /* ── small DOM helper ─────────────────────────────────────────────── */
+  const el = (tag, props, ...kids) => {
+    const n = document.createElement(tag);
+    if (props) for (const k in props) {
+      if (k === "class") n.className = props[k];
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), props[k]);
+      else n.setAttribute(k, props[k]);
+    }
+    for (const kid of kids) n.append(kid);
+    return n;
+  };
+
+  /* ── localStorage that never throws (private mode, quota, blocked) ── */
+  const mem = new Map();
+  const store = {
+    get(k) {
+      try { const v = localStorage.getItem(k); if (v !== null) return v; } catch (e) {}
+      return mem.has(k) ? mem.get(k) : null;
+    },
+    set(k, v) { try { localStorage.setItem(k, v); mem.delete(k); } catch (e) { mem.set(k, v); } },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} mem.delete(k); },
+    keys() {
+      const out = new Set(mem.keys());
+      try { for (let i = 0; i < localStorage.length; i++) out.add(localStorage.key(i)); } catch (e) {}
+      return [...out];
+    },
+  };
+
+  /* ── window.storage ───────────────────────────────────────────────────
+     The tools were written for Claude's artifact storage API. Outside
+     Claude that API doesn't exist, so this provides the same four methods
+     backed by this browser's localStorage. Behaviour matches the original:
+     get() on a key that was never saved throws. "Shared" data is kept
+     separately but is still local to this browser — there is no server. */
+  if (!window.storage) {
+    const kk = (key, shared) => NS + (shared ? "kv-shared:" : "kv:") + key;
+    window.storage = {
+      async get(key, shared = false) {
+        const value = store.get(kk(key, shared));
+        if (value === null) throw new Error("Key not found: " + key);
+        return { key, value, shared };
+      },
+      async set(key, value, shared = false) {
+        const text = typeof value === "string" ? value : JSON.stringify(value);
+        store.set(kk(key, shared), text);
+        return { key, value: text, shared };
+      },
+      async delete(key, shared = false) {
+        const k = kk(key, shared);
+        const deleted = store.get(k) !== null;
+        store.del(k);
+        return { key, deleted, shared };
+      },
+      async list(prefix = "", shared = false) {
+        const base = kk("", shared);
+        const keys = store.keys()
+          .filter((k) => k.startsWith(base + prefix))
+          .map((k) => k.slice(base.length))
+          .sort();
+        return { keys, prefix, shared };
+      },
+    };
+  }
+
+  /* ── UTC clock (the game runs on UTC) ─────────────────────────────── */
+  const utc = document.getElementById("utc");
+  const tick = () => {
+    const d = new Date();
+    utc.textContent = String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0");
+    utc.dateTime = d.toISOString();
+  };
+  tick();
+  setInterval(tick, 5000);
+
+  /* ── messages shown in place of a tool ────────────────────────────── */
+  const note = (title, lines, detail, action) => {
+    const box = el("div", { class: "note", role: "status" }, el("h2", null, title));
+    for (const line of lines) {
+      const p = el("p");
+      // `backticks` in a line become <code>
+      line.split("`").forEach((part, i) => p.append(i % 2 ? el("code", null, part) : part));
+      box.append(p);
+    }
+    if (detail) box.append(el("pre", null, detail));
+    if (action) box.append(el("button", { class: "btn", type: "button", onclick: action.run }, action.label));
+    return box;
+  };
+
+  if (!window.React || !window.ReactDOM) {
+    stage.append(note("React didn't load", [
+      "The page couldn't reach the CDN it loads React from. Check your connection, then reload.",
+    ], null, { label: "Reload", run: () => location.reload() }));
+    return;
+  }
+  if (!TOOLS.length) {
+    stage.append(note("No tools listed", ["Add at least one entry to the `TOOLS` list near the top of `index.html`."]));
+    return;
+  }
+
+  const h = React.createElement;
+
+  /* ── compile: fetch the .jsx, turn it into runnable JS ────────────────
+     Compiled output is cached per file and re-used until the file's
+     contents change, so the 3 MB compiler only downloads when it has to. */
+  const hash = (s) => {
+    let a = 0x811c9dc5;
+    for (let i = 0; i < s.length; i++) { a ^= s.charCodeAt(i); a = Math.imul(a, 0x01000193); }
+    return (a >>> 0).toString(36) + "." + s.length;
+  };
+
+  let babelLoading = null;
+  const loadBabel = () => {
+    if (window.Babel) return Promise.resolve();
+    if (!babelLoading) {
+      babelLoading = new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = BABEL_URL;
+        s.crossOrigin = "anonymous";
+        s.onload = () => resolve();
+        s.onerror = () => { babelLoading = null; reject(fail("cdn")); };
+        document.head.append(s);
+      });
+    }
+    return babelLoading;
+  };
+
+  const fail = (kind, message) => Object.assign(new Error(message || kind), { kind });
+
+  async function build(tool, useCache) {
+    if (location.protocol === "file:") throw fail("file");
+    let res;
+    try { res = await fetch(tool.file, { cache: "no-cache" }); }
+    catch (e) { throw fail("network", e.message); }
+    if (!res.ok) throw fail(res.status === 404 ? "missing" : "network", "HTTP " + res.status);
+    const src = await res.text();
+
+    const cacheKey = NS + "build:" + tool.file;
+    const sig = BUILD + ":" + hash(src);
+    if (useCache) {
+      try {
+        const hit = JSON.parse(store.get(cacheKey));
+        if (hit && hit.sig === sig) return { code: hit.code, cached: true, cacheKey };
+      } catch (e) {}
+    }
+
+    await loadBabel();
+    let code;
+    try {
+      code = window.Babel.transform(src, {
+        filename: tool.file,
+        sourceType: "module",
+        presets: [["react", { runtime: "classic" }]],
+        plugins: ["transform-modules-commonjs"],
+        retainLines: true,
+        comments: false,
+      }).code;
+    } catch (e) { throw fail("compile", e.message); }
+
+    store.set(cacheKey, JSON.stringify({ sig, code }));
+    return { code, cached: false, cacheKey };
+  }
+
+  /* ── run: evaluate the compiled module and pull out its component ─── */
+  const MODULES = {
+    "react": React,
+    "react-dom": ReactDOM,
+    "react-dom/client": ReactDOM,
+  };
+
+  function evaluate(code, tool) {
+    const module = { exports: {} };
+    const require = (name) => {
+      if (name in MODULES) return MODULES[name];
+      throw fail("import", name);
+    };
+    new Function("require", "module", "exports", "React",
+      code + "\n//# sourceURL=" + encodeURI(tool.file))(require, module, module.exports, React);
+    const Component = module.exports && (module.exports.default || module.exports);
+    if (typeof Component !== "function") throw fail("export");
+    return Component;
+  }
+
+  /* ── a crash inside one tool shouldn't blank the page ─────────────── */
+  class Boundary extends React.Component {
+    constructor(props) { super(props); this.state = { error: null }; }
+    static getDerivedStateFromError(error) { return { error }; }
+    render() {
+      if (!this.state.error) return this.props.children;
+      return h("div", { className: "note", role: "alert" },
+        h("h2", null, this.props.label + " stopped working"),
+        h("p", null, "Something inside the tool threw an error. Reloading usually clears it. Anything it saved is still there."),
+        h("pre", null, String(this.state.error && (this.state.error.stack || this.state.error.message) || this.state.error)),
+        h("button", { className: "btn", type: "button", onClick: () => location.reload() }, "Reload"));
+    }
+  }
+
+  const explain = (tool, err, retry) => {
+    const again = { label: "Try again", run: retry };
+    switch (err.kind) {
+      case "missing":
+        return note("Can't find " + tool.file, [
+          "Add `" + tool.file + "` to the repo, in the same folder as `index.html`.",
+          "If your file has a different name, change it in the `TOOLS` list near the top of `index.html`. Names are case-sensitive on GitHub Pages.",
+        ], null, again);
+      case "file":
+        return note("Open this from a web address", [
+          "Browsers won't let a page opened straight from disk read the `.jsx` files next to it. It works once it's on GitHub Pages, or locally through any small web server.",
+        ]);
+      case "network":
+        return note("Couldn't load " + tool.file, ["The request failed. Check your connection and try again."], err.message, again);
+      case "cdn":
+        return note("Couldn't load the compiler", [
+          "The first time a tool opens (and whenever its file changes) the page downloads a compiler from a CDN. That download failed. Check your connection and try again.",
+        ], null, again);
+      case "compile":
+        return note(tool.file + " didn't compile", ["The file has a syntax error, or isn't a React component file."], err.message, again);
+      case "import":
+        return note(tool.label + " needs a library this page doesn't load", [
+          "`" + tool.file + "` imports `" + err.message + "`. This page only provides `react` and `react-dom`.",
+        ]);
+      case "export":
+        return note(tool.file + " has no component to show", ["The file needs an `export default` React component."]);
+      default:
+        return note(tool.label + " couldn't start", ["The tool threw an error while starting up."], String(err && (err.stack || err.message) || err), again);
+    }
+  };
+
+  /* ── panes + tabs ─────────────────────────────────────────────────── */
+  const tabsEl = document.getElementById("tabs");
+  const panes = new Map();
+
+  for (const tool of TOOLS) {
+    tabsEl.append(el("a", { class: "tab", href: "#" + tool.id, "data-id": tool.id }, tool.label));
+    const pane = el("section", { class: "pane", id: "pane-" + tool.id, "aria-label": tool.label, hidden: "" });
+    stage.append(pane);
+    panes.set(tool.id, { tool, pane, started: false });
+  }
+
+  async function start(entry) {
+    const { tool, pane } = entry;
+    entry.started = true;
+    pane.replaceChildren(el("div", { class: "note" },
+      el("div", { class: "loading", role: "status" }, el("i"), "Loading " + tool.label + "…")));
+    try {
+      let built = await build(tool, true);
+      let Component;
+      try { Component = evaluate(built.code, tool); }
+      catch (e) {
+        // A stale or damaged cache entry shouldn't be able to wedge a tool: rebuild once from source.
+        if (!built.cached) throw e;
+        store.del(built.cacheKey);
+        built = await build(tool, false);
+        Component = evaluate(built.code, tool);
+      }
+      const mount = el("div");
+      pane.replaceChildren(mount);
+      ReactDOM.createRoot(mount).render(h(Boundary, { label: tool.label }, h(Component)));
+    } catch (err) {
+      console.error("[ARC Tools] " + tool.file, err);
+      pane.replaceChildren(explain(tool, err, () => start(entry)));
+    }
+  }
+
+  function show(id) {
+    for (const [key, entry] of panes) {
+      const on = key === id;
+      entry.pane.hidden = !on;
+      const tab = tabsEl.querySelector('[data-id="' + key + '"]');
+      if (on) tab.setAttribute("aria-current", "page"); else tab.removeAttribute("aria-current");
+    }
+    const entry = panes.get(id);
+    document.title = entry.tool.label + " | ARC Tools";
+    store.set(NS + "last-tab", id);
+    if (!entry.started) start(entry);
+  }
+
+  // Which tool to show: the #hash if it names one, else the last one used, else the first.
+  const route = () => {
+    const fromHash = decodeURIComponent(location.hash.slice(1));
+    if (panes.has(fromHash)) return fromHash;
+    const last = store.get(NS + "last-tab");
+    return panes.has(last) ? last : TOOLS[0].id;
+  };
+
+  window.addEventListener("hashchange", () => show(route()));
+  show(route());
+})();
+</script>
+</body>
+</html>
