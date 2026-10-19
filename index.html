@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0D0E11">
 <title>ARC Tools</title>
-<meta name="description" content="Avatar Realms Collide tools: Migration Scout and the Z3 Temple War planner.">
+<meta name="description" content="Avatar Realms Collide tools: Glowworm's Ruse planner, Migration Scout, Z3 Temple War and Hero Cycle.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230D0E11'/%3E%3Cpath d='M16 6l10 10-10 10L6 16z' fill='%23F4BF41'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,7 +21,7 @@
      ───────────────────────────────────────────────────────────────────── -->
 <script>
   window.TOOLS = [
-    { id: "glowwormsruse", label: "Glowworm's Ruse Planner", file: "GlowwormsRusePlanner/glowworm/index.html" },
+    { id: "glowwormsruse", label: "Glowworm's Ruse Planner", page: "GlowwormsRusePlanner/glowworm/index.html" },
     { id: "migration", label: "Migration Scout", file: "migration-scout.jsx" },
     { id: "z3",        label: "Z3 Temple War",   file: "z3-temple-war-planner-v5.jsx" },
     { id: "hero", label: "Hero Cycle", file: "hero-cycle-calculator.jsx" },
@@ -123,6 +123,7 @@
 
   /* ── tool panes ── */
   .pane[hidden] { display: none; }
+  .pane iframe { display: block; width: 100%; border: 0; }
 
   /* ── loading + error states (only shown before / instead of a tool) ── */
   .note {
@@ -440,6 +441,15 @@
   async function start(entry) {
     const { tool, pane } = entry;
     entry.started = true;
+    if (tool.page) {
+      const frame = el("iframe", { src: tool.page, title: tool.label });
+      const fit = () => { frame.style.height = Math.max(400, window.innerHeight - pane.getBoundingClientRect().top) + "px"; };
+      pane.replaceChildren(frame);
+      window.addEventListener("resize", fit);
+      requestAnimationFrame(fit);
+      entry.fit = fit;
+      return;
+    }
     pane.replaceChildren(el("div", { class: "note" },
       el("div", { class: "loading", role: "status" }, el("i"), "Loading " + tool.label + "…")));
     try {
@@ -473,6 +483,7 @@
     document.title = entry.tool.label + " | ARC Tools";
     store.set(NS + "last-tab", id);
     if (!entry.started) start(entry);
+    else if (entry.fit) requestAnimationFrame(entry.fit);
   }
 
   // Which tool to show: the #hash if it names one, else the last one used, else the first.
