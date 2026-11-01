@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glowworm's Ruse Era Grouping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1826; --card: #142233; --card2: #1A2A3E; --line: #24364A; --line2: #1c2a3b;
+    --text: #E9E2D0; --muted: #8FA0B3; --accent: #E8C468; --you: #22364F;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 28px 18px 48px; }
+  .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--muted); }
+  h1 { font-family: 'Cinzel', serif; font-weight: 600; font-size: 30px; margin: 6px 0 4px; letter-spacing: .02em; }
+  .sub { color: var(--muted); font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px 22px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted); }
+  .row { display: flex; gap: 6px; align-items: center; }
+  input, button { font: inherit; color: var(--text); }
+  input { background: var(--bg); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 14px; outline: none; color-scheme: dark; }
+  input:focus { border-color: var(--accent); }
+  input.num { width: 68px; text-align: center; }
+  input.srv { width: 96px; }
+  button { background: var(--card2); border: 1px solid var(--line); border-radius: 7px; padding: 8px 11px;
+    cursor: pointer; font-size: 13px; }
+  button:hover { border-color: var(--muted); }
+  .eff { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line2); font-size: 13.5px; color: var(--muted); }
+  .eff b { color: var(--text); font-weight: 500; }
+  .eff .acc { color: var(--accent); }
+  .find { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+  .stat .k { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .stat .v { font-size: 19px; font-weight: 600; margin-top: 3px; }
+  .stat .v small { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 520px; }
+  th { text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--muted); font-weight: 400; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--line2); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr.era { cursor: pointer; }
+  tr.era:hover td { background: #18283b; }
+  tr.you td { background: var(--you); }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+  .caret { color: var(--muted); font-size: 11px; margin-left: 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 0 2px; }
+  .chip { font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: 4px 7px; cursor: pointer; }
+  .chip span { color: var(--muted); margin-left: 5px; }
+  .chip.hl { border-color: var(--accent); color: var(--accent); }
+  .chip.est::after { content: '~'; color: var(--accent); margin-left: 2px; }
+  .muted { color: var(--muted); }
+  .warn { color: var(--accent); font-size: 14px; }
+  .note { color: var(--muted); font-size: 12px; line-height: 1.65; margin-top: 18px; }
+  .note b { color: var(--text); font-weight: 500; }
+  @media (max-width: 520px) { h1 { font-size: 24px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Avatar Realms Collide · Glowworm's Ruse · UTC</div>
+  <h1>Era Grouping</h1>
+  <div class="sub">Which era every world falls into for a Glowworm's Ruse round, based on world age on the grouping date.</div>
+
+  <div class="card">
+    <div class="controls">
+      <div class="field">
+        <label for="date">Event start</label>
+        <div class="row">
+          <button id="prev" title="Previous round (−56 days)">◀</button>
+          <input id="date" type="date">
+          <button id="next" title="Next round (+56 days)">▶</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="offset">Day offset</label>
+        <div class="row">
+          <button id="offMinus">−</button>
+          <input id="offset" class="num" type="number" value="0" step="1">
+          <button id="offPlus">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="server">Find world</label>
+        <input id="server" class="srv" inputmode="numeric" placeholder="e.g. 1097">
+      </div>
+    </div>
+    <div class="eff" id="eff"></div>
+  </div>
+
+  <div id="findCard"></div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Era</th><th>World age</th><th>Worlds</th><th style="text-align:right">Count</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>How it works.</b> Each world's age is its in-game day counter on the grouping date (start date + offset, 00:00 UTC). Ages come from the migration-screen readings of Jul 13, 2026; gaps between readings are interpolated, and worlds after 1095 assume a weekly Friday launch. Worlds marked <span style="color:var(--accent)">~</span> are estimates from uneven gaps, so check them in game if they sit near an era edge.<br><br>
+    <b>Schedule.</b> Rounds run 4 weeks on, 4 weeks off starting Oct 3, 2026, so ◀ ▶ step 56 days. <b>Calibration.</b> The October grouping (Mythic 1–48, Dominance 49–60, Conquest 61–72, Clash 73–84, Frontier 85–96) is reproduced exactly with the Oct 3 start, so offset 0 is calibrated. If a future round comes out one world off at an edge, nudge the day offset until it matches the in-game list.
+  </div>
+</div>
+
+<script>
+const DAY = 86400000;
+const ANCHOR = Date.UTC(2026, 9, 3); // first Glowworm's Ruse: Sat Oct 3, 2026
+const REF = Date.UTC(2026, 6, 13);
+const KNOWN = {
+  1001: 817, 1002: 761, 1003: 705, 1004: 635, 1005: 586, 1006: 516,
+  1007: 495, 1008: 495, 1009: 483, 1010: 483, 1011: 483, 1012: 481,
+  1013: 480, 1014: 478, 1015: 477,
+  1042: 377, 1043: 370, 1044: 363, 1045: 358, 1046: 353, 1047: 347,
+  1048: 340, 1049: 333,
+  1064: 220, 1065: 213, 1066: 206, 1067: 199, 1068: 192, 1069: 185,
+  1070: 178, 1071: 171,
+  1074: 150, 1075: 143, 1076: 136, 1077: 129, 1078: 122, 1079: 115,
+  1080: 108, 1081: 101,
+  1088: 52, 1089: 45, 1090: 38, 1091: 31, 1092: 24, 1093: 17,
+  1094: 10, 1095: 3,
+};
+const NEWEST_KNOWN = 1095;
+
+const { ELAPSED, APPROX } = (() => {
+  const elapsed = {}, approx = {};
+  const keys = Object.keys(KNOWN).map(Number).sort((a, b) => a - b);
+  for (const k of keys) elapsed[k] = KNOWN[k];
+  for (let i = 0; i < keys.length - 1; i++) {
+    const lo = keys[i], hi = keys[i + 1], steps = hi - lo;
+    if (steps <= 1) continue;
+    const delta = KNOWN[lo] - KNOWN[hi];
+    const uneven = delta % steps !== 0;
+    for (let s = lo + 1; s < hi; s++) {
+      elapsed[s] = Math.round(KNOWN[lo] - ((s - lo) * delta) / steps);
+      if (uneven) approx[s] = true;
+    }
+  }
+  return { ELAPSED: elapsed, APPROX: approx };
+})();
+
+const launchOf = (s) => s <= NEWEST_KNOWN
+  ? REF - ELAPSED[s] * DAY
+  : REF - ELAPSED[NEWEST_KNOWN] * DAY + (s - NEWEST_KNOWN) * 7 * DAY;
+const ageOn = (s, t) => Math.floor((t - launchOf(s)) / DAY);
+
+const ERAS = [
+  { name: 'Mythic',    min: 421, max: Infinity, color: '#C792EA' },
+  { name: 'Dominance', min: 330, max: 420,      color: '#E07A5F' },
+  { name: 'Conquest',  min: 246, max: 329,      color: '#E8C468' },
+  { name: 'Clash',     min: 162, max: 245,      color: '#5FB3A1' },
+  { name: 'Frontier',  min: 78,  max: 161,      color: '#6FA8DC' },
+  { name: 'Not eligible', min: 0, max: 77,      color: '#55657A', none: true },
+];
+const eraOf = (age) => ERAS.find(e => age >= e.min && age <= e.max);
+
+const $ = (id) => document.getElementById(id);
+const fmt = (t) => new Date(t).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+const toInput = (t) => new Date(t).toISOString().slice(0, 10);
+const fromInput = (v) => { const [y, m, d] = v.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+
+let store = null; try { store = window.localStorage; } catch (e) {}
+const saved = (k, d) => { try { return store?.getItem('egr2-' + k) ?? d; } catch (e) { return d; } };
+const save = (k, v) => { try { store?.setItem('egr2-' + k, v); } catch (e) {} };
+
+$('date').value = saved('date', '2026-11-28');
+$('offset').value = saved('offset', '0');
+$('server').value = saved('server', '');
+const open = new Set(['Frontier']);
+
+function render() {
+  const start = fromInput($('date').value || '2026-11-28');
+  const off = parseInt($('offset').value, 10) || 0;
+  const t = start + off * DAY;
+  save('date', $('date').value); save('offset', String(off)); save('server', $('server').value);
+
+  const n = Math.round((start - ANCHOR) / (56 * DAY));
+  const onCycle = (start - ANCHOR) % (56 * DAY) === 0;
+  $('eff').innerHTML = `${onCycle ? `Round ${n + 1} · ` : ''}Event <b>${fmt(start)} – ${fmt(start + 27 * DAY)}</b>` +
+    `${onCycle ? '' : ' <span class="acc">(off the Oct 3 cycle)</span>'}<br>Grouping date <b>${fmt(t)}</b>` +
+    (off ? ` <span class="acc">(${off > 0 ? '+' : ''}${off} day${Math.abs(off) === 1 ? '' : 's'} from ${fmt(start)})</span>` : '');
+
+  // Every world launched by the grouping date
+  const worlds = [];
+  for (let s = 1001; launchOf(s) <= t; s++) worlds.push({ s, age: ageOn(s, t), est: !!APPROX[s] });
+
+  const groups = ERAS.map(e => ({ ...e, list: worlds.filter(w => w.age >= e.min && w.age <= e.max) }));
+
+  // Find world
+  const sv = parseInt($('server').value, 10);
+  let html = '';
+  if ($('server').value) {
+    if (!(sv >= 1001)) html = `<div class="card warn">Enter a world number of 1001 or higher.</div>`;
+    else if (launchOf(sv) > t) html = `<div class="card warn">World ${sv} hasn't launched by then. Expected launch ${fmt(launchOf(sv))}.</div>`;
+    else {
+      const age = ageOn(sv, t), e = eraOf(age), g = groups.find(x => x.name === e.name);
+      const ids = g.list.map(w => w.s);
+      const peers = ids.length ? `${Math.min(...ids)}–${Math.max(...ids)}` : '—';
+      const toNext = e.min > 78 || e.none ? null : null;
+      const nextEra = ERAS[ERAS.indexOf(e) - 1];
+      const daysUp = nextEra ? nextEra.min - age : null;
+      html = `<div class="card"><div class="find">
+        <div class="stat"><div class="k">World ${sv}</div><div class="v"><span class="dot" style="background:${e.color}"></span>${e.name}</div></div>
+        <div class="stat"><div class="k">Age</div><div class="v">Day ${age}${APPROX[sv] ? ' <small>est.</small>' : ''}</div></div>
+        <div class="stat"><div class="k">Era worlds</div><div class="v mono">${peers} <small>(${ids.length})</small></div></div>
+        <div class="stat"><div class="k">Moves up in</div><div class="v">${daysUp != null ? daysUp + ' <small>days</small>' : '<small>Top era</small>'}</div></div>
+      </div></div>`;
+      open.add(e.name);
+    }
+  }
+  $('findCard').innerHTML = html;
+
+  $('tbody').innerHTML = groups.map(g => {
+    const ids = g.list.map(w => w.s);
+    const range = ids.length ? `${Math.min(...ids)}–${Math.max(...ids)}` : '—';
+    const ageTxt = g.max === Infinity ? `${g.min}+` : `${g.min}–${g.max}`;
+    const isYou = g.list.some(w => w.s === sv);
+    const chips = open.has(g.name) && g.list.length
+      ? `<tr${isYou ? ' class="you"' : ''}><td colspan="4"><div class="chips">${g.list.map(w =>
+          `<span class="chip${w.s === sv ? ' hl' : ''}${w.est ? ' est' : ''}" data-s="${w.s}">${w.s}<span>d${w.age}</span></span>`).join('')}</div></td></tr>`
+      : '';
+    return `<tr class="era${isYou ? ' you' : ''}" data-era="${g.name}">
+      <td><span class="dot" style="background:${g.color}"></span>${g.name}<span class="caret">${g.list.length ? (open.has(g.name) ? '▾' : '▸') : ''}</span></td>
+      <td class="mono muted">${ageTxt}</td>
+      <td class="mono">${range}</td>
+      <td class="mono" style="text-align:right">${g.list.length}</td></tr>${chips}`;
+  }).join('');
+}
+
+$('tbody').addEventListener('click', (ev) => {
+  const chip = ev.target.closest('.chip');
+  if (chip) { $('server').value = chip.dataset.s; render(); return; }
+  const row = ev.target.closest('tr.era');
+  if (row) { const n = row.dataset.era; open.has(n) ? open.delete(n) : open.add(n); render(); }
+});
+const step = (d) => { $('date').value = toInput(fromInput($('date').value || '2026-11-28') + d * DAY); render(); };
+$('prev').onclick = () => step(-56);
+$('next').onclick = () => step(56);
+$('offMinus').onclick = () => { $('offset').value = (parseInt($('offset').value, 10) || 0) - 1; render(); };
+$('offPlus').onclick = () => { $('offset').value = (parseInt($('offset').value, 10) || 0) + 1; render(); };
+['date', 'offset', 'server'].forEach(id => $(id).addEventListener('input', () => {
+  if (id === 'server') $('server').value = $('server').value.replace(/\D/g, '');
+  render();
+}));
+render();
+</script>
+</body>
+</html>
