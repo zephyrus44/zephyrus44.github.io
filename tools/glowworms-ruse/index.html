@@ -47,6 +47,11 @@ h2{font-size:11px;font-weight:600;margin:0;text-transform:uppercase;letter-spaci
 .btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
 .btn.danger{color:var(--danger)}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.evdate{border:1px solid var(--line-strong);background:var(--bg);border-radius:7px;padding:5px 8px;font-size:13px;color-scheme:light dark;flex:1;min-width:0}
+.evdate:focus{outline:none;border-color:var(--accent)}
+.evtag{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.evtag.set{color:var(--accent);border-color:var(--accent)}
+.evgrid{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px}.evgrid span:nth-child(odd){color:var(--muted)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .alli{display:flex;flex-direction:column;gap:4px}
 .al{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid transparent;cursor:pointer}
@@ -174,6 +179,17 @@ details summary::-webkit-details-marker{display:none}
     </section>
 
     <section class="card">
+      <div class="head"><h2>Event start</h2><span class="evtag" id="evTag">Estimated</span></div>
+      <div class="row">
+        <button class="btn" id="evPrev" aria-label="One day earlier">&#9664;</button>
+        <input type="date" id="evDate" class="evdate" aria-label="Event start date (UTC)">
+        <button class="btn" id="evNext" aria-label="One day later">&#9654;</button>
+      </div>
+      <div class="evgrid" id="evInfo"></div>
+      <div class="row"><span class="sub" id="evNote" style="flex:1"></span><button class="btn ghost" id="evReset" hidden>Use estimate</button></div>
+    </section>
+
+    <section class="card">
       <div class="tabs" role="group" aria-label="Goal list">
         <button id="tChron" aria-pressed="true">Chronicles</button>
         <button id="tDom" aria-pressed="false">Domination</button>
@@ -265,6 +281,13 @@ const CH=[
  [10,"Capture 1 Pantheon","A",T.pantheon,U(10,22)],[11,"Capture 1 Lv.3 Pass","A",T.p3,U(10,23)],[12,"Capture 1 Lv.4 Pass","A",T.p4,U(10,24)],
  [13,"Capture the Ziggurat of Corruption","W",T.zig,U(10,25)]
 ].map(([n,t,m,ty,st])=>({id:"c"+n,n,title:t,m,ty,start:st,end:st+864e5}));
+/* Event schedule: rounds every 56 days from Oct 3, 2026 (00:00 UTC), same as the Era Grouping calculator.
+   Announcement 5d, Matching 1d, Reveal & Prelude 5d, Land of the Abyss 14d, Closing 3d.
+   Chapter 1 opens 10d 22h after the round starts, then one chapter per day. */
+const DAYMS=864e5, EV_ANCHOR=Date.UTC(2026,9,3), EV_CYCLE=56*DAYMS, EV_LEN=28*DAYMS, CH_OFF=CH[0].start-EV_ANCHOR;
+const estStart=(now=Date.now())=>{let k=Math.floor((now-EV_ANCHOR)/EV_CYCLE); let st=EV_ANCHOR+k*EV_CYCLE; if(now>=st+EV_LEN) st+=EV_CYCLE; return st;};
+const toYMD=t=>new Date(t).toISOString().slice(0,10);
+const fromYMD=v=>{const [y,m,d]=v.split("-").map(Number); return Date.UTC(y,m-1,d);};
 const DOM=[
  ["d1","Capture 10 Territories","A",ANY,10,33],["d2","Capture 30 Territories","A",ANY,30,33],["d3","Capture 50 Territories","A",ANY,50,33],
  ["d4","Capture 1 Bastion","A",T.bastion,1,2],["d5","Capture 2 Great Trees","A",T.trees,2,1],["d6","Capture 2 Temples","A",T.temple,2,2],
@@ -291,6 +314,9 @@ const esc=v=>String(v).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const elig=(g,id)=>g.ty===ANY?items[id].kind==="t":g.ty.includes(typeOf(id));
 const ST=["target","captured","restored"], STN={target:"Target",captured:"Captured",restored:"Restored"};
 const STC={target:"#ffffff",captured:"#f5a524",restored:"#22c55e"};
+const evStart=()=>{const v=S.evStart; return (typeof v==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(v))?fromYMD(v):estStart();};
+function applySchedule(){const st=evStart(); CH.forEach((c,i)=>{c.start=st+CH_OFF+i*DAYMS; c.end=c.start+DAYMS;});}
+applySchedule();
 if(!S.goal){const nx=CH.find(c=>!S.chDone[c.id]&&c.end>Date.now()); S.goal=nx?nx.id:"c13";}
 
 /* ---------- map build ---------- */
@@ -382,6 +408,24 @@ function renderDetail(){
 }
 $("tChron").onclick=()=>{S.tab="chron"; save(); renderGoals();};
 $("tDom").onclick=()=>{S.tab="dom"; save(); renderGoals();};
+const fmtLocal=t=>new Date(t).toLocaleString([], {weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+const fmtDay=t=>new Date(t).toLocaleDateString([], {weekday:"short",month:"short",day:"numeric",timeZone:"UTC"});
+function renderEvent(){
+  const st=evStart(), set=!!S.evStart, est=estStart();
+  $("evDate").value=toYMD(st);
+  $("evTag").textContent=set?"Custom":"Estimated"; $("evTag").classList.toggle("set",set);
+  $("evInfo").innerHTML=`<span>Matching</span><b>${fmtDay(st+5*DAYMS)}</b>`+
+    `<span>Land of the Abyss</span><b>${fmtDay(st+11*DAYMS)} – ${fmtDay(st+24*DAYMS)}</b>`+
+    `<span>Chapter 1 opens</span><b>${fmtLocal(CH[0].start)}</b>`+
+    `<span>Event ends</span><b>${fmtDay(st+27*DAYMS)}</b>`;
+  $("evNote").textContent=set?"Estimate: "+fmtDay(est):"From the 56-day schedule. Change it if the game moves the event.";
+  $("evReset").hidden=!set;
+}
+function setEvStart(t){const v=t==null?null:toYMD(t); if(v===toYMD(estStart())) S.evStart=null; else S.evStart=v; save(); applySchedule(); renderEvent(); renderGoals();}
+$("evDate").onchange=e=>{if(e.target.value) setEvStart(fromYMD(e.target.value));};
+$("evPrev").onclick=()=>setEvStart(evStart()-DAYMS);
+$("evNext").onclick=()=>setEvStart(evStart()+DAYMS);
+$("evReset").onclick=()=>setEvStart(null);
 
 /* ---------- alliances ---------- */
 function totals(){const o={}; S.alliances.forEach(a=>o[a.id]={n:0,s:0}); for(const id in S.owner){const a=o[S.owner[id]]; if(!a||!items[id]) continue; a.n++; const r=TY[typeOf(id)].r; if(r>12||items[id].kind==="g") a.s++;} return o;}
@@ -433,7 +477,7 @@ function updateModebar(){
   else {const a=alById(S.active); mb.hidden=!a; if(a) mb.textContent="Claiming for "+(a.name||"alliance");}
 }
 function setMode(m){S.mode=m; $("mPlan").setAttribute("aria-pressed",String(m==="plan")); $("mClaim").setAttribute("aria-pressed",String(m==="claim")); $("mDraw").setAttribute("aria-pressed",String(m==="draw")); save(); renderDetail(); updateModebar(); if(typeof renderTools==="function") renderTools();}
-function renderAll(){paint(); renderGoals(); renderAlliances(); updateModebar(); if(typeof paintShapes==="function") paintShapes();}
+function renderAll(){paint(); renderEvent(); renderGoals(); renderAlliances(); updateModebar(); if(typeof paintShapes==="function") paintShapes();}
 $("mPlan").onclick=()=>setMode("plan"); $("mClaim").onclick=()=>setMode("claim"); $("mDraw").onclick=()=>setMode("draw");
 $("addAl").onclick=()=>{const keepDraw=S.mode==="draw";const used=new Set(S.alliances.map(a=>a.color)); const c=PALETTE.find(p=>!used.has(p))||PALETTE[0];
   const a={id:"a"+Date.now().toString(36),name:"Alliance "+(S.alliances.length+1),color:c}; S.alliances.push(a); S.active=a.id; save(); setMode(keepDraw?"draw":"claim"); renderAll();
@@ -442,7 +486,7 @@ $("bgChk").checked=S.bg; $("bgOp").value=S.bgOp; $("mkChk").checked=S.mk;
 $("bgChk").onchange=e=>{S.bg=e.target.checked; save(); paint();};
 $("bgOp").oninput=e=>{S.bgOp=+e.target.value; save(); paint();};
 $("mkChk").onchange=e=>{S.mk=e.target.checked; save(); paint();};
-setInterval(()=>{if(S.tab==="chron") renderGoals();},30000);
+setInterval(()=>{if(!S.evStart){applySchedule(); renderEvent();} if(S.tab==="chron") renderGoals();},30000);
 
 /* ---------- copy / import ---------- */
 function copyText(txt,msg){
@@ -450,11 +494,12 @@ function copyText(txt,msg){
   const fallback=()=>{$("impBox").hidden=false; $("impText").value=txt; $("impText").select(); show("Copy blocked here. The text is selected below.");};
   try{navigator.clipboard.writeText(txt).then(()=>show(msg),fallback);}catch(e){fallback();}
 }
-$("cpPlan").onclick=()=>copyText(JSON.stringify({glowwormPlan:3,alliances:S.alliances,owner:S.owner,tgt:S.tgt,prog:S.prog,chDone:S.chDone,shapes:S.shapes}),"Plan copied");
+$("cpPlan").onclick=()=>copyText(JSON.stringify({glowwormPlan:3,alliances:S.alliances,owner:S.owner,tgt:S.tgt,prog:S.prog,chDone:S.chDone,shapes:S.shapes,evStart:S.evStart||null}),"Plan copied");
 $("showImp").onclick=()=>{$("impBox").hidden=!$("impBox").hidden;};
 $("doImp").onclick=()=>{
   try{const o=JSON.parse($("impText").value); if(!o.glowwormPlan) throw 0;
     ["owner","tgt","prog","chDone","shapes"].forEach(k=>{if(o[k]) S[k]=o[k];});
+    if("evStart" in o){S.evStart=o.evStart||null; applySchedule(); renderEvent();}
     if(o.alliances){S.alliances=o.alliances; S.active=S.alliances[0]?.id||null;}
     save(); renderAll(); $("impMsg").textContent="Loaded.";}
   catch(e){$("impMsg").textContent="That text isn't a copied plan. Paste the whole thing.";}
