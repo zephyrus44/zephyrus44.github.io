@@ -8,6 +8,7 @@ Event planners and calculators for Avatar Realms Collide, served at https://zeph
 index.html      the site: home page, sidebar, and the frame each tool opens in
 tools.js        the list of tools (names, groups, descriptions, icons, files)
 theme.css       shared colours, fonts and shapes used by the site and every tool
+nav.js          top bar and tool menu for HTML tools opened as full pages (phones and tablets)
 404.html        shown for addresses that don't exist
 tools/<name>/   one folder per tool
 data/           world power and warzone data from dengsden.com, used by Era Grouping
@@ -20,7 +21,7 @@ Older addresses (`grand-melee-planner.html`, `era-grouping.html`, `GlowwormsRuse
 
 - **Update:** replace the file inside its `tools/<name>/` folder.
 - **Add:** create `tools/<name>/`, put the tool in it, and add an entry to `tools.js`.
-  - A finished HTML page goes in as `index.html` and is listed with `page: "tools/<name>/"`.
+  - A finished HTML page goes in as `index.html` and is listed with `page: "tools/<name>/"`. Add `<script src="/nav.js" defer></script>` to its `<head>` so it gets the site menu on phones.
   - A React component goes in as a `.jsx` file and is listed with `file: "tools/<name>/<file>.jsx"`.
 
 ## Look and feel

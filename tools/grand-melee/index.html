@@ -6,11 +6,11 @@
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>Grand Melee Planner</title>
+<title>Murong's Grand Melee</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="/theme.css">
-<script src="/nav.js" data-title="Grand Melee" data-accent="#F08C33" defer></script>
+<script src="/nav.js" data-title="Murong&#39;s Grand Melee" data-accent="#F08C33" defer></script>
 <style id="gm-css">
 /* Layout: control rail on the left, full-bleed pannable map on the right; stacks on phones (same system as the Glowworm's Ruse planner) */
 :root{
@@ -849,7 +849,7 @@ function decodePlan(code) {
   return pr.then(function (u) { var p = JSON.parse(new TextDecoder().decode(u)); if (!p || !Array.isArray(p.phases)) throw new Error('bad'); return p; });
 }
 var SKEL_CSS = ':root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}';
-var HEAD_SRC = '<title>Grand Melee Planner<\/title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">\n';
+var HEAD_SRC = '<title>Murong\'s Grand Melee<\/title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">\n';
 function buildDocument(p) {
   var hs = document.head && document.head.querySelector('style');
   var reset = (hs && hs.textContent.trim()) || SKEL_CSS;

@@ -6,7 +6,7 @@
  *   group    "planners" or "calculators" (see GROUPS)
  *   blurb    one line about what it does, shown on the home page
  *   accent   colour of its icon
- *   icon     one of: swords, spark, temple, arrows, layers, cycle (optional)
+ *   icon     one of the ARC_ICONS below (optional)
  *   page     a finished HTML page, shown full size        ─┐ use one
  *   file     a React .jsx component, compiled in the page ─┘
  *   aliases  older ids that should still open this tool (optional)
@@ -22,9 +22,9 @@ window.ARC_GROUPS = [
 window.ARC_TOOLS = [
   {
     id: "grand-melee",
-    name: "Grand Melee",
+    name: "Murong's Grand Melee",
     group: "planners",
-    blurb: "Plan Murong's Grand Melee phase by phase with arrows, markers and team rosters, then share the plan.",
+    blurb: "Plan the event phase by phase with arrows, markers and team rosters, then share the plan.",
     accent: "#F08C33",
     icon: "swords",
     page: "tools/grand-melee/",
@@ -79,3 +79,13 @@ window.ARC_TOOLS = [
     aliases: ["hero"],
   },
 ];
+
+/* Tool icons: 24×24 line drawings (SVG path data). */
+window.ARC_ICONS = {
+  swords: '<path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5L18 3h3v3l-3.5 3.5"/><path d="M5 14l4 4M7 17l-3 3M3 19l2 2"/>',
+  spark: '<path d="M11 3.5l1.9 5.1 5.1 1.9-5.1 1.9L11 17.5l-1.9-5.1L4 10.5l5.1-1.9z"/><path d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>',
+  temple: '<path d="M12 3l8.5 5h-17z"/><path d="M5 11v7M9.7 11v7M14.3 11v7M19 11v7"/><path d="M3 21h18"/>',
+  arrows: '<path d="M7.5 4L3.5 8l4 4"/><path d="M3.5 8H17"/><path d="M16.5 12l4 4-4 4"/><path d="M20.5 16H7"/>',
+  layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 12.5l9 5 9-5"/><path d="M3 16.5l9 5 9-5"/>',
+  cycle: '<path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M20.5 3.5V9H15"/>',
+};
