@@ -51,7 +51,12 @@ h2{font-size:11px;font-weight:600;margin:0;text-transform:uppercase;letter-spaci
 .evdate:focus{outline:none;border-color:var(--accent)}
 .evtag{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
 .evtag.set{color:var(--accent);border-color:var(--accent)}
-.evgrid{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px}.evgrid span:nth-child(odd){color:var(--muted)}
+.evgrid{display:flex;flex-direction:column;gap:2px;font-size:12.5px}
+.ph{display:grid;grid-template-columns:8px 1fr auto;gap:8px;align-items:center;padding:4px 6px;border-radius:6px}
+.ph i{width:8px;height:8px;border-radius:50%;background:var(--line-strong)}
+.ph .d{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ph.past{opacity:.55}.ph.now{background:var(--accent-soft)}.ph.now i{background:var(--accent)}.ph.now b{color:var(--accent)}
+.evsub{color:var(--muted);font-size:12px;padding:2px 6px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .alli{display:flex;flex-direction:column;gap:4px}
 .al{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid transparent;cursor:pointer}
@@ -286,6 +291,7 @@ const CH=[
    Chapter 1 opens 10d 22h after the round starts, then one chapter per day. */
 const DAYMS=864e5, EV_ANCHOR=Date.UTC(2026,9,3), EV_CYCLE=56*DAYMS, EV_LEN=28*DAYMS, CH_OFF=CH[0].start-EV_ANCHOR;
 const estStart=(now=Date.now())=>{let k=Math.floor((now-EV_ANCHOR)/EV_CYCLE); let st=EV_ANCHOR+k*EV_CYCLE; if(now>=st+EV_LEN) st+=EV_CYCLE; return st;};
+const PHASES=[["Announcement",5],["Matching",1],["Reveal & Prelude",5],["Land of the Abyss",14],["Closing",3]];
 const toYMD=t=>new Date(t).toISOString().slice(0,10);
 const fromYMD=v=>{const [y,m,d]=v.split("-").map(Number); return Date.UTC(y,m-1,d);};
 const DOM=[
@@ -414,10 +420,13 @@ function renderEvent(){
   const st=evStart(), set=!!S.evStart, est=estStart();
   $("evDate").value=toYMD(st);
   $("evTag").textContent=set?"Custom":"Estimated"; $("evTag").classList.toggle("set",set);
-  $("evInfo").innerHTML=`<span>Matching</span><b>${fmtDay(st+5*DAYMS)}</b>`+
-    `<span>Land of the Abyss</span><b>${fmtDay(st+11*DAYMS)} – ${fmtDay(st+24*DAYMS)}</b>`+
-    `<span>Chapter 1 opens</span><b>${fmtLocal(CH[0].start)}</b>`+
-    `<span>Event ends</span><b>${fmtDay(st+27*DAYMS)}</b>`;
+  const now=Date.now(); let t=st;
+  $("evInfo").innerHTML=PHASES.map(([name,len])=>{const a=t,b=t+len*DAYMS; t=b;
+    const cls=now>=b?"past":now>=a?"now":"";
+    const md=x=>new Date(x).toLocaleDateString([], {month:"short",day:"numeric",timeZone:"UTC"});
+    const when=len===1?fmtDay(a):md(a)+" – "+md(b-DAYMS);
+    return `<div class="ph ${cls}"><i></i><b>${name}</b><span class="d">${when} · ${len}d</span></div>`;}).join("")+
+    `<div class="evsub">Chapter 1 opens ${fmtLocal(CH[0].start)}</div>`;
   $("evNote").textContent=set?"Estimate: "+fmtDay(est):"From the 56-day schedule. Change it if the game moves the event.";
   $("evReset").hidden=!set;
 }
