@@ -1,0 +1,45 @@
+name: Update Deng's Den data
+
+on:
+  schedule:
+    - cron: "17 8 * * *"   # 08:17 UTC daily (Deng's snapshot lands ~07:00 UTC)
+  workflow_dispatch:        # lets you run it by hand from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download
+        run: |
+          set -euo pipefail
+          mkdir -p data/history
+          UA="Mozilla/5.0 (era-grouping tool; one request per day)"
+          curl -fsS -A "$UA" https://dengsden.com/avatar/api/servers -o /tmp/servers.json
+          curl -fsS -A "$UA" https://dengsden.com/avatar/api/svs     -o /tmp/svs.json
+          # Only keep the files if they parsed as JSON
+          jq -e '.rows | length > 0'   /tmp/servers.json > /dev/null
+          jq -e '.worlds | type == "array"' /tmp/svs.json > /dev/null
+          cp /tmp/servers.json data/deng-servers.json
+          cp /tmp/svs.json     data/deng-svs.json
+          # Small daily history (top-100 power per world)
+          DAY=$(jq -r '.taken_at[0:10]' /tmp/servers.json)
+          jq -c '{taken_at, top100: (.rows | map({key: (.server|tostring), value: (.top100_sum|tonumber)}) | from_entries)}' \
+            /tmp/servers.json > "data/history/servers-$DAY.json"
+          # Keep each round's actual warzones once they appear
+          START=$(jq -r '.start // empty | todate | .[0:10]' /tmp/svs.json)
+          if [ -n "$START" ] && [ "$(jq '.worlds | length' /tmp/svs.json)" -gt 0 ]; then
+            cp /tmp/svs.json "data/history/svs-$START.json"
+          fi
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "Update Deng's Den data"
+          git push

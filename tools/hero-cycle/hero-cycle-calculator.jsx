@@ -151,64 +151,63 @@ export default function HeroCycleCalculator() {
   }, [server, validServer, t, validDate]);
 
   const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-    .hc-root { min-height: 100vh; background: #0E1520; color: #E9E2D0;
-      font-family: 'IBM Plex Sans', sans-serif; padding: 28px 16px 60px; }
+    .hc-root { min-height: 100vh; background: var(--arc-bg, #0E1116); color: var(--arc-text, #E8EAEE);
+      font-family: var(--arc-font, "Geist", Inter, system-ui, sans-serif); font-size: 14px; line-height: 1.5;
+      padding: 48px 40px 72px; -webkit-font-smoothing: antialiased; }
     .hc-root * { box-sizing: border-box; }
-    .hc-wrap { max-width: 760px; margin: 0 auto; }
-    .hc-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-      letter-spacing: 0.22em; color: #8FA0B3; text-transform: uppercase; }
-    .hc-title { font-family: 'Cinzel', serif; font-weight: 600; font-size: 30px;
-      letter-spacing: 0.04em; margin: 6px 0 2px; }
-    .hc-sub { color: #8FA0B3; font-size: 13px; margin-bottom: 24px; }
-    .hc-card { background: #16202E; border: 1px solid #24364A; border-radius: 10px;
-      padding: 18px; margin-bottom: 16px; }
-    .hc-controls { display: flex; flex-wrap: wrap; gap: 20px; }
-    .hc-field label { display: block; font-size: 11px; letter-spacing: 0.14em;
-      text-transform: uppercase; color: #8FA0B3; margin-bottom: 6px;
-      font-family: 'IBM Plex Mono', monospace; }
-    .hc-input { background: #0E1520; border: 1px solid #24364A; color: #E9E2D0;
-      border-radius: 6px; padding: 9px 12px; font-size: 16px; width: 130px; height: 42px;
-      font-family: 'IBM Plex Mono', monospace; color-scheme: dark; }
-    .hc-input:focus { outline: 2px solid #4FA3D1; outline-offset: 1px; }
-    .hc-status { display: inline-block; font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; padding: 2px 8px; border-radius: 999px;
-      border: 1px solid #24364A; color: #8FA0B3; }
-    .hc-status.live { color: #7FB069; border-color: #7FB069; }
-    .hc-status.upcoming { color: #4FA3D1; border-color: #4FA3D1; }
-    .hc-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0 16px; }
-    .hc-hero { background: #0E1520; border: 1px solid #24364A; border-radius: 8px;
-      padding: 14px; border-left-width: 3px; }
-    .hc-k { font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-      letter-spacing: 0.14em; text-transform: uppercase; color: #8FA0B3; }
-    .hc-name { font-family: 'Cinzel', serif; font-weight: 600; font-size: 20px;
-      letter-spacing: 0.02em; margin-top: 4px; line-height: 1.2; }
-    .hc-stats { display: flex; gap: 26px; flex-wrap: wrap; }
-    .hc-stat .v { font-size: 16px; margin-top: 3px; }
-    .hc-band { display: flex; gap: 3px; margin-top: 18px; }
-    .hc-seg { flex: 1; height: 8px; border-radius: 2px; opacity: 0.25; }
-    .hc-seg.cur { opacity: 1; }
-    .hc-bandlbl { display: flex; justify-content: space-between; margin-top: 6px;
-      font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #8FA0B3; }
-    .hc-next { margin-top: 14px; font-size: 13px; color: #8FA0B3; }
-    .hc-next b { color: #E9E2D0; font-weight: 500; }
-    .hc-scroll { overflow-x: auto; border: 1px solid #24364A; border-radius: 8px; }
-    .hc-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 560px; }
-    .hc-table th { text-align: left; font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: #8FA0B3; font-weight: 400; padding: 8px 10px;
-      border-bottom: 1px solid #24364A; }
-    .hc-table td { padding: 8px 10px; border-bottom: 1px solid #1c2a3b; }
+    .hc-root button { font-family: inherit; }
+    .hc-wrap { max-width: 880px; margin: 0 auto; }
+    .hc-eyebrow { display: none; }
+    .hc-title { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 8px; }
+    .hc-sub { color: var(--arc-mut, #8B93A1); font-size: 15px; max-width: 62ch; margin-bottom: 28px; }
+    .hc-card { background: var(--arc-panel, #161A21); border: 1px solid var(--arc-line, #232934); border-radius: 14px;
+      padding: 20px; margin-bottom: 16px; }
+    .hc-controls { display: flex; flex-wrap: wrap; gap: 20px 28px; }
+    .hc-field label { display: block; font-size: 13px; font-weight: 500; color: var(--arc-mut, #8B93A1); margin-bottom: 8px; }
+    .hc-input { background: var(--arc-bg, #0E1116); border: 1px solid var(--arc-line-2, #2E3542); color: var(--arc-text, #E8EAEE);
+      border-radius: 10px; padding: 0 12px; height: 40px; width: 130px;
+      font: 500 16px/1 var(--arc-font, "Geist", Inter, system-ui, sans-serif); font-variant-numeric: tabular-nums; color-scheme: dark;
+      transition: border-color .15s, box-shadow .15s; }
+    .hc-input:focus { outline: none; border-color: var(--arc-accent, #7EA0FF); box-shadow: 0 0 0 3px var(--arc-accent-soft, #1D2640); }
+    .hc-status { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px;
+      border: 1px solid var(--arc-line-2, #2E3542); color: var(--arc-mut, #8B93A1); font-size: 12px; font-weight: 500; vertical-align: middle; }
+    .hc-status.live { color: var(--arc-ok, #5FD394); border-color: color-mix(in srgb, var(--arc-ok, #5FD394) 45%, transparent); }
+    .hc-status.upcoming { color: var(--arc-accent, #7EA0FF); border-color: color-mix(in srgb, var(--arc-accent, #7EA0FF) 45%, transparent); }
+    .hc-stats { display: flex; gap: 18px 32px; flex-wrap: wrap; }
+    .hc-stat .k { font-size: 12.5px; font-weight: 500; color: var(--arc-mut, #8B93A1); }
+    .hc-stat .v { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .hc-scroll { border: 1px solid var(--arc-line, #232934); border-radius: 12px; background: var(--arc-panel, #161A21); }
+    .hc-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .hc-table th { position: sticky; top: 0; z-index: 1; text-align: left; font-size: 12.5px; font-weight: 500;
+      color: var(--arc-mut, #8B93A1); padding: 11px 14px; background: var(--arc-rail, #12161C); border-bottom: 1px solid var(--arc-line, #232934); }
+    .hc-table td { padding: 10px 14px; border-bottom: 1px solid var(--arc-line, #232934); font-variant-numeric: tabular-nums; }
     .hc-table tr:last-child td { border-bottom: none; }
-    .hc-table tr.you td { background: #1d2c40; }
-    .hc-mono { font-family: 'IBM Plex Mono', monospace; }
-    .hc-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
-      margin-right: 7px; vertical-align: baseline; }
-    .hc-note { color: #8FA0B3; font-size: 12px; line-height: 1.6; margin-top: 22px; }
-    .hc-warn { color: #E8C468; font-size: 14px; line-height: 1.6; }
-    .hc-est { color: #E8C468; }
-    @media (max-width: 520px) {
-      .hc-title { font-size: 24px; } .hc-stats { gap: 16px; }
+    .hc-table tbody tr:hover td { background: var(--arc-raise, #1C222B); }
+    .hc-table tr.you td { background: var(--arc-accent-soft, #1D2640); }
+    .hc-mono { font-variant-numeric: tabular-nums; }
+    .hc-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+    .hc-note { color: var(--arc-mut, #8B93A1); font-size: 13px; line-height: 1.65; max-width: 72ch; margin-top: 28px; }
+    .hc-warn { color: var(--arc-warn, #F0B35A); font-size: 14px; line-height: 1.6; }
+    .hc-warn b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
+    .hc-est { color: var(--arc-warn, #F0B35A); }
+    .hc-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 18px; }
+    .hc-hero { background: var(--arc-bg, #0E1116); border: 1px solid var(--arc-line, #232934); border-left-width: 3px; border-radius: 12px; padding: 14px 16px; }
+    .hc-k { font-size: 12.5px; font-weight: 500; color: var(--arc-mut, #8B93A1); }
+    .hc-name { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.2; margin-top: 4px; }
+    .hc-band { display: flex; gap: 3px; margin-top: 20px; }
+    .hc-seg { flex: 1; height: 8px; border-radius: 3px; opacity: 0.22; }
+    .hc-seg.cur { opacity: 1; }
+    .hc-bandlbl { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11.5px;
+      color: var(--arc-mut, #8B93A1); font-variant-numeric: tabular-nums; }
+    .hc-next { margin-top: 16px; font-size: 13.5px; color: var(--arc-mut, #8B93A1); }
+    .hc-next b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
+    .hc-scroll { overflow-x: auto; }
+    .hc-table { min-width: 560px; }
+    @media (max-width: 600px) {
+      .hc-root { padding: 28px 16px 56px; }
+      .hc-title { font-size: 26px; }
+      .hc-stats { gap: 14px 22px; }
+      .hc-card { padding: 16px; }
       .hc-pair { grid-template-columns: 1fr; }
     }
   `;
@@ -223,7 +222,7 @@ export default function HeroCycleCalculator() {
         <div className="hc-eyebrow">Avatar Realms Collide · All times UTC</div>
         <h1 className="hc-title">Hero Cycle</h1>
         <div className="hc-sub">
-          The Greatest Leader and Wheel of Fate heroes for any server on any date.
+          The Greatest Leader and Wheel of Fate heroes for any server on any date. All dates are in UTC.
         </div>
 
         <div className="hc-card">
@@ -263,7 +262,7 @@ export default function HeroCycleCalculator() {
                     {r.cur.pair.wheel}
                   </div>
                 </div>
-                <div className="hc-hero" style={{ borderLeftColor: "#8FA0B3" }}>
+                <div className="hc-hero" style={{ borderLeftColor: "var(--arc-line-2, #2E3542)" }}>
                   <div className="hc-k">TGL rewards</div>
                   <div className="hc-name">{r.cur.pair.tgl}</div>
                 </div>

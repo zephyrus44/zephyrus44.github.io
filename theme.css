@@ -1,0 +1,61 @@
+/* ARC Tools: shared look for the site and every tool.
+ * Colours, type and radii live here so everything stays consistent.
+ * Tools link this file (HTML pages) or read these variables (React tools).
+ */
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap");
+
+:root {
+  /* surfaces, darkest to lightest */
+  --arc-bg: #0E1116;
+  --arc-rail: #12161C;
+  --arc-panel: #161A21;
+  --arc-raise: #1C222B;
+  --arc-hover: #212833;
+
+  /* lines */
+  --arc-line: #232934;
+  --arc-line-2: #2E3542;
+
+  /* text */
+  --arc-text: #E8EAEE;
+  --arc-mut: #8B93A1;
+  --arc-dim: #5F6774;
+
+  /* accents */
+  --arc-accent: #7EA0FF;
+  --arc-accent-soft: #1D2640;
+  --arc-accent-ink: #0B1020;
+  --arc-gold: #F4BF41;
+  --arc-gold-soft: #2E2714;
+  --arc-ok: #5FD394;
+  --arc-ok-soft: #173326;
+  --arc-warn: #F0B35A;
+  --arc-warn-soft: #3A2A12;
+  --arc-bad: #FF7A63;
+  --arc-bad-soft: #3A1C17;
+
+  /* type */
+  --arc-font: "Geist", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --arc-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* shape */
+  --arc-r-sm: 8px;
+  --arc-r: 10px;
+  --arc-r-lg: 14px;
+  --arc-ease: cubic-bezier(.2, .7, .2, 1);
+
+  color-scheme: dark;
+}
+
+/* Touch screens (phones, tablets) ----------------------------------------
+ * Fields under 16px make iPhone Safari zoom the page on tap, so they are
+ * bumped to 16px. Small checkboxes and sliders get room for a fingertip.
+ * Desktop with a mouse is unaffected.
+ */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea { font-size: max(16px, 1em) !important; }
+  input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; }
+  input[type="range"] { min-height: 28px; }
+}

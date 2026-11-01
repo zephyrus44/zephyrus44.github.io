@@ -150,64 +150,70 @@ export default function MigrationScout() {
     result?.list?.filter((r) => posFilter === 0 || r.pos === posFilter) ?? [];
 
   const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-    .ms-root { min-height: 100vh; background: #0E1520; color: #E9E2D0;
-      font-family: 'IBM Plex Sans', sans-serif; padding: 28px 16px 60px; }
-    .ms-wrap { max-width: 760px; margin: 0 auto; }
-    .ms-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-      letter-spacing: 0.22em; color: #8FA0B3; text-transform: uppercase; }
-    .ms-title { font-family: 'Cinzel', serif; font-weight: 600; font-size: 30px;
-      letter-spacing: 0.04em; margin: 6px 0 2px; }
-    .ms-sub { color: #8FA0B3; font-size: 13px; margin-bottom: 24px; }
-    .ms-card { background: #16202E; border: 1px solid #24364A; border-radius: 10px;
-      padding: 18px; margin-bottom: 16px; }
-    .ms-controls { display: flex; flex-wrap: wrap; gap: 20px; }
-    .ms-field label { display: block; font-size: 11px; letter-spacing: 0.14em;
-      text-transform: uppercase; color: #8FA0B3; margin-bottom: 6px;
-      font-family: 'IBM Plex Mono', monospace; }
-    .ms-input { background: #0E1520; border: 1px solid #24364A; color: #E9E2D0;
-      border-radius: 6px; padding: 9px 12px; font-size: 16px; width: 130px;
-      font-family: 'IBM Plex Mono', monospace; }
-    .ms-input:focus { outline: 2px solid #4FA3D1; outline-offset: 1px; }
-    .ms-step { background: #24364A; border: none; color: #E9E2D0; width: 38px;
-      height: 38px; border-radius: 6px; font-size: 18px; cursor: pointer; }
-    .ms-step:hover { background: #2f4560; }
-    .ms-row { display: flex; align-items: center; gap: 8px; }
-    .ms-eventmeta { font-size: 13px; color: #8FA0B3; margin-top: 10px; }
-    .ms-eventmeta b { color: #E9E2D0; font-weight: 500; }
-    .ms-status { display: inline-block; font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; padding: 2px 8px; border-radius: 999px; margin-left: 8px;
-      border: 1px solid #24364A; color: #8FA0B3; }
-    .ms-status.live { color: #7FB069; border-color: #7FB069; }
-    .ms-seal { display: inline-flex; align-items: center; justify-content: center;
-      width: 64px; height: 64px; border-radius: 50%; border: 2px solid;
-      font-family: 'Cinzel', serif; font-size: 26px; font-weight: 600; flex: none; }
-    .ms-yourgrid { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
-    .ms-stats { display: flex; gap: 26px; flex-wrap: wrap; }
-    .ms-stat .k { font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-      letter-spacing: 0.14em; text-transform: uppercase; color: #8FA0B3; }
-    .ms-stat .v { font-size: 16px; margin-top: 3px; }
-    .ms-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-    .ms-chip { background: transparent; border: 1px solid #24364A; color: #8FA0B3;
-      border-radius: 999px; padding: 6px 14px; font-size: 13px; cursor: pointer;
-      font-family: 'IBM Plex Sans', sans-serif; }
-    .ms-chip.on { color: #0E1520; font-weight: 600; }
+    .ms-root { min-height: 100vh; background: var(--arc-bg, #0E1116); color: var(--arc-text, #E8EAEE);
+      font-family: var(--arc-font, "Geist", Inter, system-ui, sans-serif); font-size: 14px; line-height: 1.5;
+      padding: 48px 40px 72px; -webkit-font-smoothing: antialiased; }
+    .ms-root * { box-sizing: border-box; }
+    .ms-root button { font-family: inherit; }
+    .ms-wrap { max-width: 880px; margin: 0 auto; }
+    .ms-eyebrow { display: none; }
+    .ms-title { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 8px; }
+    .ms-sub { color: var(--arc-mut, #8B93A1); font-size: 15px; max-width: 62ch; margin-bottom: 28px; }
+    .ms-card { background: var(--arc-panel, #161A21); border: 1px solid var(--arc-line, #232934); border-radius: 14px;
+      padding: 20px; margin-bottom: 16px; }
+    .ms-controls { display: flex; flex-wrap: wrap; gap: 20px 28px; }
+    .ms-field label { display: block; font-size: 13px; font-weight: 500; color: var(--arc-mut, #8B93A1); margin-bottom: 8px; }
+    .ms-input { background: var(--arc-bg, #0E1116); border: 1px solid var(--arc-line-2, #2E3542); color: var(--arc-text, #E8EAEE);
+      border-radius: 10px; padding: 0 12px; height: 40px; width: 130px;
+      font: 500 16px/1 var(--arc-font, "Geist", Inter, system-ui, sans-serif); font-variant-numeric: tabular-nums; color-scheme: dark;
+      transition: border-color .15s, box-shadow .15s; }
+    .ms-input:focus { outline: none; border-color: var(--arc-accent, #7EA0FF); box-shadow: 0 0 0 3px var(--arc-accent-soft, #1D2640); }
+    .ms-status { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px;
+      border: 1px solid var(--arc-line-2, #2E3542); color: var(--arc-mut, #8B93A1); font-size: 12px; font-weight: 500; vertical-align: middle; }
+    .ms-status.live { color: var(--arc-ok, #5FD394); border-color: color-mix(in srgb, var(--arc-ok, #5FD394) 45%, transparent); }
+    .ms-status.upcoming { color: var(--arc-accent, #7EA0FF); border-color: color-mix(in srgb, var(--arc-accent, #7EA0FF) 45%, transparent); }
+    .ms-stats { display: flex; gap: 18px 32px; flex-wrap: wrap; }
+    .ms-stat .k { font-size: 12.5px; font-weight: 500; color: var(--arc-mut, #8B93A1); }
+    .ms-stat .v { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .ms-scroll { border: 1px solid var(--arc-line, #232934); border-radius: 12px; background: var(--arc-panel, #161A21); }
     .ms-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    .ms-table th { text-align: left; font-family: 'IBM Plex Mono', monospace;
-      font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
-      color: #8FA0B3; font-weight: 400; padding: 6px 10px;
-      border-bottom: 1px solid #24364A; }
-    .ms-table td { padding: 8px 10px; border-bottom: 1px solid #1c2a3b; }
-    .ms-table tr.you td { background: #1d2c40; }
-    .ms-mono { font-family: 'IBM Plex Mono', monospace; }
-    .ms-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
-      margin-right: 7px; vertical-align: baseline; }
-    .ms-scroll { max-height: 420px; overflow-y: auto; border: 1px solid #24364A;
-      border-radius: 8px; }
-    .ms-note { color: #8FA0B3; font-size: 12px; line-height: 1.6; margin-top: 22px; }
-    .ms-warn { color: #E8C468; font-size: 14px; line-height: 1.6; }
-    .ms-est { color: #E8C468; }
-    @media (max-width: 520px) { .ms-title { font-size: 24px; } .ms-stats { gap: 16px; } }
+    .ms-table th { position: sticky; top: 0; z-index: 1; text-align: left; font-size: 12.5px; font-weight: 500;
+      color: var(--arc-mut, #8B93A1); padding: 11px 14px; background: var(--arc-rail, #12161C); border-bottom: 1px solid var(--arc-line, #232934); }
+    .ms-table td { padding: 10px 14px; border-bottom: 1px solid var(--arc-line, #232934); font-variant-numeric: tabular-nums; }
+    .ms-table tr:last-child td { border-bottom: none; }
+    .ms-table tbody tr:hover td { background: var(--arc-raise, #1C222B); }
+    .ms-table tr.you td { background: var(--arc-accent-soft, #1D2640); }
+    .ms-mono { font-variant-numeric: tabular-nums; }
+    .ms-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+    .ms-note { color: var(--arc-mut, #8B93A1); font-size: 13px; line-height: 1.65; max-width: 72ch; margin-top: 28px; }
+    .ms-warn { color: var(--arc-warn, #F0B35A); font-size: 14px; line-height: 1.6; }
+    .ms-warn b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
+    .ms-est { color: var(--arc-warn, #F0B35A); }
+    .ms-row { display: flex; align-items: center; gap: 8px; }
+    .ms-step { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px;
+      border: 1px solid var(--arc-line-2, #2E3542); background: var(--arc-raise, #1C222B); color: var(--arc-text, #E8EAEE);
+      font-size: 18px; line-height: 1; cursor: pointer; transition: background .15s; }
+    .ms-step:hover { background: var(--arc-hover, #212833); }
+    .ms-eventmeta { font-size: 13.5px; color: var(--arc-mut, #8B93A1); margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+    .ms-eventmeta b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
+    .ms-eventmeta.ms-est { color: var(--arc-warn, #F0B35A); margin-top: 10px; }
+    .ms-seal { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 50%;
+      border: 2px solid; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; flex: none; }
+    .ms-yourgrid { display: flex; gap: 22px; align-items: center; flex-wrap: wrap; }
+    .ms-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .ms-chip { height: 32px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--arc-line-2, #2E3542);
+      background: transparent; color: var(--arc-mut, #8B93A1); font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: background .15s, color .15s; }
+    .ms-chip:hover { color: var(--arc-text, #E8EAEE); background: var(--arc-raise, #1C222B); }
+    .ms-chip.on, .ms-chip.on:hover { color: var(--arc-bg, #0E1116); font-weight: 600; }
+    .ms-scroll { max-height: 440px; overflow-y: auto; }
+    @media (max-width: 600px) {
+      .ms-root { padding: 28px 16px 56px; }
+      .ms-title { font-size: 26px; }
+      .ms-stats { gap: 14px 22px; }
+      .ms-card { padding: 16px; }
+      .ms-table th, .ms-table td { padding-left: 10px; padding-right: 10px; }
+    }
   `;
 
   const groupColor = result?.group === 1 ? "#4FA3D1" : "#E8C468";
@@ -219,7 +225,7 @@ export default function MigrationScout() {
         <div className="ms-eyebrow">Avatar Realms Collide · All times UTC</div>
         <h1 className="ms-title">Migration Scout</h1>
         <div className="ms-sub">
-          Find your migration group and every compatible server, with SvS bracket order.
+          Find your migration group and every compatible server, with SvS bracket order. All dates are in UTC.
         </div>
 
         {/* Controls */}
@@ -319,7 +325,7 @@ export default function MigrationScout() {
             {eventN <= 2 ? (
               <span className="ms-status">confirmed date</span>
             ) : offset !== 0 ? (
-              <span className="ms-status" style={{ color: "#E8C468", borderColor: "#E8C468" }}>
+              <span className="ms-status" style={{ color: "var(--arc-warn, #F0B35A)", borderColor: "color-mix(in srgb, var(--arc-warn, #F0B35A) 45%, transparent)" }}>
                 {offset > 0 ? "+" : ""}{offset}d shifted
               </span>
             ) : (
@@ -375,7 +381,7 @@ export default function MigrationScout() {
                     <div className="k">Migration group</div>
                     <div className="v">
                       Group {result.group}{" "}
-                      <span style={{ color: "#8FA0B3", fontSize: 13 }}>
+                      <span style={{ color: "var(--arc-mut, #8B93A1)", fontSize: 13, fontWeight: 500 }}>
                         ({result.group === 1 ? "78–161 days" : "162+ days"})
                       </span>
                     </div>
@@ -417,8 +423,8 @@ export default function MigrationScout() {
                     style={
                       posFilter === p
                         ? {
-                            background: p === 0 ? "#E9E2D0" : ELEMENT[p].color,
-                            borderColor: p === 0 ? "#E9E2D0" : ELEMENT[p].color,
+                            background: p === 0 ? "var(--arc-text, #E8EAEE)" : ELEMENT[p].color,
+                            borderColor: p === 0 ? "var(--arc-text, #E8EAEE)" : ELEMENT[p].color,
                           }
                         : {}
                     }

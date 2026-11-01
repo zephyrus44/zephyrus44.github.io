@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glowworm's Ruse Era Grouping</title>
+<link rel="stylesheet" href="/theme.css">
+<style>
+  :root {
+    --bg: var(--arc-bg, #0E1116); --card: var(--arc-panel, #161A21); --card2: var(--arc-raise, #1C222B);
+    --line: var(--arc-line, #232934); --line2: var(--arc-line, #232934); --line-strong: var(--arc-line-2, #2E3542);
+    --text: var(--arc-text, #E8EAEE); --muted: var(--arc-mut, #8B93A1); --accent: var(--arc-accent, #7EA0FF);
+    --accent-soft: var(--arc-accent-soft, #1D2640); --you: var(--arc-accent-soft, #1D2640);
+    --warn: var(--arc-warn, #F0B35A); --ok: var(--arc-ok, #5FD394); --bad: var(--arc-bad, #FF7A63);
+    --font: var(--arc-font, "Geist", system-ui, sans-serif);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 40px 72px; }
+  .eyebrow { display: none; }
+  h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 8px; }
+  .sub { color: var(--muted); font-size: 15px; max-width: 62ch; margin-bottom: 28px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 20px 28px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  .lbl, .field label { font-size: 13px; font-weight: 500; color: var(--muted); }
+  .row { display: flex; gap: 8px; align-items: center; }
+  input, button, select { font: inherit; color: var(--text); }
+  input, select { height: 40px; background: var(--bg); border: 1px solid var(--line-strong); border-radius: 10px; padding: 0 12px; font-size: 15px; font-weight: 500; font-variant-numeric: tabular-nums; outline: none; color-scheme: dark; transition: border-color .15s, box-shadow .15s; }
+  input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  input.num { width: 72px; text-align: center; }
+  input.srv { width: 110px; }
+  button { height: 40px; min-width: 40px; background: var(--card2); border: 1px solid var(--line-strong); border-radius: 10px; padding: 0 12px; cursor: pointer; font-size: 13.5px; font-weight: 500; transition: background .15s; }
+  button:hover { background: var(--arc-hover, #212833); }
+  button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .eff { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); line-height: 1.7; }
+  .eff b { color: var(--text); font-weight: 600; }
+  .acc { color: var(--warn); }
+  .find { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; }
+  .stat .k { font-size: 12.5px; font-weight: 500; color: var(--muted); }
+  .stat .v { font-size: 19px; font-weight: 600; letter-spacing: -0.015em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .stat .v small { font-size: 12.5px; color: var(--muted); font-weight: 400; }
+  .opp { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
+  .opp b { color: var(--text); font-weight: 600; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 520px; }
+  th { text-align: left; font-size: 12.5px; font-weight: 500; color: var(--muted); padding: 11px 14px; background: var(--arc-rail, #12161C); border-bottom: 1px solid var(--line); }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  tr.era { cursor: pointer; }
+  tr.era:hover td { background: var(--card2); }
+  tr.you td { background: var(--you); }
+  tr.detail td { background: var(--bg); }
+  .mono { font-variant-numeric: tabular-nums; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+  .caret { color: var(--muted); font-size: 11px; margin-left: 6px; }
+  .tabs { display: flex; gap: 6px; margin: 2px 0 12px; }
+  .tabs button { height: 30px; padding: 0 12px; font-size: 12.5px; border-radius: 999px; background: transparent; color: var(--muted); }
+  .tabs button.on { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0; }
+  .chip { font-size: 12.5px; font-weight: 500; font-variant-numeric: tabular-nums; background: var(--card); border: 1px solid var(--line-strong); border-radius: 7px; padding: 4px 8px; cursor: pointer; }
+  .chip span { color: var(--muted); margin-left: 5px; font-weight: 400; }
+  .chip.hl { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .chip.est::after { content: '~'; color: var(--warn); margin-left: 2px; }
+  .wzs { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+  .wz { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .wz.hl { border-color: var(--accent); background: var(--accent-soft); }
+  .wz h4 { margin: 0 0 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); display: flex; justify-content: space-between; }
+  .wz .w { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; padding: 2px 0; cursor: pointer; }
+  .wz .w.me { color: var(--accent); font-weight: 600; }
+  .wz .w .p { color: var(--muted); }
+  .wz .w .m.ok { color: var(--ok); } .wz .w .m.bad { color: var(--bad); }
+  .check { font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .check b { color: var(--text); font-weight: 600; }
+  details.model summary { cursor: pointer; font-weight: 600; font-size: 14.5px; list-style: none; border-radius: 6px; }
+  details.model summary::-webkit-details-marker { display: none; }
+  details.model summary::before { content: '▸ '; color: var(--muted); }
+  details.model[open] summary::before { content: '▾ '; }
+  .mgrid { display: grid; grid-template-columns: 110px 1fr 120px; gap: 10px 14px; align-items: center; margin-top: 14px; font-size: 13.5px; }
+  .mgrid input[type=range] { height: auto; width: 100%; accent-color: var(--accent); padding: 0; border: 0; background: none; box-shadow: none; }
+  .muted { color: var(--muted); }
+  .warn { color: var(--warn); font-size: 14px; }
+  .note { color: var(--muted); font-size: 13px; line-height: 1.65; max-width: 72ch; margin-top: 24px; }
+  .note b { color: var(--text); font-weight: 600; }
+  .note a { color: var(--accent); }
+  @media (max-width: 600px) { .wrap { padding: 28px 16px 56px; } h1 { font-size: 26px; } .card { padding: 16px; } table { min-width: 0; } th, td { padding: 10px; } td:first-child, td.mono { white-space: nowrap; } .wzs { grid-template-columns: 1fr 1fr; gap: 6px; } .wz { padding: 8px 9px; } .wz .w { font-size: 12.5px; } .mgrid { grid-template-columns: 90px 1fr; } .mgrid .sel { grid-column: 2; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Avatar Realms Collide · Glowworm's Ruse · UTC</div>
+  <h1>Era Grouping</h1>
+  <div class="sub">Which era every world falls into for a Glowworm's Ruse round, and the predicted 4-world warzones inside each era. All dates are in UTC.</div>
+
+  <div class="card">
+    <div class="controls">
+      <div class="field">
+        <label for="date">Event start</label>
+        <div class="row">
+          <button id="prev" title="Previous round (−56 days)">◀</button>
+          <input id="date" type="date">
+          <button id="next" title="Next round (+56 days)">▶</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="offset">Day offset</label>
+        <div class="row">
+          <button id="offMinus">−</button>
+          <input id="offset" class="num" type="number" value="0" step="1">
+          <button id="offPlus">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="server">Find world</label>
+        <input id="server" class="srv" inputmode="numeric" placeholder="e.g. 1097">
+      </div>
+    </div>
+    <div class="eff" id="eff"></div>
+  </div>
+
+  <div id="findCard"></div>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Era</th><th>World age</th><th>Worlds</th><th style="text-align:right">Count</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <details class="model" id="modelBox">
+      <summary>Matchup model</summary>
+      <div class="note" style="margin-top:8px">
+        Each world's score is its <b>top-100 power</b> × (1 + <b>age bonus</b>). The youngest world in the era gets no bonus and the oldest gets the full amount. Worlds are ranked by score and split into groups of 4, strongest first.
+        The defaults reproduce October with <span id="fitStat"></span>.
+      </div>
+      <div class="mgrid" id="mgrid"></div>
+      <div style="margin-top:12px"><button id="resetModel">Reset to defaults</button></div>
+    </details>
+  </div>
+
+  <div class="note">
+    <b>Ages.</b> Each world's age is its in-game Day counter on the era cutoff date (start date + offset, 00:00 UTC). Day counts for 1001–1111 were read from the Migration screen on Nov 1, 2026. New worlds open every Friday at 00:00 UTC and are marked <span class="acc">~</span> until they exist.<br><br>
+    <b>Schedule.</b> Rounds run 4 weeks on, 4 weeks off from Oct 3, 2026, so ◀ ▶ step 56 days. Each round: Announcement (5 days), Matching (1 day), Matching Reveal &amp; Prelude (5 days), Land of the Abyss (14 days), Closing (3 days). Eras are set by world age at the start of the round; warzones are set from power on Matching day.<br><br>
+    <b>Power.</b> Top-100 power comes from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>.
+  </div>
+</div>
+
+<script>
+const DAY = 86400000;
+const ANCHOR = Date.UTC(2026, 9, 3); // first Glowworm's Ruse: Sat Oct 3, 2026
+
+// In-game "Day N" for every world, read from the Migration screen on
+// Sun Nov 1, 2026 (UTC). Day 1 = the world's open date. Matches Deng's Den open dates.
+const REF = Date.UTC(2026, 10, 1);
+const GAME_DAY = {
+  1001: 929, 1002: 873, 1003: 817, 1004: 747, 1005: 698, 1006: 628, 1007: 607, 1008: 607,
+  1009: 595, 1010: 595, 1011: 595, 1012: 593, 1013: 592, 1014: 590, 1015: 589, 1016: 587,
+  1017: 585, 1018: 583, 1019: 582, 1020: 581, 1021: 578, 1022: 576, 1023: 574, 1024: 571,
+  1025: 568, 1026: 565, 1027: 562, 1028: 559, 1029: 555, 1030: 552, 1031: 548, 1032: 544,
+  1033: 539, 1034: 534, 1035: 529, 1036: 526, 1037: 521, 1038: 515, 1039: 509, 1040: 503,
+  1041: 496, 1042: 489, 1043: 482, 1044: 475, 1045: 470, 1046: 465, 1047: 459, 1048: 452,
+  1049: 445, 1050: 438, 1051: 432, 1052: 425, 1053: 418, 1054: 411, 1055: 404, 1056: 397,
+  1057: 390, 1058: 383, 1059: 376, 1060: 362, 1061: 353, 1062: 346, 1063: 339, 1064: 332,
+  1065: 325, 1066: 318, 1067: 311, 1068: 304, 1069: 297, 1070: 290, 1071: 283, 1072: 276,
+  1073: 269, 1074: 262, 1075: 255, 1076: 248, 1077: 241, 1078: 234, 1079: 227, 1080: 220,
+  1081: 213, 1082: 206, 1083: 199, 1084: 192, 1085: 185, 1086: 178, 1087: 171, 1088: 164,
+  1089: 157, 1090: 150, 1091: 143, 1092: 136, 1093: 129, 1094: 122, 1095: 115, 1096: 108,
+  1097: 101, 1098: 94, 1099: 87, 1100: 80, 1101: 73, 1102: 66, 1103: 59, 1104: 52,
+  1105: 45, 1106: 38, 1107: 31, 1108: 24, 1109: 17, 1110: 10, 1111: 3,
+};
+const NEWEST_KNOWN = 1111; // opened Fri Oct 30, 2026; new worlds every Friday after
+
+const EMBED_POWER = {"taken_at":"2026-10-31T07:00:06.000Z","top100":{"23":18568241766,"18":14204982039,"10":14190720390,"31":15051151723,"11":13448726593,"25":14403303351,"41":13702339420,"34":13826740668,"54":13399745502,"9":10880768222,"50":12530344541,"16":12830969073,"26":11448451543,"6":11429947893,"73":10887513677,"48":11744212963,"40":10551811443,"29":9712887778,"5":8634456591,"58":9664971447,"17":9222654971,"15":7449416669,"46":8698382415,"43":9064179329,"3":9756834056,"71":8890104823,"72":8733884276,"24":7564892847,"21":7158037272,"51":9521776205,"74":8839276019,"36":7250169244,"28":6194305046,"68":6440624512,"81":6900258713,"69":7692989462,"14":6903407938,"13":7024048199,"80":6829590596,"37":6172545683,"82":7451837337,"12":6511951800,"57":8927705457,"35":7403645612,"27":5478338103,"86":5613535590,"19":5432171981,"42":6208990145,"33":5708415800,"20":5208942228,"65":7945260315,"22":5172221404,"66":7061724154,"32":4982930441,"30":5184251632,"70":6721802148,"45":5855882023,"84":5291032687,"53":6151469493,"38":4136085759,"47":4763659882,"90":5823051462,"39":3875777029,"49":3462873261,"60":3756932096,"95":3802668580,"7":4410180890,"89":4066283018,"1":5936921903,"59":2988520249,"83":2353112393,"79":2966897928,"67":2896196298,"44":3626747794,"8":3933813006,"4":3831660370,"64":3814368989,"78":2899810245,"52":3241544639,"85":2033817829,"93":2950815230,"88":3485041881,"55":3145692317,"97":2393793076,"96":2752341395,"56":2748394986,"2":3593384295,"94":2414938382,"77":2658312545,"75":2266542667,"63":2767393740,"76":2213463766,"100":1976891876,"99":2299367920,"98":2118612367,"61":2054530276,"62":2136157355,"101":1848356625,"91":2193466604,"87":1562311415,"92":1478410576,"102":1390052209,"105":942339047,"103":1005207583,"104":998659346,"108":518211252,"109":346985031,"106":714024229,"107":613070639,"110":240937673,"111":63090154}};
+const EMBED_SVS = {"start":1790985600,"worlds":[{"warzone":1,"era":"Mythic","servers":[18,23,10,25],"winner":23},{"warzone":2,"era":"Mythic","servers":[31,34,11,16],"winner":31},{"warzone":3,"era":"Mythic","servers":[6,41,48,3],"winner":48},{"warzone":4,"era":"Mythic","servers":[40,9,26,1],"winner":26},{"warzone":5,"era":"Mythic","servers":[5,29,43,17],"winner":29},{"warzone":6,"era":"Mythic","servers":[15,46,24,13],"winner":46},{"warzone":7,"era":"Mythic","servers":[21,35,36,42],"winner":36},{"warzone":8,"era":"Mythic","servers":[12,28,33,14],"winner":14},{"warzone":9,"era":"Mythic","servers":[30,37,45,20],"winner":20},{"warzone":10,"era":"Mythic","servers":[2,27,7,4],"winner":2},{"warzone":11,"era":"Mythic","servers":[8,47,32,22],"winner":null},{"warzone":12,"era":"Mythic","servers":[44,38,39,19],"winner":null},{"warzone":13,"era":"Dominance","servers":[51,54,57,50],"winner":51},{"warzone":14,"era":"Dominance","servers":[53,55,60,58],"winner":58},{"warzone":15,"era":"Dominance","servers":[56,52,59,49],"winner":null},{"warzone":16,"era":"Conquest","servers":[65,72,69,71],"winner":71},{"warzone":17,"era":"Conquest","servers":[70,64,68,66],"winner":70},{"warzone":18,"era":"Conquest","servers":[62,61,63,67],"winner":null},{"warzone":19,"era":"Clash","servers":[82,73,80,74],"winner":73},{"warzone":20,"era":"Clash","servers":[84,81,78,79],"winner":84},{"warzone":21,"era":"Clash","servers":[75,77,76,83],"winner":null},{"warzone":22,"era":"Frontier","servers":[95,86,89,90],"winner":90},{"warzone":23,"era":"Frontier","servers":[96,94,88,93],"winner":88},{"warzone":24,"era":"Frontier","servers":[87,91,85,92],"winner":91}]};
+const EMBED_MATCH = {"taken_at":"2026-10-08","top100":{"1":5798664029,"2":3549747036,"3":9539885846,"4":3804904707,"5":8476684514,"6":11263604259,"7":4337599228,"8":3899787968,"9":10690662960,"10":13788946095,"11":13166580238,"12":6406450411,"13":6917533777,"14":6781053653,"15":7186270618,"16":12979131841,"17":8994781156,"18":13668920860,"19":5370282560,"20":5139921277,"21":7049692349,"22":5151819965,"23":18103024495,"24":7404715619,"25":14656703135,"26":11038450491,"27":5405842333,"28":6044624143,"29":9464950698,"30":5096665698,"31":14673114041,"32":4949196858,"33":5634494969,"34":13313501637,"35":7259522519,"36":7178841221,"37":6130199840,"38":4122020387,"39":3830802422,"40":10219783031,"41":13402593354,"42":6030756000,"43":8709900228,"44":3594638088,"45":5731902160,"46":8392579358,"47":4666396582,"48":11343275500,"49":3407620535,"50":12108977418,"51":9224962055,"52":3202929187,"53":5879163071,"54":13089637964,"55":3113476849,"56":2633713313,"57":8633133466,"58":9251997000,"59":2938092484,"60":3643046865,"61":2031077326,"62":2085129727,"63":2692527615,"64":3694572063,"65":7655288640,"66":6762575852,"67":2838789571,"68":6025601716,"69":7322343517,"70":6317098696,"71":8300132667,"72":8171101063,"73":10106905069,"74":8359403555,"75":2205549947,"76":2131748325,"77":2530360440,"78":2818290351,"79":2781005242,"80":6157433245,"81":6135649191,"82":6759875991,"83":2160278585,"84":4770812562,"85":1951169862,"86":4972510946,"87":1480233375,"88":3106076238,"89":3578993078,"90":5079628071,"91":1886741855,"92":1336128196,"93":2526332957,"94":1974844293,"95":3069488461,"96":2272987705,"97":1912144174,"98":1588403790,"99":1754810422,"100":1456235915,"101":1200042087,"102":878138430,"103":603406059,"104":540435920,"105":494144335,"106":334766600,"107":145661078}};
+
+const ERAS = [
+  { name: 'Mythic',    min: 421, max: Infinity, color: '#C792EA' },
+  { name: 'Dominance', min: 330, max: 420,      color: '#E07A5F' },
+  { name: 'Conquest',  min: 246, max: 329,      color: '#E8C468' },
+  { name: 'Clash',     min: 162, max: 245,      color: '#5FB3A1' },
+  { name: 'Frontier',  min: 78,  max: 161,      color: '#6FA8DC' },
+  { name: 'Not eligible', min: 0, max: 77,      color: '#5F6774', none: true },
+];
+const eraOf = (age) => ERAS.find(e => age >= e.min && age <= e.max);
+const DEFAULT_MODEL = {
+  Mythic:    { bonus: 70, curve: 3 },
+  Dominance: { bonus: 0,  curve: 1 },
+  Conquest:  { bonus: 0,  curve: 1 },
+  Clash:     { bonus: 0,  curve: 1 },
+  Frontier:  { bonus: 0,  curve: 1 },
+};
+
+const $ = (id) => document.getElementById(id);
+const fmt = (t) => new Date(t).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+const fmtShort = (t) => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+const toInput = (t) => new Date(t).toISOString().slice(0, 10);
+const fromInput = (v) => { const [y, m, d] = v.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+const bil = (p) => p ? (p / 1e9).toFixed(2) + 'B' : '—';
+
+let store = null; try { store = window.localStorage; } catch (e) {}
+const saved = (k, d) => { try { return store?.getItem('egr2-' + k) ?? d; } catch (e) { return d; } };
+const save = (k, v) => { try { store?.setItem('egr2-' + k, v); } catch (e) {} };
+
+let model = (() => { try { return { ...DEFAULT_MODEL, ...JSON.parse(saved('model', '{}')) }; } catch (e) { return { ...DEFAULT_MODEL }; } })();
+
+// ---------- Data (live files from your site, else built-in snapshot) ----------
+const DATA = { power: EMBED_POWER, powerSrc: 'built-in snapshot', svs: EMBED_SVS, history: { '2026-10-08': EMBED_MATCH } };
+const getJSON = (url) => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(r.status));
+async function loadData() {
+  try {
+    const s = await getJSON('/data/deng-servers.json');
+    const top100 = {}; s.rows.forEach(r => top100[r.server] = Number(r.top100_sum));
+    DATA.power = { taken_at: s.taken_at, top100 }; DATA.powerSrc = 'live';
+  } catch (e) {}
+  try {
+    const v = await getJSON('/data/deng-svs.json');
+    if (v && Array.isArray(v.worlds)) DATA.svs = { start: v.start, worlds: v.worlds.map(w => ({ warzone: w.warzone, era: w.era, servers: w.servers.map(x => x.server), winner: w.winner?.server })) };
+  } catch (e) {}
+  render();
+}
+// Warzones are set on the Matching day (day 6 of the round). Past rounds use that day's snapshot, upcoming rounds the latest.
+const MATCH_OFFSET = 5;
+const histCache = {};
+function powerFor(start) {
+  const mday = start + MATCH_OFFSET * DAY, day = toInput(mday);
+  if (mday <= Date.parse(DATA.power.taken_at)) {
+    if (DATA.history[day]) return { ...DATA.history[day], label: 'Matching day (' + fmtShort(mday) + ')' };
+    if (!(day in histCache)) {
+      histCache[day] = null;
+      getJSON(`/data/history/servers-${day}.json`).then(h => { DATA.history[day] = h; render(); }).catch(() => {});
+    }
+  }
+  return { ...DATA.power, label: 'latest (' + fmtShort(Date.parse(DATA.power.taken_at)) + ')' };
+}
+// Actual warzones for a round, if Deng has them
+function actualFor(start) {
+  const sv = DATA.svs;
+  if (!sv || !sv.worlds?.length || sv.start * 1000 !== start) return null;
+  const map = {}; sv.worlds.forEach(w => w.servers.forEach(s => map[s] = w.warzone));
+  return map;
+}
+
+function actualZones(start) {
+  const sv = DATA.svs;
+  if (!sv || !sv.worlds?.length || sv.start * 1000 !== start) return null;
+  const out = {};
+  sv.worlds.slice().sort((a, b) => a.warzone - b.warzone)
+    .forEach(w => (out[w.era] = out[w.era] || []).push({ n: w.warzone, servers: w.servers.map(x => 1000 + x), winner: w.winner ? 1000 + w.winner : null }));
+  return out;
+}
+
+// ---------- Ages ----------
+const launchOf = (s) => s <= NEWEST_KNOWN
+  ? REF - (GAME_DAY[s] - 1) * DAY
+  : REF - (GAME_DAY[NEWEST_KNOWN] - 1) * DAY + (s - NEWEST_KNOWN) * 7 * DAY;
+const ageOn = (s, t) => Math.floor((t - launchOf(s)) / DAY) + 1;
+
+// ---------- Matchups ----------
+function warzones(groups, power) {
+  let n = 1; const out = {};
+  for (const g of groups) {
+    if (g.none || !g.list.length) continue;
+    const m = model[g.name] || { bonus: 0, curve: 1 };
+    const ages = g.list.map(w => w.age), mn = Math.min(...ages), mx = Math.max(...ages);
+    const scored = g.list.map(w => {
+      const p = power.top100[w.s - 1000] || 0;
+      const rel = mx > mn ? (w.age - mn) / (mx - mn) : 0;
+      const bonus = (m.bonus / 100) * Math.pow(rel, m.curve);
+      return { ...w, p, bonus, score: p * (1 + bonus) };
+    }).sort((a, b) => b.score - a.score);
+    const zones = [];
+    for (let i = 0; i < scored.length; i += 4) zones.push({ n: n++, worlds: scored.slice(i, i + 4) });
+    out[g.name] = zones;
+  }
+  return out;
+}
+
+const open = new Set(JSON.parse(saved('open', '["Frontier"]')));
+const view = JSON.parse(saved('view', '{}')); // era -> 'wz' | 'ages'
+
+function render() {
+  const start = fromInput($('date').value || '2026-11-28');
+  const off = parseInt($('offset').value, 10) || 0;
+  const t = start + off * DAY;
+  save('date', $('date').value); save('offset', String(off)); save('server', $('server').value);
+  save('open', JSON.stringify([...open])); save('view', JSON.stringify(view));
+
+  const n = Math.round((start - ANCHOR) / (56 * DAY));
+  const onCycle = (start - ANCHOR) % (56 * DAY) === 0;
+  const power = powerFor(start);
+  const actual = actualFor(start);
+  const actualZ = actualZones(start);
+  $('eff').innerHTML = `${onCycle ? `Round ${n + 1} · ` : ''}Event <b>${fmt(start)} – ${fmt(start + 27 * DAY)}</b>` +
+    `${onCycle ? '' : ' <span class="acc">(off the Oct 3 cycle)</span>'}<br>Era cutoff <b>${fmt(t)}</b> · Matching <b>${fmt(start + MATCH_OFFSET * DAY)}</b>` +
+    (off ? ` <span class="acc">(${off > 0 ? '+' : ''}${off} day${Math.abs(off) === 1 ? '' : 's'})</span>` : '') +
+    `<br>Power <b>${power.label}</b> ` +
+    (actual ? ` · <span style="color:var(--ok)">actual warzones available</span>` : '');
+
+  const worlds = [];
+  for (let s = 1001; launchOf(s) <= t; s++) worlds.push({ s, age: ageOn(s, t), est: s > NEWEST_KNOWN });
+  const groups = ERAS.map(e => ({ ...e, list: worlds.filter(w => w.age >= e.min && w.age <= e.max) }));
+  const wz = warzones(groups, power);
+  const wzOf = {}; Object.values(wz).flat().forEach(z => z.worlds.forEach(w => wzOf[w.s] = z));
+
+  // Find world
+  const sv = parseInt($('server').value, 10);
+  let html = '';
+  if ($('server').value) {
+    if (!(sv >= 1001)) html = `<div class="card warn">Enter a world number of 1001 or higher.</div>`;
+    else if (launchOf(sv) > t) html = `<div class="card warn">World ${sv} hasn't opened by then. Expected to open ${fmt(launchOf(sv))}.</div>`;
+    else {
+      const age = ageOn(sv, t), e = eraOf(age), g = groups.find(x => x.name === e.name);
+      const ids = g.list.map(w => w.s);
+      const nextEra = ERAS[ERAS.indexOf(e) - 1];
+      const daysUp = nextEra && !e.none ? nextEra.min - age : (e.none ? 78 - age : null);
+      const z = wzOf[sv];
+      const az = actualZ ? Object.values(actualZ).flat().find(x => x.servers.includes(sv)) : null;
+      html = `<div class="card"><div class="find">
+        <div class="stat"><div class="k">World ${sv}</div><div class="v"><span class="dot" style="background:${e.color}"></span>${e.name}</div></div>
+        <div class="stat"><div class="k">Age</div><div class="v">Day ${age}${sv > NEWEST_KNOWN ? ' <small>est.</small>' : ''}</div></div>
+        <div class="stat"><div class="k">Era worlds</div><div class="v mono">${ids.length ? Math.min(...ids) + '–' + Math.max(...ids) : '—'} <small>(${ids.length})</small></div></div>
+        <div class="stat"><div class="k">${e.none ? 'Eligible in' : 'Moves up in'}</div><div class="v">${daysUp != null ? daysUp + ' <small>days</small>' : '<small>Top era</small>'}</div></div>
+        ${az ? `<div class="stat"><div class="k">Warzone</div><div class="v">${az.n}${az.winner === sv ? ' <small>· won</small>' : ''}</div></div>`
+             : z ? `<div class="stat"><div class="k">Predicted</div><div class="v">Warzone ${z.n}</div></div>` : ''}
+      </div>${az ? `<div class="opp">Opponents: ${az.servers.filter(x => x !== sv).map(x => `<b>${x}</b> <span class="mono">${bil(power.top100[x - 1000])}</span>`).join(' · ')}</div>`
+             : z ? `<div class="opp">Predicted opponents: ${z.worlds.filter(w => w.s !== sv).map(w => `<b>${w.s}</b> <span class="mono">${bil(w.p)}</span>`).join(' · ')}</div>` : ''}</div>`;
+      open.add(e.name);
+    }
+  }
+  $('findCard').innerHTML = html;
+
+  $('tbody').innerHTML = groups.map(g => {
+    const ids = g.list.map(w => w.s);
+    const range = ids.length ? `${Math.min(...ids)}–${Math.max(...ids)}` : '—';
+    const ageTxt = g.max === Infinity ? `${g.min}+` : `${g.min}–${g.max}`;
+    const isYou = g.list.some(w => w.s === sv);
+    let detail = '';
+    if (open.has(g.name) && g.list.length) {
+      const hasActual = !!(actualZ && actualZ[g.name]);
+      let mode = g.none ? 'ages' : (view[g.name] || (hasActual ? 'actual' : 'wz'));
+      if (mode === 'actual' && !hasActual) mode = 'wz';
+      const tab = (k, label) => `<button data-view="${k}" data-era="${g.name}" class="${mode === k ? 'on' : ''}">${label}</button>`;
+      const tabs = g.none ? '' : `<div class="tabs">${hasActual ? tab('actual', 'Actual') + tab('wz', 'Predicted') : tab('wz', 'Warzones')}${tab('ages', 'World ages')}</div>`;
+      let body;
+      if (mode === 'actual') {
+        body = `<div class="wzs">${actualZ[g.name].map(z => `<div class="wz${z.servers.includes(sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.servers.reduce((a, x) => a + (power.top100[x - 1000] || 0), 0))}</span></h4>${
+          z.servers.map(x => `<div class="w${x === sv ? ' me' : ''}" data-s="${x}"><span>${x}${z.winner === x ? ' <span class="acc">★</span>' : ''}</span><span class="p">${bil(power.top100[x - 1000])}</span></div>`).join('')}</div>`).join('')}</div>
+          <div class="check">Actual warzones from dengsden.com. <span class="acc">★</span> = winner.</div>`;
+      } else if (mode === 'ages') {
+        body = `<div class="chips">${g.list.map(w => `<span class="chip${w.s === sv ? ' hl' : ''}${w.est ? ' est' : ''}" data-s="${w.s}">${w.s}<span>d${w.age}</span></span>`).join('')}</div>`;
+      } else {
+        let ok = 0, tot = 0;
+        body = `<div class="wzs">${wz[g.name].map(z => `<div class="wz${z.worlds.some(w => w.s === sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.worlds.reduce((a, w) => a + w.p, 0))}</span></h4>${
+          z.worlds.map(w => {
+            let mark = '';
+            if (actual) { const a = actual[w.s - 1000]; tot++; if (a === z.n) { ok++; mark = `<span class="m ok">✓</span>`; } else mark = `<span class="m bad">→${a ?? '?'}</span>`; }
+            return `<div class="w${w.s === sv ? ' me' : ''}" data-s="${w.s}"><span>${w.s}${w.est ? '<span class="acc">~</span>' : ''}</span><span><span class="p">${bil(w.p)}${w.bonus > 0.005 ? ` +${Math.round(w.bonus * 100)}%` : ''}</span> ${mark}</span></div>`;
+          }).join('')}</div>`).join('')}</div>`;
+        if (actual) body += `<div class="check">Actual vs predicted: <b>${ok}/${tot}</b> worlds in the predicted warzone. <span style="color:var(--bad)">→n</span> shows a world's actual warzone.</div>`;
+      }
+      detail = `<tr class="detail"><td colspan="4">${tabs}${body}</td></tr>`;
+    }
+    return `<tr class="era${isYou ? ' you' : ''}" data-era="${g.name}">
+      <td><span class="dot" style="background:${g.color}"></span>${g.name}<span class="caret">${g.list.length ? (open.has(g.name) ? '▾' : '▸') : ''}</span></td>
+      <td class="mono muted">${ageTxt}</td>
+      <td class="mono">${range}</td>
+      <td class="mono" style="text-align:right">${g.list.length}</td></tr>${detail}`;
+  }).join('');
+}
+
+// ---------- Model panel ----------
+function renderModel() {
+  $('mgrid').innerHTML = ERAS.filter(e => !e.none).map(e => {
+    const m = model[e.name];
+    return `<div><span class="dot" style="background:${e.color}"></span>${e.name}</div>
+      <div class="row"><input type="range" min="0" max="150" step="5" value="${m.bonus}" data-era="${e.name}" data-k="bonus"><span class="mono" style="min-width:52px;text-align:right">+${m.bonus}%</span></div>
+      <select class="sel" data-era="${e.name}" data-k="curve">
+        <option value="1"${m.curve == 1 ? ' selected' : ''}>Straight</option>
+        <option value="3"${m.curve == 3 ? ' selected' : ''}>Curved</option>
+      </select>`;
+  }).join('');
+}
+$('mgrid').addEventListener('input', (ev) => {
+  const el = ev.target; if (!el.dataset.era) return;
+  model[el.dataset.era] = { ...model[el.dataset.era], [el.dataset.k]: Number(el.value) };
+  save('model', JSON.stringify(model));
+  if (el.type === 'range') el.nextElementSibling.textContent = '+' + el.value + '%';
+  render();
+});
+$('resetModel').onclick = () => { model = JSON.parse(JSON.stringify(DEFAULT_MODEL)); save('model', JSON.stringify(model)); renderModel(); render(); };
+
+$('tbody').addEventListener('click', (ev) => {
+  const v = ev.target.closest('[data-view]');
+  if (v) { view[v.dataset.era] = v.dataset.view; render(); return; }
+  const chip = ev.target.closest('[data-s]');
+  if (chip) { $('server').value = chip.dataset.s; render(); return; }
+  const row = ev.target.closest('tr.era');
+  if (row) { const n = row.dataset.era; open.has(n) ? open.delete(n) : open.add(n); render(); }
+});
+const step = (d) => { $('date').value = toInput(fromInput($('date').value || '2026-11-28') + d * DAY); render(); };
+$('prev').onclick = () => step(-56);
+$('next').onclick = () => step(56);
+$('offMinus').onclick = () => { $('offset').value = (parseInt($('offset').value, 10) || 0) - 1; render(); };
+$('offPlus').onclick = () => { $('offset').value = (parseInt($('offset').value, 10) || 0) + 1; render(); };
+['date', 'offset', 'server'].forEach(id => $(id).addEventListener('input', () => {
+  if (id === 'server') $('server').value = $('server').value.replace(/\D/g, '');
+  render();
+}));
+
+$('date').value = saved('date', '2026-11-28');
+$('offset').value = saved('offset', '0');
+$('server').value = saved('server', '');
+$('fitStat').textContent = '72 of 96 worlds in their exact warzone and 95 of 96 within one';
+renderModel();
+render();
+loadData();
+</script>
+</body>
+</html>

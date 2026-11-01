@@ -3,192 +3,368 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0D0E11">
+<meta name="theme-color" content="#0E1116">
 <title>ARC Tools</title>
-<meta name="description" content="Avatar Realms Collide tools: MGM Planner, Glowworm's Ruse planner, Migration Scout, Z3 Temple War and Hero Cycle.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230D0E11'/%3E%3Cpath d='M16 6l10 10-10 10L6 16z' fill='%23F4BF41'/%3E%3C/svg%3E">
+<meta name="description" content="Event planners and calculators for Avatar Realms Collide.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230E1116'/%3E%3Cpath d='M16 6l10 10-10 10L6 16z' fill='%23F4BF41'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
-
-<!-- ─────────────────────────────────────────────────────────────────────
-     TOOLS — the only part you should ever need to edit.
-
-     Each entry is one tab. "file" is a .jsx file sitting in the same
-     folder as this index.html, exactly as it was downloaded from Claude.
-     To update a tool, replace its .jsx in the repo. To add a tool, add a
-     line here and drop its .jsx next to this file.
-     ───────────────────────────────────────────────────────────────────── -->
-<script>
-  window.TOOLS = [
-     
-    { id: "MGM", label: "MGM Planner", page: "grand-melee-planner.html" },
-    { id: "glowwormsruse", label: "Glowworm's Ruse Planner", page: "GlowwormsRusePlanner/glowworm/index.html" },
-    { id: "eragrouping", label: "Era Grouping", page: "era-grouping.html" },
-    { id: "migration", label: "Migration Scout", file: "migration-scout.jsx" },
-    { id: "z3",        label: "Z3 Temple War",   file: "z3-temple-war-planner-v5.jsx" },
-    { id: "hero", label: "Hero Cycle", file: "hero-cycle-calculator.jsx" },
-
-  ];
-</script>
+<link rel="stylesheet" href="theme.css">
+<script src="tools.js"></script>
 
 <style>
   :root {
-    --ink: #0D0E11;
-    --panel: #14161B;
-    --line: #23262E;
-    --text: #E7E9EE;
-    --mut: #8B909C;
-    --gold: #F4BF41;
-    --red: #FF7A7A;
-    --bar-h: 48px;
+    --bg: var(--arc-bg);
+    --rail: var(--arc-rail);
+    --raise: var(--arc-raise);
+    --line: var(--arc-line);
+    --line-2: var(--arc-line-2);
+    --text: var(--arc-text);
+    --mut: var(--arc-mut);
+    --dim: var(--arc-dim);
+    --gold: var(--arc-gold);
+    --accent: var(--arc-accent);
+    --rail-w: 252px;
+    --rail-w-min: 68px;
+    --ease: var(--arc-ease);
   }
   *, *::before, *::after { box-sizing: border-box; }
-  html { background: var(--ink); color-scheme: dark; -webkit-text-size-adjust: 100%; }
+  html { background: var(--bg); color-scheme: dark; -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
-    background: var(--ink);
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--bg);
     color: var(--text);
-    font: 14px/1.5 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font: 14px/1.5 var(--arc-font);
     -webkit-font-smoothing: antialiased;
   }
+  button { font: inherit; color: inherit; }
+  a { color: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-  /* ── top bar ── */
-  .bar {
-    display: flex;
-    align-items: stretch;
-    gap: 28px;
-    min-height: calc(var(--bar-h) + env(safe-area-inset-top, 0px));
-    padding: env(safe-area-inset-top, 0px) max(18px, env(safe-area-inset-right, 0px)) 0 max(18px, env(safe-area-inset-left, 0px));
-    background: var(--panel);
-    border-bottom: 1px solid var(--line);
+  /* ── frame ───────────────────────────────────────────────────────── */
+  .app {
+    display: grid;
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+    height: 100%;
+    transition: grid-template-columns .22s var(--ease);
   }
+  .app.mini { grid-template-columns: var(--rail-w-min) minmax(0, 1fr); }
+
+  /* ── sidebar ─────────────────────────────────────────────────────── */
+  .rail {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--rail);
+    border-right: 1px solid var(--line);
+    padding: 14px 12px 12px;
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    overflow: hidden;
+  }
+  .rail-top { display: flex; align-items: center; gap: 8px; height: 40px; margin-bottom: 12px; }
   .brand {
     display: flex;
     align-items: center;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    color: var(--text);
-    white-space: nowrap;
-  }
-  .tabs {
-    display: flex;
-    align-items: stretch;
-    gap: 22px;
+    gap: 10px;
     flex: 1;
     min-width: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
+    height: 40px;
+    padding: 0 6px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
   }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab {
-    position: relative;
+  .brand:hover { background: var(--raise); }
+  .mark { flex: none; width: 28px; height: 28px; display: grid; place-items: center; }
+  .mark svg { width: 18px; height: 18px; }
+  .icon-btn {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--mut);
+    cursor: pointer;
+  }
+  .icon-btn:hover { background: var(--raise); color: var(--text); }
+  .icon-btn svg { width: 18px; height: 18px; }
+
+  .find { position: relative; margin-bottom: 14px; }
+  .find svg { position: absolute; left: 11px; top: 50%; width: 15px; height: 15px; transform: translateY(-50%); color: var(--dim); pointer-events: none; }
+  .find input {
+    width: 100%;
+    height: 36px;
+    padding: 0 34px 0 34px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    font-size: 13.5px;
+  }
+  .find input::placeholder { color: var(--dim); }
+  .find input:focus { outline: none; border-color: var(--line-2); background: var(--raise); }
+  .find kbd {
+    position: absolute;
+    right: 9px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-width: 20px;
+    padding: 1px 5px;
+    border: 1px solid var(--line-2);
+    border-radius: 5px;
+    color: var(--dim);
+    font: 500 11px/16px var(--arc-font);
+    text-align: center;
+  }
+  .find input:focus + kbd, .find input:not(:placeholder-shown) + kbd { display: none; }
+
+  .nav { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; margin: 0 -4px; padding: 0 4px; scrollbar-width: thin; }
+  .group + .group { margin-top: 18px; }
+  .group-name { margin: 0 0 6px; padding: 0 8px; color: var(--dim); font-size: 12px; font-weight: 500; white-space: nowrap; }
+  .item {
     display: flex;
     align-items: center;
+    gap: 11px;
+    height: 40px;
+    padding: 0 6px;
+    border-radius: 10px;
     color: var(--mut);
-    font-weight: 500;
-    font-size: 13.5px;
     text-decoration: none;
+    font-weight: 500;
     white-space: nowrap;
     -webkit-tap-highlight-color: transparent;
   }
-  .tab:hover { color: var(--text); }
-  .tab[aria-current="page"] { color: var(--text); }
-  .tab[aria-current="page"]::after {
-    content: "";
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    height: 2px;
-    background: var(--gold);
-  }
-  .tab:focus-visible, .btn:focus-visible {
-    outline: 2px solid var(--gold);
-    outline-offset: 3px;
-    border-radius: 4px;
-  }
-  .clock {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--mut);
+  .item + .item { margin-top: 2px; }
+  .item:hover { background: var(--raise); color: var(--text); }
+  .item[aria-current="page"] { background: var(--raise); color: var(--text); box-shadow: inset 0 0 0 1px var(--line-2); }
+  .item .name { overflow: hidden; text-overflow: ellipsis; }
+  .glyph {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--c) 15%, transparent);
+    color: var(--c);
+    font-weight: 600;
     font-size: 13px;
-    font-variant-numeric: tabular-nums;
+  }
+  .glyph svg { width: 16px; height: 16px; }
+  .empty { padding: 6px 8px; color: var(--dim); font-size: 13px; }
+
+  .rail-foot {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px 8px 0;
+    border-top: 1px solid var(--line);
+    color: var(--dim);
+    font-size: 12.5px;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
-  .clock time { color: var(--text); font-weight: 500; }
+  .rail-foot time { color: var(--text); font-weight: 500; font-size: 13.5px; }
 
-  @media (max-width: 540px) {
-    .brand { display: none; }
-    .bar { gap: 16px; }
-    .tabs { gap: 18px; }
-  }
-  @media (max-width: 340px) { .clock { display: none; } }
+  /* collapsed sidebar: icons only */
+  .app.mini .brand-name, .app.mini .find, .app.mini .group-name, .app.mini .item .name,
+  .app.mini .rail-foot .day, .app.mini .rail-foot .zone { display: none; }
+  .app.mini .rail-top { flex-direction: column; height: auto; gap: 6px; }
+  .app.mini .brand { flex: none; padding: 0 6px; }
+  .app.mini .group + .group { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .app.mini .item { justify-content: center; padding: 0; }
+  .app.mini .rail-foot { justify-content: center; padding: 12px 0 0; }
+  .app.mini .collapse svg { transform: scaleX(-1); }
 
-  /* ── tool panes ── */
+  /* ── main area ───────────────────────────────────────────────────── */
+  .stage { position: relative; min-width: 0; min-height: 0; }
+  .pane { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; }
   .pane[hidden] { display: none; }
-  .pane iframe { display: block; width: 100%; border: 0; }
+  .pane.framed { overflow: hidden; }
+  .pane iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--bg); opacity: 0; transition: opacity .25s var(--ease); }
+  .pane iframe.ready { opacity: 1; }
+  .pane .loading { position: absolute; inset: 0; }
 
-  /* ── loading + error states (only shown before / instead of a tool) ── */
-  .note {
-    max-width: 62ch;
-    padding: 44px max(20px, env(safe-area-inset-right, 0px)) 60px max(20px, env(safe-area-inset-left, 0px));
+  /* ── home ────────────────────────────────────────────────────────── */
+  .home {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 64px max(32px, env(safe-area-inset-right, 0px)) 72px 40px;
   }
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 32px;
+    padding-bottom: 36px;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero h1 {
+    margin: 0;
+    font-size: clamp(40px, 6.2vw, 68px);
+    line-height: .95;
+    font-weight: 700;
+    letter-spacing: -0.045em;
+  }
+  .hero p { margin: 16px 0 0; max-width: 46ch; color: var(--mut); font-size: 16px; line-height: 1.5; }
+  .clock { text-align: right; font-variant-numeric: tabular-nums; }
+  .clock time {
+    display: block;
+    font-size: clamp(34px, 4.6vw, 52px);
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+  }
+  .clock time .sec { color: var(--dim); font-weight: 500; }
+  .clock > span { display: block; margin-top: 10px; color: var(--mut); font-size: 13.5px; }
+
+  .section { margin-top: 44px; }
+  .section h2 { margin: 0 0 6px; font-size: 13.5px; font-weight: 500; color: var(--mut); }
+  .rows { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+  .row a {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 18px;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 10px 18px 0;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+  }
+  .row .glyph { width: 44px; height: 44px; border-radius: 12px; font-size: 18px; }
+  .row .glyph svg { width: 22px; height: 22px; }
+  .row b { display: block; font-size: 16.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .row small { display: block; margin-top: 3px; color: var(--mut); font-size: 13.5px; line-height: 1.45; }
+  .row .go { width: 18px; height: 18px; color: var(--dim); transition: transform .18s var(--ease), color .18s; }
+  .row a:hover .go, .row a:focus-visible .go { color: var(--text); transform: translateX(3px); }
+  .row a:hover b { color: #fff; }
+
+  /* ── notes (loading / errors) ────────────────────────────────────── */
+  .note { max-width: 62ch; padding: 48px 40px 60px; }
   .note h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
   .note p { margin: 0 0 12px; color: var(--mut); }
-  .note code {
-    font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    color: var(--text);
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 5px;
-    padding: 1px 5px;
+  .note code { font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--text); background: var(--raise); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+  .note pre { margin: 0 0 16px; padding: 12px 14px; max-height: 260px; overflow: auto; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #FF8E8E; background: var(--rail); border: 1px solid var(--line); border-radius: 10px; white-space: pre-wrap; word-break: break-word; }
+  .btn { height: 34px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: 9px; background: transparent; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .btn:hover { background: var(--raise); }
+  .spin { display: flex; align-items: center; gap: 10px; color: var(--mut); }
+  .spin i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--gold); animation: turn .8s linear infinite; }
+  @keyframes turn { to { transform: rotate(360deg); } }
+
+  /* ── phone / small tablet ────────────────────────────────────────── */
+  .topbar { display: none; }
+  .scrim { display: none; }
+  @media (max-width: 860px) {
+    .app, .app.mini { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: calc(52px + env(safe-area-inset-top, 0px));
+      padding: env(safe-area-inset-top, 0px) max(10px, env(safe-area-inset-right, 0px)) 0 max(8px, env(safe-area-inset-left, 0px));
+      background: var(--rail);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar .title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; overflow: hidden; white-space: nowrap; }
+    .topbar .title .glyph { width: 24px; height: 24px; border-radius: 7px; }
+    .topbar .title .glyph svg { width: 14px; height: 14px; }
+    .topbar .title span { overflow: hidden; text-overflow: ellipsis; }
+    .topbar .utc { color: var(--mut); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .topbar .utc time { color: var(--text); font-weight: 500; }
+    .icon-btn.menu { width: 40px; height: 40px; color: var(--text); }
+
+    .rail {
+      position: fixed;
+      z-index: 20;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: min(300px, 86vw);
+      padding-top: calc(14px + env(safe-area-inset-top, 0px));
+      transform: translateX(-102%);
+      transition: transform .24s var(--ease);
+      box-shadow: 0 0 0 1px var(--line), 24px 0 60px rgba(0, 0, 0, .45);
+    }
+    .app.open .rail { transform: none; }
+    .scrim { display: block; position: fixed; inset: 0; z-index: 19; background: rgba(5, 7, 10, .6); opacity: 0; pointer-events: none; transition: opacity .24s var(--ease); }
+    .app.open .scrim { opacity: 1; pointer-events: auto; }
+    .collapse { display: none; }
+    /* the collapsed state is a desktop setting; the drawer always shows everything */
+    .app.mini .brand-name, .app.mini .find, .app.mini .group-name, .app.mini .item .name, .app.mini .rail-foot .day, .app.mini .rail-foot .zone { display: revert; }
+    .app.mini .find { display: block; }
+    .app.mini .rail-top { flex-direction: row; height: 40px; }
+    .app.mini .brand { flex: 1; }
+    .app.mini .group + .group { margin-top: 18px; padding-top: 0; border-top: 0; }
+    .app.mini .item { justify-content: flex-start; padding: 0 6px; }
+    .app.mini .rail-foot { justify-content: flex-start; padding: 12px 8px 0; }
+
+    .home { padding: 36px 20px 56px; }
+    .hero { grid-template-columns: 1fr; gap: 22px; padding-bottom: 28px; }
+    .clock { text-align: left; }
+    .clock time { font-size: 40px; }
+    .clock > span { margin-top: 8px; }
+    .hero p { font-size: 15px; }
+    .rows { grid-template-columns: 1fr; }
+    .section { margin-top: 34px; }
+    .note { padding: 32px 20px 48px; }
   }
-  .note pre {
-    margin: 0 0 16px;
-    padding: 12px 14px;
-    max-height: 260px;
-    overflow: auto;
-    font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    color: var(--red);
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    white-space: pre-wrap;
-    word-break: break-word;
+  @media (max-width: 860px) and (min-width: 600px) { .rows { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+    .spin i { animation: none; }
   }
-  .btn {
-    font: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-    background: transparent;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 7px 14px;
-    cursor: pointer;
-  }
-  .btn:hover { border-color: #3A3F4A; }
-  .loading { display: flex; align-items: center; gap: 10px; color: var(--mut); }
-  .loading i {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--gold);
-    animation: pulse 1.1s ease-in-out infinite;
-  }
-  @keyframes pulse { 50% { opacity: 0.25; } }
-  @media (prefers-reduced-motion: reduce) { .loading i { animation: none; } }
 </style>
 </head>
 
 <body>
-<header class="bar">
-  <div class="brand">ARC Tools</div>
-  <nav class="tabs" id="tabs" aria-label="Tools"></nav>
-  <div class="clock" title="Game time (UTC)"><time id="utc">--:--</time> UTC</div>
-</header>
+<div class="app" id="app">
+  <header class="topbar">
+    <button class="icon-btn menu" id="menu" type="button" aria-label="Open menu" aria-controls="rail" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="title" id="top-title"></div>
+    <div class="utc"><time data-clock="hm">--:--</time> UTC</div>
+  </header>
 
-<main id="stage">
-  <noscript><div class="note"><h2>JavaScript is off</h2><p>These tools need JavaScript to run.</p></div></noscript>
-</main>
+  <aside class="rail" id="rail" aria-label="Tools">
+    <div class="rail-top">
+      <a class="brand" href="#" title="Home">
+        <span class="mark"><svg viewBox="0 0 24 24"><path d="M12 2.5L21.5 12 12 21.5 2.5 12z" fill="#F4BF41"/><path d="M12 7.5L16.5 12 12 16.5 7.5 12z" fill="#0E1116"/></svg></span>
+        <span class="brand-name">ARC Tools</span>
+      </a>
+      <button class="icon-btn collapse" id="collapse" type="button" aria-label="Collapse sidebar" title="Collapse sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M9.5 4.5v15M15.5 10l-2 2 2 2"/></svg>
+      </button>
+    </div>
+    <label class="find">
+      <span class="sr">Find a tool</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+      <input id="find" type="search" placeholder="Find a tool" autocomplete="off" spellcheck="false">
+      <kbd>/</kbd>
+    </label>
+    <nav class="nav" id="nav"></nav>
+    <div class="rail-foot" title="Game time runs on UTC">
+      <time data-clock="hm">--:--</time><span class="zone">UTC</span><span class="day" data-clock="day"></span>
+    </div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <main class="stage" id="stage">
+    <noscript><div class="note"><h2>JavaScript is off</h2><p>These tools need JavaScript to run.</p></div></noscript>
+  </main>
+</div>
 
 <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
 <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
@@ -197,23 +373,47 @@
 (() => {
   "use strict";
 
-  const TOOLS = window.TOOLS || [];
+  const GROUPS = window.ARC_GROUPS || [];
+  const TOOLS = window.ARC_TOOLS || [];
   const BABEL_URL = "https://cdn.jsdelivr.net/npm/@babel/standalone@7.29.9/babel.min.js";
-  const BUILD = 1;               // bump to invalidate every cached compile
-  const NS = "arc-tools:";       // prefix for everything this page keeps in localStorage
-  const stage = document.getElementById("stage");
+  const BUILD = 1;          // bump to invalidate every cached compile
+  const NS = "arc-tools:";  // prefix for everything the hub keeps in localStorage (unchanged, so saved data carries over)
+
+  const $ = (id) => document.getElementById(id);
+  const app = $("app"), stage = $("stage"), nav = $("nav"), find = $("find");
 
   /* ── small DOM helper ─────────────────────────────────────────────── */
   const el = (tag, props, ...kids) => {
     const n = document.createElement(tag);
     if (props) for (const k in props) {
-      if (k === "class") n.className = props[k];
-      else if (k.startsWith("on")) n.addEventListener(k.slice(2), props[k]);
-      else n.setAttribute(k, props[k]);
+      const v = props[k];
+      if (v == null || v === false) continue;
+      if (k === "class") n.className = v;
+      else if (k === "html") n.innerHTML = v;
+      else if (k === "style") n.setAttribute("style", v);
+      else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? "" : v);
     }
-    for (const kid of kids) n.append(kid);
+    for (const kid of kids) if (kid != null) n.append(kid);
     return n;
   };
+
+  /* ── icons ────────────────────────────────────────────────────────── */
+  const ICONS = {
+    swords: '<path d="M14.5 17.5L3 6V3h3l11.5 11.5"/><path d="M13 19l6-6M16 16l4 4M19 21l2-2"/><path d="M14.5 6.5L18 3h3v3l-3.5 3.5"/><path d="M5 14l4 4M7 17l-3 3M3 19l2 2"/>',
+    spark: '<path d="M11 3.5l1.9 5.1 5.1 1.9-5.1 1.9L11 17.5l-1.9-5.1L4 10.5l5.1-1.9z"/><path d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>',
+    temple: '<path d="M12 3l8.5 5h-17z"/><path d="M5 11v7M9.7 11v7M14.3 11v7M19 11v7"/><path d="M3 21h18"/>',
+    arrows: '<path d="M7.5 4L3.5 8l4 4"/><path d="M3.5 8H17"/><path d="M16.5 12l4 4-4 4"/><path d="M20.5 16H7"/>',
+    layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 12.5l9 5 9-5"/><path d="M3 16.5l9 5 9-5"/>',
+    cycle: '<path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M20.5 3.5V9H15"/>',
+  };
+  const glyph = (tool) => {
+    const g = el("span", { class: "glyph", style: "--c:" + (tool.accent || "#8B93A1"), "aria-hidden": "true" });
+    if (ICONS[tool.icon]) g.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + ICONS[tool.icon] + "</svg>";
+    else g.textContent = (tool.name || "?").trim().charAt(0).toUpperCase();
+    return g;
+  };
+  const chevron = () => el("span", { class: "go", "aria-hidden": "true", html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' });
 
   /* ── localStorage that never throws (private mode, quota, blocked) ── */
   const mem = new Map();
@@ -231,12 +431,7 @@
     },
   };
 
-  /* ── window.storage ───────────────────────────────────────────────────
-     The tools were written for Claude's artifact storage API. Outside
-     Claude that API doesn't exist, so this provides the same four methods
-     backed by this browser's localStorage. Behaviour matches the original:
-     get() on a key that was never saved throws. "Shared" data is kept
-     separately but is still local to this browser — there is no server. */
+  /* ── window.storage, for tools written against Claude's storage API ─ */
   if (!window.storage) {
     const kk = (key, shared) => NS + (shared ? "kv-shared:" : "kv:") + key;
     window.storage = {
@@ -258,31 +453,31 @@
       },
       async list(prefix = "", shared = false) {
         const base = kk("", shared);
-        const keys = store.keys()
-          .filter((k) => k.startsWith(base + prefix))
-          .map((k) => k.slice(base.length))
-          .sort();
+        const keys = store.keys().filter((k) => k.startsWith(base + prefix)).map((k) => k.slice(base.length)).sort();
         return { keys, prefix, shared };
       },
     };
   }
 
   /* ── UTC clock (the game runs on UTC) ─────────────────────────────── */
-  const utc = document.getElementById("utc");
+  const pad = (n) => String(n).padStart(2, "0");
+  const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const tick = () => {
     const d = new Date();
-    utc.textContent = String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0");
-    utc.dateTime = d.toISOString();
+    const hm = pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes());
+    const day = DAYS[d.getUTCDay()] + ", " + MONTHS[d.getUTCMonth()] + " " + d.getUTCDate();
+    for (const n of document.querySelectorAll('[data-clock="hm"]')) { n.textContent = hm; n.dateTime = d.toISOString(); }
+    for (const n of document.querySelectorAll('[data-clock="hms"]')) { n.innerHTML = hm + '<span class="sec">:' + pad(d.getUTCSeconds()) + "</span>"; n.dateTime = d.toISOString(); }
+    for (const n of document.querySelectorAll('[data-clock="day"]')) n.textContent = day + (n.dataset.suffix || "");
   };
-  tick();
-  setInterval(tick, 5000);
+  setInterval(tick, 1000);
 
   /* ── messages shown in place of a tool ────────────────────────────── */
   const note = (title, lines, detail, action) => {
     const box = el("div", { class: "note", role: "status" }, el("h2", null, title));
     for (const line of lines) {
       const p = el("p");
-      // `backticks` in a line become <code>
       line.split("`").forEach((part, i) => p.append(i % 2 ? el("code", null, part) : part));
       box.append(p);
     }
@@ -290,28 +485,15 @@
     if (action) box.append(el("button", { class: "btn", type: "button", onclick: action.run }, action.label));
     return box;
   };
+  const spinner = (label) => el("div", { class: "note" }, el("div", { class: "spin", role: "status" }, el("i"), label));
 
-  if (!window.React || !window.ReactDOM) {
-    stage.append(note("React didn't load", [
-      "The page couldn't reach the CDN it loads React from. Check your connection, then reload.",
-    ], null, { label: "Reload", run: () => location.reload() }));
-    return;
-  }
-  if (!TOOLS.length) {
-    stage.append(note("No tools listed", ["Add at least one entry to the `TOOLS` list near the top of `index.html`."]));
-    return;
-  }
-
-  const h = React.createElement;
-
-  /* ── compile: fetch the .jsx, turn it into runnable JS ────────────────
-     Compiled output is cached per file and re-used until the file's
-     contents change, so the 3 MB compiler only downloads when it has to. */
+  /* ── compile: fetch a .jsx, turn it into runnable JS (cached) ─────── */
   const hash = (s) => {
     let a = 0x811c9dc5;
     for (let i = 0; i < s.length; i++) { a ^= s.charCodeAt(i); a = Math.imul(a, 0x01000193); }
     return (a >>> 0).toString(36) + "." + s.length;
   };
+  const fail = (kind, message) => Object.assign(new Error(message || kind), { kind });
 
   let babelLoading = null;
   const loadBabel = () => {
@@ -329,8 +511,6 @@
     return babelLoading;
   };
 
-  const fail = (kind, message) => Object.assign(new Error(message || kind), { kind });
-
   async function build(tool, useCache) {
     if (location.protocol === "file:") throw fail("file");
     let res;
@@ -347,7 +527,6 @@
         if (hit && hit.sig === sig) return { code: hit.code, cached: true, cacheKey };
       } catch (e) {}
     }
-
     await loadBabel();
     let code;
     try {
@@ -360,145 +539,238 @@
         comments: false,
       }).code;
     } catch (e) { throw fail("compile", e.message); }
-
     store.set(cacheKey, JSON.stringify({ sig, code }));
     return { code, cached: false, cacheKey };
   }
 
-  /* ── run: evaluate the compiled module and pull out its component ─── */
-  const MODULES = {
-    "react": React,
-    "react-dom": ReactDOM,
-    "react-dom/client": ReactDOM,
-  };
-
+  const MODULES = { "react": window.React, "react-dom": window.ReactDOM, "react-dom/client": window.ReactDOM };
   function evaluate(code, tool) {
     const module = { exports: {} };
-    const require = (name) => {
-      if (name in MODULES) return MODULES[name];
-      throw fail("import", name);
-    };
-    new Function("require", "module", "exports", "React",
-      code + "\n//# sourceURL=" + encodeURI(tool.file))(require, module, module.exports, React);
+    const require = (name) => { if (name in MODULES) return MODULES[name]; throw fail("import", name); };
+    new Function("require", "module", "exports", "React", code + "\n//# sourceURL=" + encodeURI(tool.file))(require, module, module.exports, window.React);
     const Component = module.exports && (module.exports.default || module.exports);
     if (typeof Component !== "function") throw fail("export");
     return Component;
   }
 
-  /* ── a crash inside one tool shouldn't blank the page ─────────────── */
-  class Boundary extends React.Component {
+  /* a crash inside one tool shouldn't blank the page */
+  const Boundary = window.React ? class extends React.Component {
     constructor(props) { super(props); this.state = { error: null }; }
     static getDerivedStateFromError(error) { return { error }; }
     render() {
+      const h = React.createElement;
       if (!this.state.error) return this.props.children;
       return h("div", { className: "note", role: "alert" },
         h("h2", null, this.props.label + " stopped working"),
         h("p", null, "Something inside the tool threw an error. Reloading usually clears it. Anything it saved is still there."),
-        h("pre", null, String(this.state.error && (this.state.error.stack || this.state.error.message) || this.state.error)),
+        h("pre", null, String((this.state.error && (this.state.error.stack || this.state.error.message)) || this.state.error)),
         h("button", { className: "btn", type: "button", onClick: () => location.reload() }, "Reload"));
     }
-  }
+  } : null;
 
   const explain = (tool, err, retry) => {
     const again = { label: "Try again", run: retry };
+    const where = tool.file || tool.page;
     switch (err.kind) {
       case "missing":
-        return note("Can't find " + tool.file, [
-          "Add `" + tool.file + "` to the repo, in the same folder as `index.html`.",
-          "If your file has a different name, change it in the `TOOLS` list near the top of `index.html`. Names are case-sensitive on GitHub Pages.",
-        ], null, again);
+        return note("Can't find " + tool.name, ["The site expected it at `" + where + "`, but nothing is there. Names are case-sensitive."], null, again);
       case "file":
-        return note("Open this from a web address", [
-          "Browsers won't let a page opened straight from disk read the `.jsx` files next to it. It works once it's on GitHub Pages, or locally through any small web server.",
-        ]);
+        return note("Open this from a web address", ["Browsers won't let a page opened straight from disk load the tools next to it. It works once it's on the website, or through any small local web server."]);
+      case "react":
+        return note("Couldn't load " + tool.name, ["Part of the page didn't download. Check your connection, then reload."], null, { label: "Reload", run: () => location.reload() });
       case "network":
-        return note("Couldn't load " + tool.file, ["The request failed. Check your connection and try again."], err.message, again);
+        return note("Couldn't load " + tool.name, ["The request failed. Check your connection and try again."], err.message, again);
       case "cdn":
-        return note("Couldn't load the compiler", [
-          "The first time a tool opens (and whenever its file changes) the page downloads a compiler from a CDN. That download failed. Check your connection and try again.",
-        ], null, again);
+        return note("Couldn't load " + tool.name, ["The first time this tool opens, the page downloads a compiler. That download failed. Check your connection and try again."], null, again);
       case "compile":
-        return note(tool.file + " didn't compile", ["The file has a syntax error, or isn't a React component file."], err.message, again);
+        return note(tool.name + " has a syntax error", ["`" + where + "` couldn't be compiled."], err.message, again);
       case "import":
-        return note(tool.label + " needs a library this page doesn't load", [
-          "`" + tool.file + "` imports `" + err.message + "`. This page only provides `react` and `react-dom`.",
-        ]);
+        return note(tool.name + " needs a missing library", ["`" + where + "` imports `" + err.message + "`. Only `react` and `react-dom` are available."]);
       case "export":
-        return note(tool.file + " has no component to show", ["The file needs an `export default` React component."]);
+        return note(tool.name + " has nothing to show", ["`" + where + "` needs an `export default` React component."]);
       default:
-        return note(tool.label + " couldn't start", ["The tool threw an error while starting up."], String(err && (err.stack || err.message) || err), again);
+        return note(tool.name + " couldn't start", ["The tool threw an error while starting up."], String((err && (err.stack || err.message)) || err), again);
     }
   };
 
-  /* ── panes + tabs ─────────────────────────────────────────────────── */
-  const tabsEl = document.getElementById("tabs");
-  const panes = new Map();
+  /* ── home ─────────────────────────────────────────────────────────── */
+  const byGroup = GROUPS.map((g) => ({ ...g, tools: TOOLS.filter((t) => t.group === g.id) }))
+    .concat([{ id: "_other", name: "More tools", tools: TOOLS.filter((t) => !GROUPS.some((g) => g.id === t.group)) }])
+    .filter((g) => g.tools.length);
 
-  for (const tool of TOOLS) {
-    tabsEl.append(el("a", { class: "tab", href: "#" + tool.id, "data-id": tool.id }, tool.label));
-    const pane = el("section", { class: "pane", id: "pane-" + tool.id, "aria-label": tool.label, hidden: "" });
-    stage.append(pane);
-    panes.set(tool.id, { tool, pane, started: false });
+  function renderHome() {
+    const wrap = el("div", { class: "home" },
+      el("header", { class: "hero" },
+        el("div", null,
+          el("h1", null, "ARC Tools"),
+          el("p", null, "Event planners and calculators for Avatar Realms Collide.")),
+        el("div", { class: "clock", title: "Game time runs on UTC" },
+          el("time", { "data-clock": "hms" }, "--:--"),
+          el("span", { "data-clock": "day", "data-suffix": ", UTC" }))));
+    for (const g of byGroup) {
+      const list = el("ul", { class: "rows" });
+      for (const t of g.tools) {
+        list.append(el("li", { class: "row" },
+          el("a", { href: "#" + t.id }, glyph(t), el("span", null, el("b", null, t.name), t.blurb ? el("small", null, t.blurb) : null), chevron())));
+      }
+      wrap.append(el("section", { class: "section", "aria-label": g.name }, el("h2", null, g.name), list));
+    }
+    return wrap;
   }
 
-  async function start(entry) {
-    const { tool, pane } = entry;
+  /* ── sidebar ──────────────────────────────────────────────────────── */
+  const navItems = new Map();
+  function renderNav() {
+    for (const g of byGroup) {
+      const box = el("div", { class: "group", "data-group": g.id }, el("p", { class: "group-name" }, g.name));
+      for (const t of g.tools) {
+        const a = el("a", { class: "item", href: "#" + t.id, title: t.name }, glyph(t), el("span", { class: "name" }, t.name));
+        navItems.set(t.id, a);
+        box.append(a);
+      }
+      nav.append(box);
+    }
+    nav.append(el("p", { class: "empty", id: "nav-empty", hidden: true }, "No tools match"));
+  }
+
+  const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/['’]/g, "");
+  function filterNav() {
+    const q = norm(find.value.trim());
+    let any = false;
+    for (const box of nav.querySelectorAll(".group")) {
+      let shown = 0;
+      for (const a of box.querySelectorAll(".item")) {
+        const t = TOOLS.find((x) => "#" + x.id === a.getAttribute("href"));
+        const hit = !q || norm(t.name + " " + (t.blurb || "") + " " + (t.aliases || []).join(" ")).includes(q);
+        a.hidden = !hit;
+        if (hit) shown++;
+      }
+      box.hidden = !shown;
+      if (shown) any = true;
+    }
+    $("nav-empty").hidden = any;
+  }
+
+  /* ── panes ────────────────────────────────────────────────────────── */
+  const panes = new Map();
+  function pane(id) {
+    if (!panes.has(id)) {
+      const p = el("section", { class: "pane", hidden: true });
+      stage.append(p);
+      panes.set(id, { pane: p, started: false });
+    }
+    return panes.get(id);
+  }
+
+  async function start(tool, entry) {
+    const p = entry.pane;
     entry.started = true;
+
     if (tool.page) {
-      const frame = el("iframe", { src: tool.page, title: tool.label });
-      const fit = () => { frame.style.height = Math.max(400, window.innerHeight - pane.getBoundingClientRect().top) + "px"; };
-      pane.replaceChildren(frame);
-      window.addEventListener("resize", fit);
-      requestAnimationFrame(fit);
-      entry.fit = fit;
+      p.classList.add("framed");
+      p.replaceChildren(el("div", { class: "loading" }, spinner("Loading " + tool.name + "…")));
+      if (location.protocol !== "file:") {
+        try {
+          const r = await fetch(tool.page, { method: "HEAD", cache: "no-cache" });
+          if (r.status === 404) { p.replaceChildren(explain(tool, fail("missing"), () => start(tool, entry))); return; }
+        } catch (e) { /* offline or HEAD unsupported: let the frame try anyway */ }
+      }
+      const frame = el("iframe", { src: tool.page, title: tool.name, allow: "clipboard-read; clipboard-write; fullscreen", allowfullscreen: true });
+      frame.addEventListener("load", () => { frame.classList.add("ready"); const l = p.querySelector(".loading"); if (l) l.remove(); }, { once: true });
+      p.append(frame);
       return;
     }
-    pane.replaceChildren(el("div", { class: "note" },
-      el("div", { class: "loading", role: "status" }, el("i"), "Loading " + tool.label + "…")));
+
+    p.replaceChildren(spinner("Loading " + tool.name + "…"));
     try {
+      if (!window.React || !window.ReactDOM) throw fail("react");
       let built = await build(tool, true);
       let Component;
       try { Component = evaluate(built.code, tool); }
       catch (e) {
-        // A stale or damaged cache entry shouldn't be able to wedge a tool: rebuild once from source.
         if (!built.cached) throw e;
-        store.del(built.cacheKey);
+        store.del(built.cacheKey);           // stale or damaged cache: rebuild once from source
         built = await build(tool, false);
         Component = evaluate(built.code, tool);
       }
       const mount = el("div");
-      pane.replaceChildren(mount);
-      ReactDOM.createRoot(mount).render(h(Boundary, { label: tool.label }, h(Component)));
+      p.replaceChildren(mount);
+      ReactDOM.createRoot(mount).render(React.createElement(Boundary, { label: tool.name }, React.createElement(Component)));
     } catch (err) {
-      console.error("[ARC Tools] " + tool.file, err);
-      pane.replaceChildren(explain(tool, err, () => start(entry)));
+      console.error("[ARC Tools] " + tool.name, err);
+      p.replaceChildren(explain(tool, err, () => start(tool, entry)));
     }
   }
 
-  function show(id) {
-    for (const [key, entry] of panes) {
-      const on = key === id;
-      entry.pane.hidden = !on;
-      const tab = tabsEl.querySelector('[data-id="' + key + '"]');
-      if (on) tab.setAttribute("aria-current", "page"); else tab.removeAttribute("aria-current");
+  /* ── routing ──────────────────────────────────────────────────────── */
+  const lookup = new Map();
+  for (const t of TOOLS) {
+    lookup.set(t.id.toLowerCase(), t);
+    for (const a of t.aliases || []) lookup.set(String(a).toLowerCase(), t);
+  }
+  const current = () => lookup.get(decodeURIComponent(location.hash.replace(/^#\/?/, "")).toLowerCase()) || null;
+
+  function show() {
+    let tool = current();
+    // an old or alias address: switch to the tool's own id without adding a history entry
+    if (tool && location.hash.slice(1) !== tool.id) history.replaceState(null, "", "#" + tool.id);
+    const id = tool ? tool.id : "home";
+
+    const entry = pane(id);
+    if (!entry.started) {
+      if (tool) start(tool, entry);
+      else { entry.started = true; entry.pane.append(renderHome()); }
     }
-    const entry = panes.get(id);
-    document.title = entry.tool.label + " | ARC Tools";
-    store.set(NS + "last-tab", id);
-    if (!entry.started) start(entry);
-    else if (entry.fit) requestAnimationFrame(entry.fit);
+    for (const [key, e] of panes) e.pane.hidden = key !== id;
+    for (const [key, a] of navItems) { if (key === id) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); }
+
+    const title = $("top-title");
+    title.replaceChildren(...(tool ? [glyph(tool), el("span", null, tool.name)] : [el("span", null, "ARC Tools")]));
+    document.title = tool ? tool.name + " | ARC Tools" : "ARC Tools";
+    if (tool) store.set(NS + "last-tab", tool.id);
+    closeDrawer();
+    tick();
   }
 
-  // Which tool to show: the #hash if it names one, else the last one used, else the first.
-  const route = () => {
-    const fromHash = decodeURIComponent(location.hash.slice(1));
-    if (panes.has(fromHash)) return fromHash;
-    const last = store.get(NS + "last-tab");
-    return panes.has(last) ? last : TOOLS[0].id;
+  /* ── sidebar collapse (desktop) and drawer (phone) ────────────────── */
+  const collapseBtn = $("collapse"), menuBtn = $("menu");
+  const setMini = (on) => {
+    app.classList.toggle("mini", on);
+    collapseBtn.setAttribute("aria-label", on ? "Expand sidebar" : "Collapse sidebar");
+    collapseBtn.title = on ? "Expand sidebar" : "Collapse sidebar";
+    store.set(NS + "rail", on ? "mini" : "full");
   };
+  collapseBtn.addEventListener("click", () => setMini(!app.classList.contains("mini")));
 
-  window.addEventListener("hashchange", () => show(route()));
-  show(route());
+  const openDrawer = () => { app.classList.add("open"); menuBtn.setAttribute("aria-expanded", "true"); };
+  function closeDrawer() { app.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false"); }
+  menuBtn.addEventListener("click", () => (app.classList.contains("open") ? closeDrawer() : openDrawer()));
+  $("scrim").addEventListener("click", closeDrawer);
+
+  /* ── search ───────────────────────────────────────────────────────── */
+  find.addEventListener("input", filterNav);
+  find.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { find.value = ""; filterNav(); find.blur(); }
+    if (e.key === "Enter") {
+      const first = nav.querySelector(".item:not([hidden])");
+      if (first) { location.hash = first.getAttribute("href"); find.value = ""; filterNav(); find.blur(); }
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && app.classList.contains("open")) closeDrawer();
+    if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    e.preventDefault();
+    if (window.matchMedia("(max-width: 860px)").matches) openDrawer();
+    find.focus();
+  });
+
+  /* ── boot ─────────────────────────────────────────────────────────── */
+  renderNav();
+  if (store.get(NS + "rail") === "mini") setMini(true);
+  window.addEventListener("hashchange", show);
+  show();
 })();
 </script>
 </body>

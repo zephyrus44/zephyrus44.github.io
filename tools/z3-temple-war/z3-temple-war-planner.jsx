@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
 /* Temple War · Z3 — v5
-   Full map from Steven's CAD-traced SVG: 46 closed territories
+   Full map from a CAD-traced SVG: 46 closed territories
    (43 bases · 2 sanctuaries · temple) + 12 gate markers on the ring.
    Rulers show approximate game coordinates (anchor: temple = 500,500,
    2.554 px/unit; X increases left, Y increases up).                   */
@@ -182,33 +182,34 @@ export default function TempleWarPlanner() {
     return { xs, ys };
   }, [vb]);
 
-  const C = { bg: "#0C0D10", panel: "#14151A", line: "#23252C", text: "#E8EAEF", mut: "#8B90A0", faint: "#565B69", tile: "#1C1E24", tileLine: "#2F323B" };
+  // colours match the site theme (theme.css); hex is used because SVG attributes cannot read CSS variables
+  const C = { bg: "#0E1116", panel: "#161A21", line: "#232934", raise: "#1C222B", line2: "#2E3542", text: "#E8EAEE", mut: "#8B93A1", faint: "#5F6774", tile: "#1C222B", tileLine: "#2E3542", accent: "#7EA0FF", accentSoft: "#1D2640", map: "#12151A" };
   const num = { fontVariantNumeric: "tabular-nums" };
   const strokeFor = (c) => (c ? "rgba(0,0,0,0.35)" : C.tileLine);
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "Inter, -apple-system, 'Segoe UI', system-ui, sans-serif", padding: "24px 18px 56px" }}>
+    <div className="z3-root" style={{ minHeight: "100vh", background: C.bg, color: C.text, fontFamily: "var(--arc-font, Geist, Inter, system-ui, sans-serif)", fontSize: 14, lineHeight: 1.5, padding: "48px 40px 72px", WebkitFontSmoothing: "antialiased" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         *{box-sizing:border-box}
         .terr{cursor:pointer;outline:none;-webkit-tap-highlight-color:transparent}
         .terr:hover .tf{filter:brightness(1.22)} .tf{transition:filter .1s,fill .15s}
-        .row{transition:background .12s} .row:hover{background:#191B21}
-        .zbtn{width:30px;height:30px;border-radius:8px;border:1px solid #2C2F37;background:#17181D;color:#C9CCD6;font-size:15px;cursor:pointer;display:grid;place-items:center}
-        input:focus{border-color:#3B4050!important} button{font-family:inherit}
+        .row{transition:background .12s} .row:hover{background:#1C222B}
+        .zbtn{width:32px;height:32px;border-radius:9px;border:1px solid #2E3542;background:#1C222B;color:#E8EAEE;font-size:15px;cursor:pointer;display:grid;place-items:center;transition:background .15s} .zbtn:hover{background:#212833}
+        input:focus{border-color:#7EA0FF!important;box-shadow:0 0 0 3px #1D2640} button{font-family:inherit}
+        @media(max-width:600px){.z3-root{padding:28px 16px 56px!important}.z3-root h1{font-size:26px!important}}
         @media(prefers-reduced-motion:reduce){.tf,.row{transition:none}}`}</style>
 
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-        <header style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 16, marginBottom: 20 }}>
+        <header style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 20, marginBottom: 28 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", color: C.faint, marginBottom: 4 }}>TEMPLE WAR</div>
-            <h1 style={{ margin: 0, fontSize: 21, fontWeight: 700, letterSpacing: "-0.015em" }}>Zone 3 · Territory Planner</h1>
+            <h1 style={{ margin: "0 0 8px", fontSize: 32, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.1 }}>Z3 Temple War</h1>
+            <div style={{ color: C.mut, fontSize: 15 }}>Claim Zone 3 territories for each alliance. Each alliance can earn up to 10,000 points.</div>
           </div>
           <div style={{ marginLeft: "auto", display: "flex", gap: 18, flexWrap: "wrap" }}>
             {[["Gates ×12", PTS.gate], [`Bases ×${nBases}`, PTS.base], ["Sanctuaries ×2", PTS.sanct], ["Temple", PTS.temple]].map(([n, p]) => (
               <div key={n}>
-                <div style={{ fontSize: 11, color: C.faint }}>{n}</div>
-                <div style={{ fontSize: 14, fontWeight: 600, ...num }}>{fmt(p)}<span style={{ color: C.faint, fontWeight: 400 }}> pts</span></div>
+                <div style={{ fontSize: 12.5, fontWeight: 500, color: C.mut }}>{n}</div>
+                <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: "-0.01em", marginTop: 2, ...num }}>{fmt(p)}<span style={{ color: C.faint, fontWeight: 400, fontSize: 13 }}> pts</span></div>
               </div>
             ))}
           </div>
@@ -216,9 +217,9 @@ export default function TempleWarPlanner() {
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-start" }}>
           {/* ── Map ── */}
-          <div ref={wrapRef} style={{ flex: "1.6 1 400px", minWidth: 320, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: 8, position: "relative", overflow: "hidden" }}>
+          <div ref={wrapRef} style={{ flex: "1.6 1 400px", minWidth: 320, background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 8, position: "relative", overflow: "hidden" }}>
             <svg ref={svgRef} viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
-              style={{ width: "100%", display: "block", borderRadius: 10, touchAction: "none", background: "#0F1013" }}
+              style={{ width: "100%", display: "block", borderRadius: 10, touchAction: "none", background: C.map }}
               onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onPointerLeave={() => setTip(null)}>
               {/* faint coordinate grid */}
               {ticks.xs.map((t) => (
@@ -230,7 +231,7 @@ export default function TempleWarPlanner() {
               {/* drawn territories */}
               {FEATS.filter((f) => f.d).map((f) => {
                 const c = colorOf(f.id);
-                const base = f.type === "temple" ? "#262117" : f.type === "sanct" ? "#1E2028" : C.tile;
+                const base = f.type === "temple" ? "#2A2416" : f.type === "sanct" ? "#232A36" : C.tile;
                 return (
                   <g key={f.id} className="terr" data-fid={f.id}
                     onMouseMove={(e) => hover(f, e)} onMouseLeave={() => setTip(null)}>
@@ -244,10 +245,10 @@ export default function TempleWarPlanner() {
                 return (
                   <g key={f.id} className="terr" data-fid={f.id}
                     onMouseMove={(e) => hover(f, e)} onMouseLeave={() => setTip(null)}>
-                    <circle className="tf" cx={f.x} cy={f.y} r="15" fill={c ?? "#181A20"} fillOpacity={c ? 0.95 : 1} stroke={c ?? "#3A3E48"} strokeWidth="1.3" />
+                    <circle className="tf" cx={f.x} cy={f.y} r="15" fill={c ?? C.panel} fillOpacity={c ? 0.95 : 1} stroke={c ?? "#3A4250"} strokeWidth="1.3" />
                     <path d={`M${f.x - 5.5} ${f.y + 4.5}v-6.5m11 6.5v-6.5M${f.x - 7.2} ${f.y - 2.6}h14.4M${f.x - 5.8} ${f.y - 5.4}h11.6`}
                       stroke={c ? "#FFF" : "#9CA1AF"} strokeWidth="1.5" fill="none" strokeLinecap="round" pointerEvents="none" />
-                    <text x={f.x} y={f.y + 12} textAnchor="middle" fontSize="6.5" fontWeight="600" fill={c ? "rgba(255,255,255,0.9)" : "#565B69"} pointerEvents="none">{f.n}</text>
+                    <text x={f.x} y={f.y + 12} textAnchor="middle" fontSize="6.5" fontWeight="600" fill={c ? "rgba(255,255,255,0.9)" : C.faint} pointerEvents="none">{f.n}</text>
                   </g>
                 );
               })}
@@ -266,12 +267,12 @@ export default function TempleWarPlanner() {
             </svg>
 
             {/* coordinate rulers */}
-            <div style={{ position: "absolute", top: 8, left: 8, right: 8, height: 20, pointerEvents: "none", background: "linear-gradient(rgba(12,13,16,0.85), rgba(12,13,16,0))", borderRadius: "10px 10px 0 0" }}>
+            <div style={{ position: "absolute", top: 8, left: 8, right: 8, height: 20, pointerEvents: "none", background: "linear-gradient(rgba(18,21,26,0.9), rgba(18,21,26,0))", borderRadius: "10px 10px 0 0" }}>
               {ticks.xs.map((t) => (
                 <span key={t.g} style={{ position: "absolute", left: `${t.p}%`, top: 3, transform: "translateX(-50%)", fontSize: 10, color: "#6B7080", fontVariantNumeric: "tabular-nums" }}>{t.g}</span>
               ))}
             </div>
-            <div style={{ position: "absolute", top: 8, left: 8, bottom: 46, width: 26, pointerEvents: "none", background: "linear-gradient(90deg, rgba(12,13,16,0.85), rgba(12,13,16,0))", borderRadius: "10px 0 0 10px" }}>
+            <div style={{ position: "absolute", top: 8, left: 8, bottom: 46, width: 26, pointerEvents: "none", background: "linear-gradient(90deg, rgba(18,21,26,0.9), rgba(18,21,26,0))", borderRadius: "10px 0 0 10px" }}>
               {ticks.ys.map((t) => (
                 <span key={t.g} style={{ position: "absolute", top: `${t.p}%`, left: 3, transform: "translateY(-50%)", fontSize: 10, color: "#6B7080", fontVariantNumeric: "tabular-nums" }}>{t.g}</span>
               ))}
@@ -285,7 +286,7 @@ export default function TempleWarPlanner() {
 
             {/* tooltip */}
             {tip && (
-              <div style={{ position: "absolute", left: Math.min(tip.x + 14, (wrapRef.current?.clientWidth ?? 400) - 190), top: tip.y + 14, pointerEvents: "none", background: "rgba(10,11,14,0.92)", border: `1px solid #2C2F37`, borderRadius: 10, padding: "9px 12px", minWidth: 150, backdropFilter: "blur(6px)" }}>
+              <div style={{ position: "absolute", left: Math.min(tip.x + 14, (wrapRef.current?.clientWidth ?? 400) - 190), top: tip.y + 14, pointerEvents: "none", background: "rgba(14,17,22,0.94)", border: `1px solid ${C.line2}`, borderRadius: 10, padding: "9px 12px", minWidth: 150, backdropFilter: "blur(6px)" }}>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{NAME(tip.f)}</div>
                 <div style={{ fontSize: 11.5, color: C.mut, marginTop: 2, ...num }}>({tip.f.gx}, {tip.f.gy}) · {fmt(PTS[tip.f.type])} pts</div>
                 <div style={{ fontSize: 11.5, marginTop: 4, color: colorOf(tip.f.id) ?? C.faint }}>
@@ -302,8 +303,8 @@ export default function TempleWarPlanner() {
 
           {/* ── Rail ── */}
           <div style={{ flex: "1 1 300px", minWidth: 292, display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, overflow: "hidden" }}>
-              <div style={{ padding: "14px 16px 10px", fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", color: C.faint }}>STANDINGS</div>
+            <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ padding: "16px 16px 12px", fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em" }}>Standings</div>
               {alliances.length === 0 && (
                 <div style={{ padding: "18px 16px 20px", borderTop: `1px solid ${C.line}`, fontSize: 12.5, color: C.mut, lineHeight: 1.55 }}>
                   No alliances yet. Add the first one below, then tap territories on the map to assign them.
@@ -313,7 +314,7 @@ export default function TempleWarPlanner() {
                 const t = totals[a.id], sel = active === a.id;
                 return (
                   <div key={a.id} className="row" onClick={() => setActive(a.id)}
-                    style={{ padding: "11px 16px 12px", cursor: "pointer", background: sel ? "#1A1C22" : "transparent", boxShadow: sel ? `inset 3px 0 0 ${a.color}` : "none", borderTop: `1px solid ${C.line}` }}>
+                    style={{ padding: "11px 16px 12px", cursor: "pointer", background: sel ? C.raise : "transparent", boxShadow: sel ? `inset 3px 0 0 ${a.color}` : "none", borderTop: `1px solid ${C.line}` }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <span style={{ fontSize: 11, color: C.faint, width: 14, ...num }}>{rank + 1}</span>
                       <span onClick={(e) => { e.stopPropagation(); setColorEdit((c) => (c === a.id ? null : a.id)); }} title="Change color"
@@ -327,7 +328,7 @@ export default function TempleWarPlanner() {
                       <span style={{ flex: 1 }}>{t.gate}G · {t.base}B · {t.sanct}S{t.temple ? " · Temple" : ""}</span>
                       <span style={{ color: t.pts >= CAP ? a.color : C.faint }}>{fmt(Math.min(t.pts, CAP))} / {fmt(CAP)}{t.pts >= CAP ? " · max" : ""}</span>
                     </div>
-                    <div style={{ height: 3, background: "#21232A", borderRadius: 2, marginLeft: 24 }}>
+                    <div style={{ height: 3, background: C.line, borderRadius: 2, marginLeft: 24 }}>
                       <div style={{ height: 3, width: `${Math.min(100, (t.pts / CAP) * 100)}%`, background: a.color, borderRadius: 2, transition: "width .25s" }} />
                     </div>
                     {colorEdit === a.id && (
@@ -336,7 +337,7 @@ export default function TempleWarPlanner() {
                           <span key={c} title={COLOR_NAMES[ci]}
                             onClick={() => { setAlliances((al) => al.map((x) => (x.id === a.id ? { ...x, color: c } : x))); setColorEdit(null); }}
                             style={{ width: 20, height: 20, borderRadius: 5, background: c, cursor: "pointer",
-                              boxShadow: a.color === c ? "0 0 0 2px #E8EAEF" : "inset 0 0 0 1px rgba(255,255,255,0.14)" }} />
+                              boxShadow: a.color === c ? "0 0 0 2px #E8EAEE" : "inset 0 0 0 1px rgba(255,255,255,0.14)" }} />
                         ))}
                       </div>
                     )}
@@ -344,32 +345,32 @@ export default function TempleWarPlanner() {
                 );
               })}
               <div className="row" onClick={() => setActive("erase")}
-                style={{ padding: "11px 16px", cursor: "pointer", fontSize: 12.5, color: active === "erase" ? C.text : C.mut, borderTop: `1px solid ${C.line}`, background: active === "erase" ? "#1A1C22" : "transparent", boxShadow: active === "erase" ? `inset 3px 0 0 ${C.faint}` : "none" }}>
+                style={{ padding: "11px 16px", cursor: "pointer", fontSize: 12.5, color: active === "erase" ? C.text : C.mut, borderTop: `1px solid ${C.line}`, background: active === "erase" ? C.raise : "transparent", boxShadow: active === "erase" ? `inset 3px 0 0 ${C.faint}` : "none" }}>
                 Release mode
               </div>
               <div style={{ display: "flex", gap: 8, padding: 14, borderTop: `1px solid ${C.line}` }}>
                 <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addAlliance()}
                   placeholder="Add alliance"
-                  style={{ flex: 1, background: "#0F1013", border: `1px solid #2C2F37`, borderRadius: 9, padding: "8px 12px", fontSize: 13.5, color: C.text, outline: "none" }} />
+                  style={{ flex: 1, minWidth: 0, height: 38, background: C.bg, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "0 12px", fontSize: 14, color: C.text, outline: "none", fontFamily: "inherit", transition: "border-color .15s, box-shadow .15s" }} />
                 <button onClick={addAlliance}
-                  style={{ background: "#E8EAEF", color: "#0F1013", border: "none", borderRadius: 9, padding: "8px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Add</button>
+                  style={{ height: 38, background: C.accent, color: "#0B1020", border: "none", borderRadius: 10, padding: "0 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Add</button>
               </div>
             </div>
 
-            <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.08em", color: C.faint, marginBottom: 8 }}>ZONE TOTAL</div>
+            <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em", marginBottom: 8 }}>Zone total</div>
               <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                 <span style={{ fontSize: 24, fontWeight: 700, ...num }}>{fmt(claimed)}</span>
                 <span style={{ fontSize: 13, color: C.mut, ...num }}>/ {fmt(totalAvail)} pts claimed</span>
               </div>
-              <div style={{ height: 4, background: "#21232A", borderRadius: 2, margin: "12px 0 14px" }}>
-                <div style={{ height: 4, width: `${(claimed / totalAvail) * 100}%`, background: "#E8EAEF", borderRadius: 2, transition: "width .25s" }} />
+              <div style={{ height: 4, background: C.line, borderRadius: 2, margin: "12px 0 14px" }}>
+                <div style={{ height: 4, width: `${(claimed / totalAvail) * 100}%`, background: C.accent, borderRadius: 2, transition: "width .25s" }} />
               </div>
-              <div style={{ fontSize: 11.5, color: C.faint, lineHeight: 1.55, marginBottom: 12 }}>
-                Full map from your traced SVG — 46 bordered territories plus 12 gates. Coordinates are approximate, anchored at the temple (500, 500).
+              <div style={{ fontSize: 12.5, color: C.mut, lineHeight: 1.55, marginBottom: 14 }}>
+                46 bordered territories plus 12 gates. Coordinates are approximate, anchored at the temple (500, 500).
               </div>
               <button onClick={() => { setOwn({}); setStatus("All claims cleared"); }}
-                style={{ background: "transparent", color: "#FF7A7A", border: `1px solid #3A2A2C`, borderRadius: 9, padding: "7px 14px", fontSize: 12.5, fontWeight: 500, cursor: "pointer" }}>
+                style={{ height: 34, background: "transparent", color: "#FF7A63", border: "1px solid #3A1C17", borderRadius: 10, padding: "0 14px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
                 Clear all claims
               </button>
             </div>
