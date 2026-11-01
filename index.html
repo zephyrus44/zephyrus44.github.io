@@ -652,6 +652,7 @@
   }
 
   /* ── panes ────────────────────────────────────────────────────────── */
+  const FULL_PAGE = matchMedia("(max-width: 860px), (pointer: coarse)");
   const panes = new Map();
   function pane(id) {
     if (!panes.has(id)) {
@@ -714,6 +715,9 @@
     let tool = current();
     // an old or alias address: switch to the tool's own id without adding a history entry
     if (tool && location.hash.slice(1) !== tool.id) history.replaceState(null, "", "#" + tool.id);
+    // Phones and tablets open HTML tools as full pages: mobile browsers can stop drawing
+    // parts of a scrolling frame. The page's own top bar links back here.
+    if (tool && tool.page && FULL_PAGE.matches) { location.replace(new URL(tool.page, location.href).href); return; }
     const id = tool ? tool.id : "home";
 
     const entry = pane(id);
