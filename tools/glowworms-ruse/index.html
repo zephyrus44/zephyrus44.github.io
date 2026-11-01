@@ -273,9 +273,16 @@ const DOM=[
  ["d13","Capture 3 Pantheons","A",T.pantheon,3,0,"Lv.14 Valor"],["d14","Capture 6 Lv.4 Passes","W",T.p4,6,0,"Lv.16 Valor"],["d15","Capture the Ziggurat of Corruption","W",T.zig,1,0]
 ].map(([id,title,m,ty,need,have,req])=>({id,title,m,ty,need,have,req}));
 const GOALS={}; CH.forEach(g=>GOALS[g.id]=g); DOM.forEach(g=>GOALS[g.id]=g);
-const seed=()=>{const p={},c={}; DOM.forEach(d=>p[d.id]=d.have); [1,2,3,4,5,6].forEach(n=>c["c"+n]=1); return {prog:p,chDone:c};};
+const seed=()=>{const p={}; DOM.forEach(d=>p[d.id]=0); return {prog:p,chDone:{}};};
 let S={alliances:[],active:null,owner:{},tgt:{},shapes:[],tool:"hold",dcol:null,mode:"plan",tab:"chron",goal:null,bg:true,bgOp:65,mk:true,...seed()};
-try{const r=localStorage.getItem(KEY); if(r) S={...S,...JSON.parse(r)};}catch(e){}
+try{const r=localStorage.getItem(KEY); if(r){const o=JSON.parse(r);
+  // Older versions pre-filled progress; drop it if the saved values were never changed.
+  if(!o.seedV){const oldP=o.prog||{}, oldC=o.chDone||{};
+    const untouchedP=DOM.every(d=>(oldP[d.id]||0)===d.have);
+    const untouchedC=Object.keys(oldC).sort().join()===["c1","c2","c3","c4","c5","c6"].join();
+    if(untouchedP) delete o.prog; if(untouchedC) delete o.chDone;}
+  S={...S,...o};}}catch(e){}
+S.seedV=2;
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const typeOf=id=>items[id].ty;
 const alById=id=>S.alliances.find(a=>a.id===id);
