@@ -148,11 +148,25 @@ details summary::-webkit-details-marker{display:none}
 .dgrp .sw{width:20px;height:20px;padding:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
 .dgrp .sw[aria-pressed="true"]{outline:2px solid var(--fg);outline-offset:1px;background-clip:padding-box}
 .dhint{width:100%;text-align:center;font-size:11.5px;color:var(--fg);pointer-events:none}
-.dhint span{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.dhint span{display:inline-block;max-width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px 10px;line-height:1.4}
+@media (max-width:600px){.dhint .pan{display:none}}
 .mapwrap.drawing{cursor:crosshair}
 #dl text{font-family:var(--f-ui);font-weight:700;paint-order:stroke;stroke:rgba(0,0,0,.75);stroke-linejoin:round}
-@media (max-width:600px){.dgrp [data-tool] span{display:none}}
+@media (max-width:600px){.dgrp [data-tool] span{display:none}.dgrp [data-tool]{padding:6px 7px}.dtools{left:6px;right:6px}}
 .mk-dim{opacity:.25}
+.dgrp .sw.al{box-shadow:inset 0 0 0 2px rgba(255,255,255,.85),inset 0 0 0 3px rgba(0,0,0,.35)}
+.dgrp .sep{width:1px;align-self:stretch;background:var(--line-strong);margin:3px 3px}
+.dgrp svg.ln{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hud .snapbtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.snapmenu{position:absolute;right:calc(52px + env(safe-area-inset-right,0px));bottom:10px;background:var(--panel);border:1px solid var(--line-strong);border-radius:9px;padding:4px;display:flex;flex-direction:column;gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.22);z-index:6;min-width:170px}
+.snapmenu button{border:0;background:transparent;text-align:left;border-radius:6px;padding:8px 10px;font-size:13px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;gap:1px}
+.snapmenu button:hover{background:var(--bg)}
+.snapmenu small{font-weight:400;color:var(--muted);font-size:11.5px}
+.snapov{position:absolute;inset:0;z-index:7;cursor:crosshair;touch-action:none}
+.snapov .bar{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:var(--accent);color:#fff;font-weight:600;font-size:12.5px;padding:5px 6px 5px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.snapov .bar button{border:0;background:rgba(255,255,255,.2);color:#fff;border-radius:999px;padding:3px 10px;font-weight:600;font-size:12px;cursor:pointer}
+.snaprect{position:absolute;border:2px dashed #fff;outline:1px solid rgba(0,0,0,.5);background:rgba(126,160,255,.12);pointer-events:none}
+.snaptoast{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;z-index:8;pointer-events:none}
 @media (max-width:820px){
   .app{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto}
   .stage{height:min(78vh,620px);order:-1}
@@ -241,6 +255,9 @@ details summary::-webkit-details-marker{display:none}
       <div class="dtools" id="dtools" hidden>
         <div class="dgrp" role="group" aria-label="Drawing tool">
           <button data-tool="hold" title="Alliance stronghold"><svg viewBox="0 0 20 20"><path d="M4 17V8l2-1V4h2v2h1V4h2v2h1V4h2v3l2 1v9h-5v-4H9v4z"/></svg><span>Stronghold</span></button>
+          <button data-tool="city" title="Move city here"><svg class="ln" viewBox="0 0 24 24"><path d="M5 11.5 12 5.5l7 6M7 10v8.5h10V10M10.5 18.5v-4.5h3v4.5"/></svg><span>City</span></button>
+          <button data-tool="reinf" title="Reinforce"><svg class="ln" viewBox="0 0 24 24"><path d="M12 3.5l7 2.6v5.4c0 4.3-3 7.4-7 8.9-4-1.5-7-4.6-7-8.9V6.1z"/></svg><span>Reinforce</span></button>
+          <button data-tool="atk" title="Attack"><svg class="ln" viewBox="0 0 24 24"><path d="M19.5 4.5l-.8 4.2-8.6 8.6-3.4-3.4 8.6-8.6zM5.4 12.4l6.2 6.2M8.4 15.6l-3.8 3.8"/></svg><span>Attack</span></button>
           <button data-tool="arrow" title="Arrow"><svg viewBox="0 0 20 20"><path d="M3 17L15 5M9 5h6v6" fill="none" stroke-width="2"/></svg><span>Arrow</span></button>
           <button data-tool="circle" title="Circle"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5" fill="none" stroke-width="2"/></svg><span>Circle</span></button>
           <button data-tool="rect" title="Rectangle"><svg viewBox="0 0 20 20"><rect x="3.5" y="5" width="13" height="10" fill="none" stroke-width="2"/></svg><span>Box</span></button>
@@ -259,7 +276,14 @@ details summary::-webkit-details-marker{display:none}
         <input type="range" id="bgOp" min="15" max="100" value="65" aria-label="Map overlay opacity">
         <label><input type="checkbox" id="mkChk" checked> Markers</label>
       </div>
-      <div class="hud"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit map" style="font-size:13px">⤢</button></div>
+      <div class="hud"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit map" style="font-size:13px">⤢</button><button id="zsnap" class="snapbtn" aria-label="Save image" title="Save image" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 8.5h3.2l1.6-2.5h6.4l1.6 2.5H20v10H4z"/><circle cx="12" cy="13.2" r="3.3"/></svg></button></div>
+      <div class="snapmenu" id="snapMenu" hidden>
+        <button id="snapView">Current view<small>Exactly what's on screen</small></button>
+        <button id="snapArea">Select area<small>Drag a box over the map</small></button>
+        <button id="snapAll">Whole map<small>The full Land of the Abyss</small></button>
+      </div>
+      <div class="snapov" id="snapOv" hidden><div class="bar"><span>Drag over the area to save</span><button id="snapCancel">Cancel</button></div><div class="snaprect" id="snapRect" hidden></div></div>
+      <div class="snaptoast" id="snapToast" hidden></div>
       <div class="tip" id="tip" hidden></div>
     </div>
   </main>
@@ -450,7 +474,7 @@ function renderAlliances(){
       <input id="an_${a.id}" value="${esc(a.name)}" aria-label="Alliance name">
       <div class="pts">${tot[a.id].n}<small>${S.shapes.some(x=>x.t==="hold"&&x.al===a.id)?"⌂ ":""}${tot[a.id].s} key sites</small></div>
       <div class="bar"><i style="width:${tot[a.id].n/max*100}%;background:${a.color}"></i></div>`;
-    d.onclick=e=>{if(e.target.tagName==="INPUT"||e.target.classList.contains("dot"))return; S.active=a.id; save(); renderAlliances(); updateModebar(); if(S.mode==="draw") renderTools();};
+    d.onclick=e=>{if(e.target.tagName==="INPUT"||e.target.classList.contains("dot"))return; S.active=a.id; if(typeof S.dcol==="string"&&S.dcol.startsWith("al:")) S.dcol=null; save(); renderAlliances(); updateModebar(); if(S.mode==="draw") renderTools();};
     d.querySelector(".dot").onclick=e=>{e.stopPropagation(); pickerFor=pickerFor===a.id?null:a.id; S.active=a.id; renderAlliances();};
     const inp=d.querySelector("input"); inp.onfocus=()=>{if(S.active!==a.id){S.active=a.id;save();box.querySelectorAll(".al").forEach(x=>x.classList.remove("on"));d.classList.add("on");}};
     inp.oninput=()=>{a.name=inp.value; save(); updateModebar(); paintShapes();};
@@ -464,7 +488,8 @@ function renderAlliances(){
     if(!confirmReset){
       const del=document.createElement("button"); del.className="btn ghost danger"; del.textContent="Remove selected";
       del.onclick=()=>{if(!S.active)return; for(const k in S.owner) if(S.owner[k]===S.active) delete S.owner[k];
-        S.shapes=S.shapes.filter(x=>!(x.t==="hold"&&x.al===S.active)); S.alliances=S.alliances.filter(x=>x.id!==S.active); S.active=S.alliances[0]?.id||null; save(); renderAll();};
+        const gone=alById(S.active); S.shapes=S.shapes.filter(x=>!(x.t==="hold"&&x.al===S.active));
+        S.shapes.forEach(x=>{if(x.al===S.active){delete x.al; x.c=gone.color;}}); if(S.dcol==="al:"+S.active) S.dcol=null; S.alliances=S.alliances.filter(x=>x.id!==S.active); S.active=S.alliances[0]?.id||null; save(); renderAll();};
       const rs=document.createElement("button"); rs.className="btn ghost"; rs.textContent="Clear all claims"; rs.onclick=()=>{confirmReset=true; renderAlliances();};
       tools.append(rs,del);
     } else {
@@ -490,7 +515,7 @@ function setMode(m){S.mode=m; $("mPlan").setAttribute("aria-pressed",String(m===
 function renderAll(){paint(); renderEvent(); renderGoals(); renderAlliances(); updateModebar(); if(typeof paintShapes==="function") paintShapes();}
 $("mPlan").onclick=()=>setMode("plan"); $("mClaim").onclick=()=>setMode("claim"); $("mDraw").onclick=()=>setMode("draw");
 $("addAl").onclick=()=>{const keepDraw=S.mode==="draw";const used=new Set(S.alliances.map(a=>a.color)); const c=PALETTE.find(p=>!used.has(p))||PALETTE[0];
-  const a={id:"a"+Date.now().toString(36),name:"Alliance "+(S.alliances.length+1),color:c}; S.alliances.push(a); S.active=a.id; save(); setMode(keepDraw?"draw":"claim"); renderAll();
+  const a={id:"a"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:"Alliance "+(S.alliances.length+1),color:c}; S.alliances.push(a); S.active=a.id; save(); setMode(keepDraw?"draw":"claim"); renderAll();
   setTimeout(()=>{const i=$("an_"+a.id); if(i){i.focus(); i.select();}},0);};
 $("bgChk").checked=S.bg; $("bgOp").value=S.bgOp; $("mkChk").checked=S.mk;
 $("bgChk").onchange=e=>{S.bg=e.target.checked; save(); paint();};
@@ -517,7 +542,18 @@ $("doImp").onclick=()=>{
 
 /* ---------- drawings & strongholds ---------- */
 const dl=$("dl"); const DCOLS=["#ffffff","#111111","#EC4441","#F4BF41","#50B080","#3E8CD7","#8647BA","#F08C33"];
-const shCol=sh=>{if(sh.t==="hold"){const a=alById(sh.al); return a?a.color:"#9aa3b2";} return sh.c;};
+const shCol=sh=>{if(sh.al){const a=alById(sh.al); if(a) return a.color;} return sh.c||"#9aa3b2";};
+const PINS={city:"M5 11.5 12 5.5l7 6M7 10v8.5h10V10M10.5 18.5v-4.5h3v4.5",
+  reinf:"M12 3.5l7 2.6v5.4c0 4.3-3 7.4-7 8.9-4-1.5-7-4.6-7-8.9V6.1z",
+  atk:"M19.5 4.5l-.8 4.2-8.6 8.6-3.4-3.4 8.6-8.6zM5.4 12.4l6.2 6.2M8.4 15.6l-3.8 3.8"};
+const PIN_R=6.4, isPin=t=>t in PINS, POINT=t=>t==="hold"||isPin(t);
+const lightCol=c=>{const m=/^#?([0-9a-f]{6})$/i.exec(c||""); if(!m) return false; const n=parseInt(m[1],16); return (0.299*(n>>16)+0.587*(n>>8&255)+0.114*(n&255))>170;};
+/* paint for new drawings: an alliance (follows its colour) or a fixed colour */
+function curPaint(){const d=S.dcol;
+  if(typeof d==="string"&&d.startsWith("al:")&&alById(d.slice(3))) return {al:d.slice(3)};
+  if(typeof d==="string"&&d.startsWith("#")) return {c:d};
+  if(alById(S.active)) return {al:S.active};
+  return {c:"#EC4441"};}
 function arrowPath(x0,y0,x1,y1){const L=Math.hypot(x1-x0,y1-y0)||1, h=Math.min(L*.35,9), ux=(x1-x0)/L, uy=(y1-y0)/L;
   const bx=x1-ux*h, by=y1-uy*h, w=h*.55; return `M${x0} ${y0}L${bx} ${by}M${x1} ${y1}L${bx-uy*w} ${by+ux*w}L${bx+uy*w} ${by-ux*w}Z`;}
 function shapeEl(sh,i){
@@ -530,7 +566,14 @@ function shapeEl(sh,i){
     if(sh.t==="circle") return ["circle",{cx:x0,cy:y0,r:Math.hypot(x1-x0,y1-y0)}];
     if(sh.t==="rect") return ["rect",{x:Math.min(x0,x1),y:Math.min(y0,y1),width:Math.abs(x1-x0),height:Math.abs(y1-y0)}];
     if(sh.t==="tri"){const l=Math.min(x0,x1),r=Math.max(x0,x1),t=Math.min(y0,y1),b=Math.max(y0,y1); return ["path",{d:`M${(l+r)/2} ${t}L${r} ${b}L${l} ${b}Z`}];}};
-  if(sh.t==="hold"){
+  if(isPin(sh.t)){
+    const r=PIN_R, cy=sh.y-r*1.55, ink=lightCol(col)?"#14181E":"#FFFFFF";
+    const pin=`M${sh.x} ${sh.y}L${sh.x-r*.62} ${cy+r*.8}A${r} ${r} 0 1 1 ${sh.x+r*.62} ${cy+r*.8}Z`;
+    mk("path",{d:pin,fill:col,stroke:"rgba(0,0,0,.7)","stroke-width":1.3,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round"});
+    const gs=r*1.45/24;
+    mk("path",{d:PINS[sh.t],transform:`translate(${sh.x-r*.725} ${cy-r*.725}) scale(${gs.toFixed(4)})`,fill:"none",stroke:ink,"stroke-width":2.6,"stroke-linecap":"round","stroke-linejoin":"round"});
+    g.style.cursor="pointer";
+  } else if(sh.t==="hold"){
     const a=alById(sh.al), s=1;
     mk("circle",{cx:sh.x,cy:sh.y,r:7.2,fill:col,stroke:"#fff","stroke-width":1.8,"vector-effect":"non-scaling-stroke"});
     mk("path",{d:`M${sh.x-4} ${sh.y+3.6}v-5l1.2-.7v-2h1.3v1.2h.8v-1.2h1.4v1.2h.8v-1.2h1.3v2l1.2.7v5h-2.6v-2.3h-1.8v2.3z`,fill:"#fff"});
@@ -541,20 +584,27 @@ function shapeEl(sh,i){
     if(sh.t==="arrow"){e.setAttribute("fill",col);} }
   return g;
 }
+function pointAt(m){let best=-1,bd=1e9;
+  S.shapes.forEach((sh,i)=>{if(!POINT(sh.t)) return; const cx=sh.x, cy=isPin(sh.t)?sh.y-PIN_R*1.55:sh.y, rr=isPin(sh.t)?PIN_R*1.3:7.6;
+    const d=Math.hypot(m.x-cx,m.y-cy); if(d<=rr&&d<bd){bd=d; best=i;}}); return best;}
 function paintShapes(){dl.innerHTML=""; S.shapes.forEach((sh,i)=>dl.appendChild(shapeEl(sh,i))); if(draft) dl.appendChild(shapeEl(draft,-1));
   dl.style.pointerEvents=(S.mode==="draw"&&S.tool==="erase")?"auto":"none";}
-let draft=null;
+let draft=null, drag=null;
 function renderTools(){
   $("dtools").hidden=S.mode!=="draw"; wrap.classList.toggle("drawing",S.mode==="draw");
   document.querySelectorAll("#dtools [data-tool]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.tool===S.tool)));
   const dc=$("dcolors"); dc.hidden=S.tool==="hold"||S.tool==="erase"; dc.innerHTML="";
-  const cur=S.dcol||(alById(S.active)?.color)||"#EC4441";
-  [...new Set([...(alById(S.active)?[alById(S.active).color]:[]),...DCOLS])].forEach(c=>{const b=document.createElement("button"); b.className="sw"; b.style.background=c;
-    b.setAttribute("aria-label","Colour "+c); b.setAttribute("aria-pressed",String(c===cur)); b.onclick=()=>{S.dcol=c; save(); renderTools();}; dc.appendChild(b);});
-  const a=alById(S.active);
+  const cur=curPaint();
+  S.alliances.forEach(a=>{const b=document.createElement("button"); b.className="sw al"; b.style.background=a.color; b.title=a.name;
+    b.setAttribute("aria-label",a.name+" colour"); b.setAttribute("aria-pressed",String(cur.al===a.id)); b.onclick=()=>{S.dcol="al:"+a.id; save(); renderTools();}; dc.appendChild(b);});
+  if(S.alliances.length){const sp=document.createElement("span"); sp.className="sep"; dc.appendChild(sp);}
+  DCOLS.forEach(c=>{const b=document.createElement("button"); b.className="sw"; b.style.background=c;
+    b.setAttribute("aria-label","Colour "+c); b.setAttribute("aria-pressed",String(!cur.al&&cur.c===c)); b.onclick=()=>{S.dcol=c; save(); renderTools();}; dc.appendChild(b);});
+  const a=alById(S.active), pa=cur.al?alById(cur.al):null, who=pa?` in ${esc(pa.name)}'s colour`:"";
   const hint={hold:a?`Tap the map to place ${esc(a.name)}'s stronghold. Pick another alliance in the list to place theirs.`:"Add an alliance first, then tap the map to place its stronghold.",
-    arrow:"Drag from start to end.",circle:"Drag out from the centre.",rect:"Drag corner to corner.",tri:"Drag to size the triangle.",erase:"Tap a drawing or stronghold to remove it."}[S.tool];
-  $("dhint").innerHTML=`<span>${hint} Two fingers or the scroll wheel move the map.</span>`;
+    city:`Tap to mark where a city moves${who}. Drag a marker to move it.`,reinf:`Tap to mark a reinforce point${who}. Drag a marker to move it.`,atk:`Tap to mark an attack target${who}. Drag a marker to move it.`,
+    arrow:`Drag from start to end${who}.`,circle:`Drag out from the centre${who}.`,rect:`Drag corner to corner${who}.`,tri:`Drag to size the triangle${who}.`,erase:"Tap a drawing or marker to remove it."}[S.tool];
+  $("dhint").innerHTML=`<span>${hint}<i class="pan" style="font-style:normal"> Two fingers or the scroll wheel move the map.</i></span>`;
   paintShapes();
 }
 document.querySelectorAll("#dtools [data-tool]").forEach(b=>b.onclick=()=>{S.tool=b.dataset.tool; save(); renderTools();});
@@ -575,8 +625,10 @@ const ptrs=new Map(); let moved=0,last=null,pinch=null;
 const toMap=e=>{const r=wrap.getBoundingClientRect(); return {x:(e.clientX-r.left-V.x)/V.s, y:(e.clientY-r.top-V.y)/V.s};};
 const SHAPES=["arrow","circle","rect","tri"];
 wrap.addEventListener("pointerdown",e=>{ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); moved=0; last={x:e.clientX,y:e.clientY};
-  if(ptrs.size===2){draft=null; paintShapes(); const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2}; return;}
-  if(S.mode==="draw"&&SHAPES.includes(S.tool)&&ptrs.size===1){const m=toMap(e); draft={t:S.tool,c:S.dcol||(alById(S.active)?.color)||"#EC4441",x0:m.x,y0:m.y,x1:m.x,y1:m.y}; try{wrap.setPointerCapture(e.pointerId);}catch(_){}}
+  if(ptrs.size===2){draft=null; if(drag){drag=null; save();} paintShapes(); const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2}; return;}
+  if(S.mode==="draw"&&ptrs.size===1&&S.tool!=="erase"){const m=toMap(e), hit=pointAt(m);
+    if(hit>=0){const sh=S.shapes[hit]; drag={i:hit,dx:sh.x-m.x,dy:sh.y-m.y,moved:false}; try{wrap.setPointerCapture(e.pointerId);}catch(_){} return;}}
+  if(S.mode==="draw"&&SHAPES.includes(S.tool)&&ptrs.size===1){const m=toMap(e); draft={t:S.tool,...curPaint(),x0:m.x,y0:m.y,x1:m.x,y1:m.y}; try{wrap.setPointerCapture(e.pointerId);}catch(_){}}
 });
 wrap.addEventListener("pointermove",e=>{
   if(!ptrs.has(e.pointerId)){hover(e);return;}
@@ -584,16 +636,19 @@ wrap.addEventListener("pointermove",e=>{
   if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y), mx=(a.x+b.x)/2, my=(a.y+b.y)/2, r=wrap.getBoundingClientRect();
     V.x+=mx-pinch.mx; V.y+=my-pinch.my; zoomAt(d/pinch.d,mx-r.left,my-r.top); pinch.d=d; pinch.mx=mx; pinch.my=my; moved=99; return;}
   const dx=e.clientX-last.x,dy=e.clientY-last.y; moved+=Math.abs(dx)+Math.abs(dy); last={x:e.clientX,y:e.clientY};
+  if(drag){if(moved>4){const m=toMap(e), sh=S.shapes[drag.i]; sh.x=m.x+drag.dx; sh.y=m.y+drag.dy; drag.moved=true; paintShapes();} $("tip").hidden=true; return;}
   if(draft){const m=toMap(e); draft.x1=m.x; draft.y1=m.y; paintShapes(); $("tip").hidden=true; return;}
   if(S.mode==="draw") return;
   if(moved>5){wrap.classList.add("drag"); V.x+=dx; V.y+=dy; apply(); $("tip").hidden=true;}
 });
 const up=e=>{
   const had=ptrs.has(e.pointerId); ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null; wrap.classList.remove("drag");
+  if(drag){const d=drag; drag=null; if(d.moved) save(); return;}
   if(draft){const d=draft; draft=null; if(e.type==="pointerup"&&Math.hypot(d.x1-d.x0,d.y1-d.y0)*V.s>8){S.shapes.push(d); save();} paintShapes(); return;}
   if(!(had&&moved<=5&&e.type==="pointerup")) return;
   if(S.mode==="draw"){
     if(S.tool==="hold"){const a=alById(S.active); if(!a) return; const m=toMap(e); S.shapes=S.shapes.filter(x=>!(x.t==="hold"&&x.al===a.id)); S.shapes.push({t:"hold",al:a.id,x:m.x,y:m.y}); save(); paintShapes(); renderAlliances();}
+    else if(isPin(S.tool)){const m=toMap(e); S.shapes.push({t:S.tool,...curPaint(),x:m.x,y:m.y}); save(); paintShapes();}
     else if(S.tool==="erase"){const el=document.elementFromPoint(e.clientX,e.clientY); const i=el&&el.dataset&&el.dataset.sh; if(i!=null&&i!==""&&+i>=0){S.shapes.splice(+i,1); save(); paintShapes();}}
     return;}
   const el=document.elementFromPoint(e.clientX,e.clientY); const id=el&&el.dataset&&el.dataset.id; if(id) act(id,e);
@@ -603,7 +658,7 @@ wrap.addEventListener("pointerleave",()=>{$("tip").hidden=true;});
 $("zin").onclick=()=>{const r=wrap.getBoundingClientRect(); zoomAt(1.5,r.width/2,r.height/2);};
 $("zout").onclick=()=>{const r=wrap.getBoundingClientRect(); zoomAt(1/1.5,r.width/2,r.height/2);};
 $("zfit").onclick=fit;
-["zin","zout","zfit","legend"].forEach(i=>{const el=$(i); el.addEventListener("pointerdown",e=>e.stopPropagation());});
+["zin","zout","zfit","zsnap","snapMenu","snapOv","legend"].forEach(i=>{const el=$(i); el.addEventListener("pointerdown",e=>e.stopPropagation());});
 
 function act(id,e){
   if(S.mode==="plan"){const g=GOALS[S.goal]; if(!g||!elig(g,id)) return;
@@ -656,6 +711,71 @@ function rulers(){
 let touched=false; wrap.addEventListener("pointerdown",()=>touched=true); wrap.addEventListener("wheel",()=>touched=true);
 new ResizeObserver(()=>{touched?rulers():fit();}).observe(wrap);
 if(!S.active&&S.alliances[0]) S.active=S.alliances[0].id;
+/* ---------- save image ---------- */
+const SNAP_PROPS=["fill","fill-opacity","stroke","stroke-width","stroke-opacity","stroke-dasharray","stroke-linejoin","stroke-linecap","opacity","display","visibility","font-family","font-size","font-weight","paint-order","text-anchor","dominant-baseline"];
+let mapData=null;
+function mapDataURL(){if(mapData) return Promise.resolve(mapData);
+  return fetch($("bgimg").getAttribute("href")).then(r=>r.blob()).then(b=>new Promise((ok,no)=>{const fr=new FileReader(); fr.onload=()=>ok(mapData=fr.result); fr.onerror=no; fr.readAsDataURL(b);}));}
+function snapToast(msg){const t=$("snapToast"); t.textContent=msg; t.hidden=false; clearTimeout(snapToast.t); snapToast.t=setTimeout(()=>t.hidden=true,2600);}
+/* r = area in map units; k = output pixels per map unit */
+async function saveImage(r,label){
+  $("snapMenu").hidden=true; $("zsnap").setAttribute("aria-expanded","false");
+  if(r.w<4||r.h<4){snapToast("That area is too small."); return;}
+  const MAXPX=4096; let k=Math.max(V.s*2,2400/Math.max(r.w,r.h)); k=Math.min(k,MAXPX/Math.max(r.w,r.h));
+  const W=Math.round(r.w*k), H=Math.round(r.h*k), lw=Math.max(1,k/V.s);   // lw: keep on-screen line weights at the new scale
+  const src=$("map"), clone=src.cloneNode(true);
+  const a=src.querySelectorAll("*"), b=clone.querySelectorAll("*");
+  for(let i=0;i<a.length;i++){const cs=getComputedStyle(a[i]); if(cs.display==="none"){b[i].setAttribute("display","none"); continue;}
+    let st=""; SNAP_PROPS.forEach(pr=>{let v=cs.getPropertyValue(pr); if(!v) return;
+      if(pr==="stroke-width"&&cs.getPropertyValue("vector-effect")==="non-scaling-stroke") v=(parseFloat(v)*lw/k)+"px";
+      st+=pr+":"+v+";";});
+    if(cs.getPropertyValue("vector-effect")==="non-scaling-stroke"){b[i].removeAttribute("vector-effect");
+      const dash=cs.getPropertyValue("stroke-dasharray"); if(dash&&dash!=="none") st+="stroke-dasharray:"+dash.split(/[ ,]+/).map(x=>parseFloat(x)*lw/k).join(" ")+";";}
+    b[i].setAttribute("style",st); b[i].removeAttribute("class");}
+  clone.querySelector("#vp").setAttribute("transform","");
+  const img=clone.querySelector("#bgimg");
+  if(img&&S.bg){try{img.setAttribute("href",await mapDataURL());}catch(e){img.remove();}} else if(img) img.remove();
+  clone.setAttribute("viewBox",`${r.x} ${r.y} ${r.w} ${r.h}`); clone.setAttribute("width",W); clone.setAttribute("height",H);
+  clone.removeAttribute("style"); clone.removeAttribute("class");
+  const css=getComputedStyle(document.documentElement), bg=css.getPropertyValue("--bg").trim()||"#0f1115", fg=css.getPropertyValue("--fg").trim()||"#e8eaef", mu=css.getPropertyValue("--muted").trim()||"#8d95a5";
+  const xml=new XMLSerializer().serializeToString(clone);
+  const pic=new Image();
+  pic.onerror=()=>snapToast("Couldn't draw the image.");
+  pic.onload=()=>{
+    const font=css.getPropertyValue("--f-ui").trim()||"system-ui, sans-serif", sc=Math.max(1,Math.min(2,W/900));
+    const used=S.alliances.filter(al=>Object.values(S.owner).includes(al.id)||S.shapes.some(x=>x.al===al.id));
+    const footH=Math.round(44*sc), cv=document.createElement("canvas"); cv.width=W; cv.height=H+footH;
+    const c=cv.getContext("2d"); c.fillStyle=bg; c.fillRect(0,0,cv.width,cv.height); c.drawImage(pic,0,0,W,H);
+    c.textBaseline="middle"; const y=H+footH/2; let x=Math.round(16*sc);
+    c.font=`600 ${13*sc}px ${font}`; c.fillStyle=fg; c.fillText("Glowworm's Ruse",x,y); x+=c.measureText("Glowworm's Ruse").width+18*sc;
+    c.font=`400 ${12.5*sc}px ${font}`; c.fillStyle=mu; const ev=toYMD(evStart()); c.fillText(fmtDay(evStart())+" round",x,y); x+=c.measureText(fmtDay(evStart())+" round").width+22*sc;
+    used.forEach(al=>{c.fillStyle=al.color; c.beginPath(); c.arc(x+6*sc,y,6*sc,0,7); c.fill(); x+=17*sc; c.fillStyle=fg; c.font=`600 ${12.5*sc}px ${font}`; c.fillText(al.name,x,y); x+=c.measureText(al.name).width+16*sc;});
+    cv.toBlob(blob=>{if(!blob){snapToast("Couldn't save the image."); return;}
+      const name=`glowworms-ruse-${ev}-${label}.png`, url=URL.createObjectURL(blob), l=document.createElement("a");
+      l.href=url; l.download=name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); snapToast("Image saved");},"image/png");
+  };
+  pic.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(xml);
+}
+const viewRect=()=>{const r=wrap.getBoundingClientRect(); return {x:-V.x/V.s,y:-V.y/V.s,w:r.width/V.s,h:r.height/V.s};};
+$("zsnap").onclick=e=>{e.stopPropagation(); const m=$("snapMenu"); m.hidden=!m.hidden; $("zsnap").setAttribute("aria-expanded",String(!m.hidden));};
+document.addEventListener("pointerdown",e=>{if(!$("snapMenu").hidden&&!e.target.closest("#snapMenu,#zsnap")){$("snapMenu").hidden=true; $("zsnap").setAttribute("aria-expanded","false");}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("snapMenu").hidden=true; $("snapOv").hidden=true;}});
+$("snapView").onclick=()=>saveImage(viewRect(),"view");
+$("snapAll").onclick=()=>saveImage({x:-5,y:-5,w:610,h:610},"map");
+$("snapArea").onclick=()=>{$("snapMenu").hidden=true; $("zsnap").setAttribute("aria-expanded","false"); $("snapOv").hidden=false; $("snapRect").hidden=true;};
+$("snapCancel").onclick=e=>{e.stopPropagation(); $("snapOv").hidden=true;};
+(()=>{const ov=$("snapOv"), box=$("snapRect"); let p0=null;
+  ov.addEventListener("pointerdown",e=>{if(e.target.closest(".bar")) return; e.stopPropagation(); const r=wrap.getBoundingClientRect(); p0={x:e.clientX-r.left,y:e.clientY-r.top}; try{ov.setPointerCapture(e.pointerId);}catch(_){}
+    Object.assign(box.style,{left:p0.x+"px",top:p0.y+"px",width:"0px",height:"0px"}); box.hidden=false;});
+  ov.addEventListener("pointermove",e=>{if(!p0) return; const r=wrap.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
+    Object.assign(box.style,{left:Math.min(x,p0.x)+"px",top:Math.min(y,p0.y)+"px",width:Math.abs(x-p0.x)+"px",height:Math.abs(y-p0.y)+"px"});});
+  const end=e=>{if(!p0) return; const r=wrap.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top, a=p0; p0=null; box.hidden=true;
+    if(e.type!=="pointerup") return; if(Math.abs(x-a.x)<12||Math.abs(y-a.y)<12){snapToast("Drag a bigger box."); return;}
+    ov.hidden=true; saveImage({x:(Math.min(x,a.x)-V.x)/V.s,y:(Math.min(y,a.y)-V.y)/V.s,w:Math.abs(x-a.x)/V.s,h:Math.abs(y-a.y)/V.s},"area");};
+  ov.addEventListener("pointerup",end); ov.addEventListener("pointercancel",end);
+  ov.addEventListener("wheel",e=>{e.preventDefault(); const r=wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top);},{passive:false});
+})();
+
 renderKey(); setMode(S.mode); renderAll(); renderTools(); fit();
 })();
 </script>
