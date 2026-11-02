@@ -705,6 +705,7 @@ wrap.addEventListener("pointermove",e=>{
 });
 const up=e=>{
   const had=ptrs.has(e.pointerId); ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null; wrap.classList.remove("drag");
+  if(ptrs.size===1){const q=[...ptrs.values()][0]; last={x:q.x,y:q.y}; moved=99; return;}   // one finger still down after a pinch
   if(drag){const d=drag; drag=null; if(d.moved) save(); return;}
   if(draft){const d=draft; draft=null; if(e.type==="pointerup"&&Math.hypot(d.x1-d.x0,d.y1-d.y0)*V.s>8){S.shapes.push(d); save();} paintShapes(); return;}
   if(!(had&&moved<=5&&e.type==="pointerup")) return;
@@ -771,7 +772,12 @@ function rulers(){
   dr($("rx"),true); dr($("ry"),false);
 }
 let touched=false; wrap.addEventListener("pointerdown",()=>touched=true); wrap.addEventListener("wheel",()=>touched=true);
-new ResizeObserver(()=>{touched?rulers():fit();}).observe(wrap);
+let lastSz=null;
+new ResizeObserver(()=>{const r=wrap.getBoundingClientRect();
+  if(!touched){lastSz={w:r.width,h:r.height}; fit(); return;}
+  if(lastSz){V.x+=(r.width-lastSz.w)/2; V.y+=(r.height-lastSz.h)/2; apply();} else rulers();
+  lastSz={w:r.width,h:r.height};}).observe(wrap);
+["zin","zout","zfit","zsnap"].forEach(i=>$(i).addEventListener("click",()=>touched=true));
 if(!S.active&&S.alliances[0]) S.active=S.alliances[0].id;
 /* ---------- plan phases ---------- */
 let phConfirm=null;
