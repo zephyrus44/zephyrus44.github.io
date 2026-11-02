@@ -78,6 +78,16 @@ window.ARC_TOOLS = [
     file: "tools/hero-cycle/hero-cycle-calculator.jsx",
     aliases: ["hero"],
   },
+  {
+    id: "speedups",
+    name: "Speedups",
+    group: "calculators",
+    blurb: "Add up general, research, construction, healing and recruitment speedups.",
+    accent: "#3CC4C0",
+    icon: "hourglass",
+    page: "tools/speedups/",
+    aliases: ["speedup"],
+  },
 ];
 
 /* Tool icons: 24×24 line drawings (SVG path data). */
@@ -87,5 +97,6 @@ window.ARC_ICONS = {
   temple: '<path d="M12 3l8.5 5h-17z"/><path d="M5 11v7M9.7 11v7M14.3 11v7M19 11v7"/><path d="M3 21h18"/>',
   arrows: '<path d="M7.5 4L3.5 8l4 4"/><path d="M3.5 8H17"/><path d="M16.5 12l4 4-4 4"/><path d="M20.5 16H7"/>',
   layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 12.5l9 5 9-5"/><path d="M3 16.5l9 5 9-5"/>',
+  hourglass: '<path d="M6.5 3h11M6.5 21h11"/><path d="M7.5 3v2.5c0 2.6 4.5 4 4.5 6.5s-4.5 3.9-4.5 6.5V21M16.5 3v2.5c0 2.6-4.5 4-4.5 6.5s4.5 3.9 4.5 6.5V21"/>',
   cycle: '<path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M20.5 3.5V9H15"/>',
 };

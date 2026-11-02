@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speedups</title>
+<link rel="stylesheet" href="/theme.css">
+<script src="/nav.js" data-title="Speedups" data-accent="#3CC4C0" defer></script>
+<style>
+  :root {
+    --bg: var(--arc-bg, #0E1116); --rail: var(--arc-rail, #12161C); --panel: var(--arc-panel, #161A21);
+    --raise: var(--arc-raise, #1C222B); --hover: var(--arc-hover, #212833);
+    --line: var(--arc-line, #232934); --line-2: var(--arc-line-2, #2E3542);
+    --text: var(--arc-text, #E8EAEE); --mut: var(--arc-mut, #8B93A1); --dim: var(--arc-dim, #5F6774);
+    --accent: var(--arc-accent, #7EA0FF); --accent-soft: var(--arc-accent-soft, #1D2640);
+    --font: var(--arc-font, "Geist", system-ui, -apple-system, "Segoe UI", sans-serif);
+    --ease: var(--arc-ease, cubic-bezier(.2,.7,.2,1));
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  button, input { font: inherit; color: inherit; }
+  button { -webkit-tap-highlight-color: transparent; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .u { color: var(--mut); font-weight: 500; font-size: .78em; margin: 0 .3em 0 .04em; letter-spacing: 0; }
+  .hero .big .u { font-size: .55em; margin-right: .22em; }
+  .u:last-child { margin-right: 0; }
+
+  .wrap { max-width: 880px; margin: 0 auto; padding: 40px 40px 56px; }
+
+  /* header */
+  .top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+  h1 { font-size: 28px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 6px; }
+  .sub { color: var(--mut); font-size: 14px; margin: 0; }
+  .seg { display: inline-flex; padding: 3px; background: var(--rail); border: 1px solid var(--line); border-radius: 10px; }
+  .seg button { height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: none; color: var(--mut); font-size: 12.5px; font-weight: 500; cursor: pointer; transition: color .15s, background .15s; }
+  .seg button:hover { color: var(--text); }
+  .seg button.on { background: var(--raise); color: var(--text); box-shadow: inset 0 0 0 1px var(--line-2), 0 1px 2px rgba(0,0,0,.3); }
+
+  /* summary */
+  .summary { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 22px 24px 18px; }
+  .hero .k { font-size: 13px; font-weight: 500; color: var(--mut); }
+  .hero .big { font-size: 40px; font-weight: 700; letter-spacing: -.035em; line-height: 1.05; margin-top: 4px; }
+  .hero .mins { font-size: 13px; color: var(--mut); text-align: right; }
+  .hero .mins b { display: block; color: var(--text); font-size: 15px; font-weight: 600; }
+  .bar { display: flex; gap: 3px; height: 6px; margin: 0 24px 20px; border-radius: 99px; overflow: hidden; background: var(--raise); }
+  .bar i { display: block; height: 100%; background: var(--c); border-radius: 99px; transition: flex-grow .35s var(--ease); min-width: 0; }
+
+  .types { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 1px solid var(--line); background: var(--rail); }
+  .type { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 13px 16px 14px; border: 0; border-left: 1px solid var(--line); background: none; text-align: left; cursor: pointer; min-width: 0; transition: background .15s; }
+  .type:first-child { border-left: 0; }
+  .type:hover { background: var(--panel); }
+  .type .n { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 500; color: var(--mut); white-space: nowrap; }
+  .type .v { font-size: 16px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .type .v.zero { color: var(--dim); }
+  .type::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--c); transform: scaleX(0); transition: transform .25s var(--ease); }
+  .type.on { background: var(--panel); }
+  .type.on .n { color: var(--text); }
+  .type.on::after { transform: scaleX(1); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: none; }
+
+  /* editor */
+  .editor { margin-top: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px 20px; }
+  .ehead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .etitle { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .etitle .dot { width: 10px; height: 10px; }
+  .etitle .tot { color: var(--c); font-weight: 600; margin-left: 4px; }
+  .emeta { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--mut); white-space: nowrap; }
+  .emeta b { color: var(--text); font-weight: 600; }
+  .link { border: 0; background: none; padding: 0; color: var(--mut); font-size: 13px; cursor: pointer; text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 3px; }
+  .link:hover { color: var(--text); }
+
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .tile { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 12px 12px; transition: border-color .2s; }
+  .tile.has { border-color: color-mix(in srgb, var(--c) 35%, var(--line)); }
+  .tile .th { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .tile .lbl { font-size: 13px; font-weight: 600; }
+  .tile .eq { font-size: 12px; color: var(--dim); white-space: nowrap; }
+  .tile.has .eq { color: var(--mut); }
+
+  .step { display: flex; align-items: center; gap: 6px; }
+  .step button { flex: none; width: 32px; height: 32px; padding: 0; display: grid; place-items: center; border: 1px solid var(--line-2); border-radius: 9px; background: var(--raise); color: var(--text); font-size: 16px; line-height: 1; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; transition: background .12s, opacity .15s, transform .08s; }
+  .step button:hover { background: var(--hover); }
+  .step button:active { transform: scale(.94); }
+  .step button:disabled { opacity: .3; cursor: default; transform: none; background: var(--raise); }
+  .step input { flex: 1; min-width: 0; width: 100%; height: 32px; padding: 0 4px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--rail); text-align: center; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; outline: none; color-scheme: dark; transition: border-color .15s, box-shadow .15s; -moz-appearance: textfield; appearance: textfield; }
+  .step input::-webkit-outer-spin-button, .step input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .step input::placeholder { color: var(--dim); font-weight: 500; }
+  .step input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 0 4px; font-size: 12.5px; color: var(--dim); }
+
+  @media (max-width: 760px) {
+    .wrap { padding: 20px 16px 32px; }
+    .types { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .type { grid-column: span 2; }
+    .type:nth-child(n+4) { grid-column: span 3; border-top: 1px solid var(--line); }
+    .type:nth-child(4) { border-left: 0; }
+    .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    .wrap { padding: 12px 10px 24px; }
+    .top { margin-bottom: 12px; align-items: center; }
+    .top .ttl { display: none; }
+    .seg { flex: 1; }
+    .seg button { flex: 1; }
+    .summary, .editor { border-radius: 14px; }
+    .hero { padding: 16px 16px 14px; }
+    .hero .big { font-size: 32px; }
+    .bar { margin: 0 16px 16px; }
+    .type { padding: 10px 12px 11px; }
+    .type .v { font-size: 14.5px; }
+    .editor { margin-top: 10px; padding: 14px 12px 12px; }
+    .ehead { flex-direction: column; align-items: flex-start; gap: 4px; margin-bottom: 12px; }
+    .emeta { width: 100%; justify-content: space-between; }
+    .tiles { gap: 8px; }
+    .tile { padding: 10px; }
+    .tile .th { margin-bottom: 8px; }
+    .step { gap: 5px; }
+    .foot { justify-content: flex-end; }
+    .foot span { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="ttl">
+      <h1>Speedups</h1>
+      <p class="sub">Count your speedups and see the total time for each type.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Time format">
+      <button type="button" data-mode="dhm">d h m</button>
+      <button type="button" data-mode="days">Days</button>
+      <button type="button" data-mode="hours">Hours</button>
+    </div>
+  </div>
+
+  <section class="summary">
+    <div class="hero">
+      <div>
+        <div class="k">Total across all types</div>
+        <div class="big num" id="all"></div>
+      </div>
+      <div class="mins"><b class="num" id="allMins"></b>minutes</div>
+    </div>
+    <div class="bar" id="bar" aria-hidden="true"></div>
+    <div class="types" id="types" role="tablist" aria-label="Speedup type"></div>
+  </section>
+
+  <section class="editor" id="editor" role="tabpanel">
+    <div class="ehead">
+      <div class="etitle"><span class="dot"></span><span id="eName"></span><span class="tot num" id="eTot"></span></div>
+      <div class="emeta"><span id="eGen"></span><button type="button" class="link" id="eClear">Clear</button></div>
+    </div>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <div class="foot">
+    <span>Hold − or + to count faster. Totals are saved in this browser.</span>
+    <button type="button" class="link" id="clearAll">Clear everything</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const UNITS = [
+    { key: "m1", label: "1 min",  mins: 1 },
+    { key: "m5", label: "5 min",  mins: 5 },
+    { key: "h1", label: "1 hour", mins: 60 },
+    { key: "d1", label: "1 day",  mins: 1440 },
+  ];
+  const TYPES = [
+    { key: "general",      name: "General",      color: "#B4BCC8" },
+    { key: "research",     name: "Research",     color: "#5A9FE6" },
+    { key: "construction", name: "Construction", color: "#F0B35A" },
+    { key: "healing",      name: "Healing",      color: "#5FD394" },
+    { key: "recruitment",  name: "Recruitment",  color: "#E07A5F" },
+  ];
+  const STORE = "arc-speedups";
+  const MAX = 999999;
+  const $ = id => document.getElementById(id);
+
+  let counts = {}, mode = "dhm", sel = "general";
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE) || "null") || {};
+    if (s.counts) counts = s.counts;
+    if (s.mode) mode = s.mode;
+    if (TYPES.some(t => t.key === s.sel)) sel = s.sel;
+  } catch (e) {}
+  TYPES.forEach(t => { if (!counts[t.key] || typeof counts[t.key] !== "object") counts[t.key] = {}; });
+  const save = () => { try { localStorage.setItem(STORE, JSON.stringify({ counts, mode, sel })); } catch (e) {} };
+
+  const get = (t, u) => Math.max(0, Math.floor(Number(counts[t][u])) || 0);
+  const total = t => UNITS.reduce((s, u) => s + get(t, u.key) * u.mins, 0);
+  const type = k => TYPES.find(t => t.key === k);
+
+  // time as HTML with small muted unit letters
+  function fmt(m) {
+    const U = s => `<span class="u">${s}</span>`;
+    if (mode === "days")  return (m / 1440).toLocaleString(undefined, { maximumFractionDigits: 2 }) + U("d");
+    if (mode === "hours") return (m / 60).toLocaleString(undefined, { maximumFractionDigits: 1 }) + U("h");
+    if (!m) return "0" + U("m");
+    const d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60;
+    return (d ? d.toLocaleString() + U("d") : "") + (h ? h + U("h") : "") + (mm ? mm + U("m") : "");
+  }
+
+  // type tabs
+  $("types").innerHTML = TYPES.map(t => `
+    <button type="button" class="type" role="tab" data-type="${t.key}" style="--c:${t.color}">
+      <span class="n"><span class="dot"></span>${t.name}</span>
+      <span class="v num" id="tv-${t.key}"></span>
+    </button>`).join("");
+  $("bar").innerHTML = TYPES.map(t => `<i id="bar-${t.key}" style="--c:${t.color}"></i>`).join("");
+
+  // tiles are rebuilt when the selected type changes
+  function buildTiles() {
+    const t = type(sel);
+    $("editor").style.setProperty("--c", t.color);
+    $("eName").textContent = t.name;
+    $("tiles").innerHTML = UNITS.map(u => `
+      <div class="tile" id="tile-${u.key}">
+        <div class="th"><span class="lbl">${u.label}</span><span class="eq num" id="eq-${u.key}"></span></div>
+        <div class="step">
+          <button type="button" data-u="${u.key}" data-d="-1" aria-label="${u.label}, minus one">−</button>
+          <input type="number" inputmode="numeric" min="0" step="1" placeholder="0" id="in-${u.key}" data-u="${u.key}"
+                 aria-label="${t.name} ${u.label}" value="${get(sel, u.key) || ""}">
+          <button type="button" data-u="${u.key}" data-d="1" aria-label="${u.label}, plus one">+</button>
+        </div>
+      </div>`).join("");
+  }
+
+  function set(u, v, typing) {
+    counts[sel][u] = Math.min(MAX, Math.max(0, Math.floor(Number(v)) || 0));
+    if (!typing) $(`in-${u}`).value = counts[sel][u] || "";
+    save(); render();
+  }
+
+  $("types").addEventListener("click", e => {
+    const b = e.target.closest("[data-type]");
+    if (!b || b.dataset.type === sel) return;
+    sel = b.dataset.type; save(); buildTiles(); render();
+  });
+
+  const tiles = $("tiles");
+  tiles.addEventListener("input", e => { if (e.target.tagName === "INPUT") set(e.target.dataset.u, e.target.value, true); });
+  tiles.addEventListener("focusin", e => { if (e.target.tagName === "INPUT") e.target.select(); });
+  tiles.addEventListener("change", e => { if (e.target.tagName === "INPUT") e.target.value = get(sel, e.target.dataset.u) || ""; });
+
+  // − / + : tap for one, hold to repeat and speed up
+  let wait = null, rep = null;
+  const stop = () => { clearTimeout(wait); clearInterval(rep); wait = rep = null; };
+  const bump = (b, k = 1) => set(b.dataset.u, get(sel, b.dataset.u) + Number(b.dataset.d) * k);
+  tiles.addEventListener("pointerdown", e => {
+    const b = e.target.closest("button[data-d]");
+    if (!b || b.disabled || e.button !== 0) return;
+    e.preventDefault();
+    bump(b);
+    let n = 0;
+    wait = setTimeout(() => {
+      rep = setInterval(() => { n++; bump(b, n > 30 ? 10 : n > 12 ? 5 : 1); if (b.disabled) stop(); }, 70);
+    }, 400);
+  });
+  ["pointerup", "pointercancel", "blur"].forEach(ev => window.addEventListener(ev, stop));
+  tiles.addEventListener("pointerout", e => { if (e.target.closest("button[data-d]")) stop(); });
+  tiles.addEventListener("click", e => { const b = e.target.closest("button[data-d]"); if (b && e.detail === 0) bump(b); });
+
+  $("eClear").addEventListener("click", () => { counts[sel] = {}; save(); buildTiles(); render(); });
+  $("clearAll").addEventListener("click", () => { TYPES.forEach(t => counts[t.key] = {}); save(); buildTiles(); render(); });
+  document.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => { mode = b.dataset.mode; save(); render(); }));
+
+  function render() {
+    const tot = {};
+    TYPES.forEach(t => { tot[t.key] = total(t.key); });
+    const all = Object.values(tot).reduce((a, b) => a + b, 0);
+
+    $("all").innerHTML = fmt(all);
+    $("allMins").textContent = all.toLocaleString();
+    TYPES.forEach(t => {
+      const v = $(`tv-${t.key}`);
+      v.innerHTML = fmt(tot[t.key]);
+      v.classList.toggle("zero", !tot[t.key]);
+      const tab = document.querySelector(`[data-type="${t.key}"]`);
+      tab.classList.toggle("on", t.key === sel);
+      tab.setAttribute("aria-selected", t.key === sel);
+      const seg = $(`bar-${t.key}`);
+      seg.style.flexGrow = tot[t.key];
+      seg.style.display = tot[t.key] ? "" : "none";
+    });
+
+    $("eTot").innerHTML = fmt(tot[sel]);
+    $("eGen").innerHTML = sel === "general" ? "Works on every type" : `With general <b class="num">${fmt(tot[sel] + tot.general)}</b>`;
+    UNITS.forEach(u => {
+      const n = get(sel, u.key);
+      $(`eq-${u.key}`).innerHTML = n ? "= " + fmt(n * u.mins) : "";
+      $(`tile-${u.key}`).classList.toggle("has", n > 0);
+      tiles.querySelector(`button[data-u="${u.key}"][data-d="-1"]`).disabled = !n;
+    });
+    document.querySelectorAll("[data-mode]").forEach(b => b.classList.toggle("on", b.dataset.mode === mode));
+  }
+
+  buildTiles();
+  render();
+})();
+</script>
+</body>
+</html>
