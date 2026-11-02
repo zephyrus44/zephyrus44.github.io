@@ -142,7 +142,7 @@ textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:8
 .phstep button[disabled]{opacity:.35;cursor:default}
 .phstep b{color:var(--fg);font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #gh{opacity:.3;pointer-events:none}
-@media (max-width:600px){.phstep{border-left:0;padding-left:0}}
+
 .tg{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .tg b{color:var(--fg);font-family:var(--f-mono)}
 .key{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;font-size:12px}
@@ -182,11 +182,30 @@ details summary::-webkit-details-marker{display:none}
 @media (max-width:820px){
   html,body{height:auto;overflow:visible}
   .app{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto}
-  /* square map sized to the screen width, capped so the panel below always shows and the page can be scrolled */
-  .stage{height:auto;aspect-ratio:1/1;max-height:min(64vh,64svh,620px);min-height:300px;order:-1}
+  /* map fills most of the screen; a strip of the panel stays visible below it to swipe on */
+  .stage{height:calc(100vh - 150px);height:calc(100svh - 150px);min-height:340px;max-height:900px;order:-1}
   .rail{overflow:visible}
   /* phone order: map, tap mode, then the planning cards, then event dates and goals */
   #cardMode{order:1} #cardPhases{order:2} #claimCard{order:3} #cardKey{order:4} #cardShare{order:5} #cardEvent{order:6} #cardGoals{order:7}
+}
+@media (max-width:600px){
+  .stage{grid-template-columns:22px 1fr;grid-template-rows:18px 1fr}
+  .legend{left:6px;bottom:6px;gap:4px 10px;padding:4px 8px;font-size:11.5px;max-width:calc(100% - 54px)}
+  .legend input[type=checkbox]{width:15px!important;height:15px!important;margin:0}
+  .legend input[type=range]{width:56px;min-height:0!important;height:16px}
+  .legend label{gap:5px}
+  .phstep{border-left:0;padding-left:0}
+  .phstep b{max-width:90px}
+  .hud{right:6px;bottom:6px;gap:4px}
+  .hud button{width:30px;height:30px;font-size:15px}
+  .dtools{top:6px;gap:4px}
+  .dgrp{padding:2px}
+  .dgrp button{padding:4px 7px;font-size:11.5px}
+  .dgrp .sw{width:19px;height:19px;padding:0;margin:2px 1px}
+  .dgrp .sep{margin:3px 2px}
+  .dhint{transition:opacity .4s}
+  .dhint.faded{opacity:0}
+  .modebar{top:6px;font-size:11.5px;padding:4px 10px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
@@ -642,6 +661,9 @@ function renderTools(){
     city:`Tap to mark where a city moves${who}. Drag a marker to move it.`,reinf:`Tap to mark a reinforce point${who}. Drag a marker to move it.`,atk:`Tap to mark an attack target${who}. Drag a marker to move it.`,
     arrow:`Drag from start to end${who}.`,circle:`Drag out from the centre${who}.`,rect:`Drag corner to corner${who}.`,tri:`Drag to size the triangle${who}.`,erase:"Tap a drawing or marker to remove it."}[S.tool];
   $("dhint").innerHTML=`<span>${hint}<i class="pan" style="font-style:normal"> Two fingers or the scroll wheel move the map.</i></span>`;
+  /* on phones the hint shows briefly when a tool is picked, then gets out of the way */
+  const dh=$("dhint"); dh.classList.remove("faded"); clearTimeout(renderTools.t);
+  if(matchMedia("(max-width:600px)").matches) renderTools.t=setTimeout(()=>dh.classList.add("faded"),3500);
   paintShapes();
 }
 document.querySelectorAll("#dtools [data-tool]").forEach(b=>b.onclick=()=>{S.tool=b.dataset.tool; save(); renderTools();});
@@ -654,7 +676,10 @@ $("dClear").onclick=()=>{if(!S.shapes.length) return; if(!clearArm){clearArm=tru
 /* ---------- view: pan / zoom ---------- */
 const wrap=$("wrap"),vp=$("vp");
 let V={s:1,x:0,y:0};
-function fit(){const r=wrap.getBoundingClientRect(); const s=Math.min(r.width,r.height)/620; V={s,x:(r.width-600*s)/2,y:(r.height-600*s)/2}; apply();}
+let fitMode="fill";
+function fit(mode){const r=wrap.getBoundingClientRect(), whole=Math.min(r.width,r.height)/620;
+  let s=whole; if(mode!=="whole"&&r.height>r.width*1.15) s=Math.min(r.height/612, r.width*1.7/600);   // tall phone screens: fill the height
+  fitMode=s>whole*1.01?"fill":"whole"; V={s,x:(r.width-600*s)/2,y:(r.height-600*s)/2}; apply();}
 function apply(){vp.setAttribute("transform",`translate(${V.x} ${V.y}) scale(${V.s})`); rulers();}
 function zoomAt(f,cx,cy){const ns=Math.min(40,Math.max(.4,V.s*f)); f=ns/V.s; V.x=cx-(cx-V.x)*f; V.y=cy-(cy-V.y)*f; V.s=ns; apply();}
 wrap.addEventListener("wheel",e=>{e.preventDefault(); const r=wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top);},{passive:false});
@@ -694,7 +719,7 @@ wrap.addEventListener("pointerup",up); wrap.addEventListener("pointercancel",up)
 wrap.addEventListener("pointerleave",()=>{$("tip").hidden=true;});
 $("zin").onclick=()=>{const r=wrap.getBoundingClientRect(); zoomAt(1.5,r.width/2,r.height/2);};
 $("zout").onclick=()=>{const r=wrap.getBoundingClientRect(); zoomAt(1/1.5,r.width/2,r.height/2);};
-$("zfit").onclick=fit;
+$("zfit").onclick=()=>fit(fitMode==="fill"?"whole":"fill");
 ["zin","zout","zfit","zsnap","snapMenu","snapOv","legend"].forEach(i=>{const el=$(i); el.addEventListener("pointerdown",e=>e.stopPropagation());});
 
 function act(id,e){
