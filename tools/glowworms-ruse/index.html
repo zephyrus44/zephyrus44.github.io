@@ -130,6 +130,19 @@ textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:8
 .step button{width:22px;height:22px;border-radius:6px;border:1px solid var(--line-strong);background:var(--panel);cursor:pointer;line-height:1;padding:0}
 .detail{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
 .detail .row{justify-content:space-between}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.input{border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:var(--bg);font-size:13px;font-weight:600;width:100%}
+.input:focus,#phNotes:focus{outline:none;border-color:var(--accent)}
+#phNotes{min-height:64px;font-family:inherit;font-size:12.5px}
+.confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px}
+.btn[disabled]{opacity:.45;cursor:default;border-color:var(--line)}
+.phstep{display:flex;align-items:center;gap:4px;border-left:1px solid var(--line);padding-left:10px}
+.phstep button{border:1px solid var(--line-strong);background:var(--panel);border-radius:6px;width:24px;height:24px;font-size:11px;cursor:pointer;padding:0;color:var(--fg)}
+.phstep button[disabled]{opacity:.35;cursor:default}
+.phstep b{color:var(--fg);font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#gh{opacity:.3;pointer-events:none}
+@media (max-width:600px){.phstep{border-left:0;padding-left:0}}
 .tg{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .tg b{color:var(--fg);font-family:var(--f-mono)}
 .key{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;font-size:12px}
@@ -217,6 +230,12 @@ details summary::-webkit-details-marker{display:none}
       <div id="goalDetail" class="detail" hidden></div>
     </section>
 
+    <section class="card">
+      <div class="head"><h2>Plan phases</h2><div class="row"><button class="btn" id="phDup" title="New phase starting from this one">+ Copy</button><button class="btn ghost" id="phNew">+ Blank</button></div></div>
+      <div class="goals" id="phList"></div>
+      <div class="detail" id="phDetail"></div>
+    </section>
+
     <section class="card" id="claimCard">
       <div class="head"><h2>Alliances</h2><button class="btn" id="addAl">+ Add</button></div>
       <div id="alList" class="alli"></div>
@@ -249,7 +268,7 @@ details summary::-webkit-details-marker{display:none}
     <canvas class="ruler" id="rx"></canvas>
     <canvas class="ruler" id="ry"></canvas>
     <div class="mapwrap" id="wrap">
-      <svg id="map" xmlns="http://www.w3.org/2000/svg"><g id="vp"><image id="bgimg" href="map.jpg" x="-5" y="-5" width="610" height="610" preserveAspectRatio="none"/><g id="tl"></g><g id="ml"></g><g id="gl"></g><g id="rl"></g><g id="dl"></g></g></svg>
+      <svg id="map" xmlns="http://www.w3.org/2000/svg"><g id="vp"><image id="bgimg" href="map.jpg" x="-5" y="-5" width="610" height="610" preserveAspectRatio="none"/><g id="tl"></g><g id="ml"></g><g id="gl"></g><g id="rl"></g><g id="gh"></g><g id="dl"></g></g></svg>
       <div class="modebar" id="modebar" hidden></div>
       <div class="dtools" id="dtools" hidden>
         <div class="dgrp" role="group" aria-label="Drawing tool">
@@ -274,6 +293,8 @@ details summary::-webkit-details-marker{display:none}
         <label><input type="checkbox" id="bgChk" checked> Map overlay</label>
         <input type="range" id="bgOp" min="15" max="100" value="65" aria-label="Map overlay opacity">
         <label><input type="checkbox" id="mkChk" checked> Markers</label>
+        <label id="ghLbl"><input type="checkbox" id="ghChk"> Previous phase</label>
+        <span class="phstep" id="phStep"><button id="phPrev" aria-label="Previous phase">&#9664;</button><span>Ph.<span id="phNum">1</span></span><b id="phName"></b><button id="phNext" aria-label="Next phase">&#9654;</button></span>
       </div>
       <div class="hud"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit map" style="font-size:13px">⤢</button><button id="zsnap" class="snapbtn" aria-label="Save image" title="Save image" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 8.5h3.2l1.6-2.5h6.4l1.6 2.5H20v10H4z"/><circle cx="12" cy="13.2" r="3.3"/></svg></button></div>
       <div class="snapmenu" id="snapMenu" hidden>
@@ -336,7 +357,15 @@ try{const r=localStorage.getItem(KEY); if(r){const o=JSON.parse(r);
     if(untouchedP) delete o.prog; if(untouchedC) delete o.chDone;}
   S={...S,...o};}}catch(e){}
 S.seedV=2;
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+/* Plan phases: each phase keeps its own claims (owner) and map drawings (shapes). Goal tracking is shared. */
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const normPh=p=>({id:p.id||uid(),name:p.name||"Phase",notes:p.notes||"",owner:p.owner&&typeof p.owner==="object"?p.owner:{},shapes:Array.isArray(p.shapes)?p.shapes:[]});
+if(!Array.isArray(S.phases)||!S.phases.length) S.phases=[{id:uid(),name:"Phase 1",notes:"",owner:S.owner||{},shapes:S.shapes||[]}];
+S.phases=S.phases.map(normPh); S.ph=Math.min(Math.max(0,S.ph|0),S.phases.length-1);
+S.owner=S.phases[S.ph].owner; S.shapes=S.phases[S.ph].shapes;
+const syncPh=()=>{const p=S.phases[S.ph]; if(p){p.owner=S.owner; p.shapes=S.shapes;}};
+const save=()=>{syncPh(); try{const {owner,shapes,...rest}=S; localStorage.setItem(KEY,JSON.stringify(rest))}catch(e){} phMetaLive();};
+function phMetaLive(){const p=S.phases[S.ph], el=document.querySelector(`#phList [data-ph="${S.ph}"] .meta`); if(p&&el) el.textContent=phMeta(p);}
 const typeOf=id=>items[id].ty;
 const alById=id=>S.alliances.find(a=>a.id===id);
 const $=s=>document.getElementById(s);
@@ -486,14 +515,15 @@ function renderAlliances(){
   if(S.alliances.length){
     if(!confirmReset){
       const del=document.createElement("button"); del.className="btn ghost danger"; del.textContent="Remove selected";
-      del.onclick=()=>{if(!S.active)return; for(const k in S.owner) if(S.owner[k]===S.active) delete S.owner[k];
-        const gone=alById(S.active); S.shapes=S.shapes.filter(x=>!(x.t==="hold"&&x.al===S.active));
-        S.shapes.forEach(x=>{if(x.al===S.active){delete x.al; x.c=gone.color;}}); if(S.dcol==="al:"+S.active) S.dcol=null; S.alliances=S.alliances.filter(x=>x.id!==S.active); S.active=S.alliances[0]?.id||null; save(); renderAll();};
-      const rs=document.createElement("button"); rs.className="btn ghost"; rs.textContent="Clear all claims"; rs.onclick=()=>{confirmReset=true; renderAlliances();};
+      del.onclick=()=>{if(!S.active)return; syncPh(); const gone=alById(S.active);
+        S.phases.forEach(p=>{for(const k in p.owner) if(p.owner[k]===S.active) delete p.owner[k];
+          p.shapes=p.shapes.filter(x=>!(x.t==="hold"&&x.al===S.active)); p.shapes.forEach(x=>{if(x.al===S.active){delete x.al; x.c=gone.color;}});});
+        S.owner=S.phases[S.ph].owner; S.shapes=S.phases[S.ph].shapes; if(S.dcol==="al:"+S.active) S.dcol=null; S.alliances=S.alliances.filter(x=>x.id!==S.active); S.active=S.alliances[0]?.id||null; save(); renderAll();};
+      const rs=document.createElement("button"); rs.className="btn ghost"; rs.textContent="Clear phase claims"; rs.onclick=()=>{confirmReset=true; renderAlliances();};
       tools.append(rs,del);
     } else {
       const s=document.createElement("span"); s.className="note"; s.textContent="Clear every claim on the map?";
-      const y=document.createElement("button"); y.className="btn danger"; y.textContent="Clear"; y.onclick=()=>{S.owner={}; confirmReset=false; save(); renderAll();};
+      const y=document.createElement("button"); y.className="btn danger"; y.textContent="Clear"; y.onclick=()=>{S.owner={}; confirmReset=false; save(); renderAll(); renderPhases();};
       const n=document.createElement("button"); n.className="btn ghost"; n.textContent="Cancel"; n.onclick=()=>{confirmReset=false; renderAlliances();};
       tools.append(s,y,n);
     }
@@ -528,14 +558,17 @@ function copyText(txt,msg){
   const fallback=()=>{$("impBox").hidden=false; $("impText").value=txt; $("impText").select(); show("Copy blocked here. The text is selected below.");};
   try{navigator.clipboard.writeText(txt).then(()=>show(msg),fallback);}catch(e){fallback();}
 }
-$("cpPlan").onclick=()=>copyText(JSON.stringify({glowwormPlan:3,alliances:S.alliances,owner:S.owner,tgt:S.tgt,prog:S.prog,chDone:S.chDone,shapes:S.shapes,evStart:S.evStart||null}),"Plan copied");
+$("cpPlan").onclick=()=>{syncPh(); copyText(JSON.stringify({glowwormPlan:4,alliances:S.alliances,phases:S.phases,tgt:S.tgt,prog:S.prog,chDone:S.chDone,evStart:S.evStart||null}),"Plan copied");};
 $("showImp").onclick=()=>{$("impBox").hidden=!$("impBox").hidden;};
 $("doImp").onclick=()=>{
   try{const o=JSON.parse($("impText").value); if(!o.glowwormPlan) throw 0;
-    ["owner","tgt","prog","chDone","shapes"].forEach(k=>{if(o[k]) S[k]=o[k];});
+    ["tgt","prog","chDone"].forEach(k=>{if(o[k]) S[k]=o[k];});
+    if(Array.isArray(o.phases)&&o.phases.length){S.phases=o.phases.map(normPh); S.ph=0;}
+    else S.phases=[normPh({name:"Phase 1",owner:o.owner,shapes:o.shapes})], S.ph=0;
+    S.owner=S.phases[0].owner; S.shapes=S.phases[0].shapes;
     if("evStart" in o){S.evStart=o.evStart||null; applySchedule(); renderEvent();}
     if(o.alliances){S.alliances=o.alliances; S.active=S.alliances[0]?.id||null;}
-    save(); renderAll(); $("impMsg").textContent="Loaded.";}
+    save(); renderAll(); renderPhases(); $("impMsg").textContent="Loaded · "+S.phases.length+(S.phases.length===1?" phase":" phases");}
   catch(e){$("impMsg").textContent="That text isn't a copied plan. Paste the whole thing.";}
 };
 
@@ -585,7 +618,9 @@ function shapeEl(sh,i){
 function pointAt(m){let best=-1,bd=1e9;
   S.shapes.forEach((sh,i)=>{if(!POINT(sh.t)) return; const cx=sh.x, cy=sh.y, rr=isPin(sh.t)?PIN_R*1.3:7.6;
     const d=Math.hypot(m.x-cx,m.y-cy); if(d<=rr&&d<bd){bd=d; best=i;}}); return best;}
-function paintShapes(){dl.innerHTML=""; S.shapes.forEach((sh,i)=>dl.appendChild(shapeEl(sh,i))); if(draft) dl.appendChild(shapeEl(draft,-1));
+function paintGhost(){const gh=$("gh"); gh.innerHTML="";
+  if(!S.ghost||S.ph===0) return; S.phases[S.ph-1].shapes.forEach(sh=>gh.appendChild(shapeEl(sh,-1)));}
+function paintShapes(){paintGhost(); dl.innerHTML=""; S.shapes.forEach((sh,i)=>dl.appendChild(shapeEl(sh,i))); if(draft) dl.appendChild(shapeEl(draft,-1));
   dl.style.pointerEvents=(S.mode==="draw"&&S.tool==="erase")?"auto":"none";}
 let draft=null, drag=null;
 function renderTools(){
@@ -599,7 +634,7 @@ function renderTools(){
   DCOLS.forEach(c=>{const b=document.createElement("button"); b.className="sw"; b.style.background=c;
     b.setAttribute("aria-label","Colour "+c); b.setAttribute("aria-pressed",String(!cur.al&&cur.c===c)); b.onclick=()=>{S.dcol=c; save(); renderTools();}; dc.appendChild(b);});
   const a=alById(S.active), pa=cur.al?alById(cur.al):null, who=pa?` in ${esc(pa.name)}'s colour`:"";
-  const hint={hold:a?`Tap the map to place ${esc(a.name)}'s stronghold. Pick another alliance in the list to place theirs.`:"Add an alliance first, then tap the map to place its stronghold.",
+  const hint={hold:a?`Tap the map to place a stronghold for ${esc(a.name)}. Place as many as you need, and drag one to move it.`:"Add an alliance first, then tap the map to place its strongholds.",
     city:`Tap to mark where a city moves${who}. Drag a marker to move it.`,reinf:`Tap to mark a reinforce point${who}. Drag a marker to move it.`,atk:`Tap to mark an attack target${who}. Drag a marker to move it.`,
     arrow:`Drag from start to end${who}.`,circle:`Drag out from the centre${who}.`,rect:`Drag corner to corner${who}.`,tri:`Drag to size the triangle${who}.`,erase:"Tap a drawing or marker to remove it."}[S.tool];
   $("dhint").innerHTML=`<span>${hint}<i class="pan" style="font-style:normal"> Two fingers or the scroll wheel move the map.</i></span>`;
@@ -645,7 +680,7 @@ const up=e=>{
   if(draft){const d=draft; draft=null; if(e.type==="pointerup"&&Math.hypot(d.x1-d.x0,d.y1-d.y0)*V.s>8){S.shapes.push(d); save();} paintShapes(); return;}
   if(!(had&&moved<=5&&e.type==="pointerup")) return;
   if(S.mode==="draw"){
-    if(S.tool==="hold"){const a=alById(S.active); if(!a) return; const m=toMap(e); S.shapes=S.shapes.filter(x=>!(x.t==="hold"&&x.al===a.id)); S.shapes.push({t:"hold",al:a.id,x:m.x,y:m.y}); save(); paintShapes(); renderAlliances();}
+    if(S.tool==="hold"){const a=alById(S.active); if(!a) return; const m=toMap(e); S.shapes.push({t:"hold",al:a.id,x:m.x,y:m.y}); save(); paintShapes(); renderAlliances();}
     else if(isPin(S.tool)){const m=toMap(e); S.shapes.push({t:S.tool,...curPaint(),x:m.x,y:m.y}); save(); paintShapes();}
     else if(S.tool==="erase"){const el=document.elementFromPoint(e.clientX,e.clientY); const i=el&&el.dataset&&el.dataset.sh; if(i!=null&&i!==""&&+i>=0){S.shapes.splice(+i,1); save(); paintShapes();}}
     return;}
@@ -709,6 +744,39 @@ function rulers(){
 let touched=false; wrap.addEventListener("pointerdown",()=>touched=true); wrap.addEventListener("wheel",()=>touched=true);
 new ResizeObserver(()=>{touched?rulers():fit();}).observe(wrap);
 if(!S.active&&S.alliances[0]) S.active=S.alliances[0].id;
+/* ---------- plan phases ---------- */
+let phConfirm=null;
+function phMeta(p){const m=p.shapes.length, n=Object.keys(p.owner).length; return `${m} marking${m===1?"":"s"} · ${n} claimed`;}
+function goPhase(i){if(i<0||i>=S.phases.length) return; syncPh(); S.ph=i; S.owner=S.phases[i].owner; S.shapes=S.phases[i].shapes; phConfirm=null; draft=null; drag=null; save(); renderAll(); renderPhases();}
+function renderPhases(){syncPh();
+  $("phList").innerHTML=S.phases.map((p,i)=>`<button class="goal${i===S.ph?" sel":""}" data-ph="${i}"><span class="ch">Ph.${i+1}</span><span><div class="tt">${esc(p.name)}</div><div class="meta">${phMeta(p)}</div></span>${i===S.ph?'<span class="pill p-live">On map</span>':"<span></span>"}</button>`).join("");
+  const p=S.phases[S.ph]; let h=`<div class="field"><label for="phNameIn">Phase name</label><input class="input" id="phNameIn" maxlength="40" value="${esc(p.name)}"></div>
+    <div class="field"><label for="phNotes">Orders</label><textarea id="phNotes" placeholder="Timing, who goes where, rally leaders…">${esc(p.notes)}</textarea></div>`;
+  if(phConfirm==="del") h+=`<div class="confirm">Delete “${esc(p.name)}”? <button class="btn danger" id="phDelYes">Delete</button><button class="btn ghost" id="phNo">Cancel</button></div>`;
+  else if(phConfirm==="clear") h+=`<div class="confirm">Remove every marking and claim in this phase? <button class="btn danger" id="phClearYes">Clear</button><button class="btn ghost" id="phNo">Cancel</button></div>`;
+  else h+=`<div class="row"><span class="row"><button class="btn" id="phUp" ${S.ph===0?"disabled":""} aria-label="Move earlier">↑</button><button class="btn" id="phDown" ${S.ph===S.phases.length-1?"disabled":""} aria-label="Move later">↓</button></span><span class="row"><button class="btn ghost" id="phClear">Clear phase</button><button class="btn ghost danger" id="phDel" ${S.phases.length<2?"disabled":""}>Delete</button></span></div>`;
+  $("phDetail").innerHTML=h;
+  $("phNum").textContent=S.ph+1; $("phName").textContent=p.name; $("phPrev").disabled=S.ph===0; $("phNext").disabled=S.ph===S.phases.length-1;
+  $("ghLbl").hidden=S.phases.length<2; $("ghChk").checked=!!S.ghost; $("ghChk").disabled=S.ph===0;
+  document.querySelectorAll("#phList [data-ph]").forEach(b=>b.onclick=()=>goPhase(+b.dataset.ph));
+  const ni=$("phNameIn"); ni.oninput=()=>{p.name=ni.value.trim()||"Phase"; $("phName").textContent=p.name; const t=document.querySelector(`#phList [data-ph="${S.ph}"] .tt`); if(t) t.textContent=p.name; save();};
+  $("phNotes").oninput=e=>{p.notes=e.target.value; save();};
+  const on=(id,f)=>{const el=$(id); if(el) el.onclick=f;};
+  on("phUp",()=>movePh(-1)); on("phDown",()=>movePh(1));
+  on("phDel",()=>{phConfirm="del"; renderPhases();}); on("phClear",()=>{phConfirm="clear"; renderPhases();}); on("phNo",()=>{phConfirm=null; renderPhases();});
+  on("phDelYes",()=>{S.phases.splice(S.ph,1); const i=Math.max(0,S.ph-1); S.ph=-1; S.owner=S.phases[i].owner; S.shapes=S.phases[i].shapes; S.ph=i; phConfirm=null; save(); renderAll(); renderPhases();});
+  on("phClearYes",()=>{S.owner={}; S.shapes=[]; phConfirm=null; save(); renderAll(); renderPhases();});
+}
+function movePh(d){const i=S.ph,j=i+d; if(j<0||j>=S.phases.length) return; syncPh(); [S.phases[i],S.phases[j]]=[S.phases[j],S.phases[i]]; S.ph=j; save(); renderAll(); renderPhases();}
+function addPh(copy){syncPh(); const src=S.phases[S.ph];
+  const n=copy?{id:uid(),name:"Phase "+(S.phases.length+1),notes:"",owner:JSON.parse(JSON.stringify(src.owner)),shapes:JSON.parse(JSON.stringify(src.shapes))}
+              :{id:uid(),name:"Phase "+(S.phases.length+1),notes:"",owner:{},shapes:[]};
+  S.phases.splice(S.ph+1,0,n); goPhase(S.ph+1);}
+$("phDup").onclick=()=>addPh(true); $("phNew").onclick=()=>addPh(false);
+$("phPrev").onclick=()=>goPhase(S.ph-1); $("phNext").onclick=()=>goPhase(S.ph+1);
+$("ghChk").onchange=e=>{S.ghost=e.target.checked; save(); paintShapes();};
+["phPrev","phNext"].forEach(i=>$(i).addEventListener("pointerdown",e=>e.stopPropagation()));
+
 /* ---------- save image ---------- */
 const SNAP_PROPS=["fill","fill-opacity","stroke","stroke-width","stroke-opacity","stroke-dasharray","stroke-linejoin","stroke-linecap","opacity","display","visibility","font-family","font-size","font-weight","paint-order","text-anchor","dominant-baseline"];
 let mapData=null;
@@ -746,10 +814,10 @@ async function saveImage(r,label){
     const c=cv.getContext("2d"); c.fillStyle=bg; c.fillRect(0,0,cv.width,cv.height); c.drawImage(pic,0,0,W,H);
     c.textBaseline="middle"; const y=H+footH/2; let x=Math.round(16*sc);
     c.font=`600 ${13*sc}px ${font}`; c.fillStyle=fg; c.fillText("Glowworm's Ruse",x,y); x+=c.measureText("Glowworm's Ruse").width+18*sc;
-    c.font=`400 ${12.5*sc}px ${font}`; c.fillStyle=mu; const ev=toYMD(evStart()); c.fillText(fmtDay(evStart())+" round",x,y); x+=c.measureText(fmtDay(evStart())+" round").width+22*sc;
+    c.font=`400 ${12.5*sc}px ${font}`; c.fillStyle=mu; const ev=toYMD(evStart()), phl=`Phase ${S.ph+1} · ${S.phases[S.ph].name} · ${fmtDay(evStart())} round`; c.fillText(phl,x,y); x+=c.measureText(phl).width+22*sc;
     used.forEach(al=>{c.fillStyle=al.color; c.beginPath(); c.arc(x+6*sc,y,6*sc,0,7); c.fill(); x+=17*sc; c.fillStyle=fg; c.font=`600 ${12.5*sc}px ${font}`; c.fillText(al.name,x,y); x+=c.measureText(al.name).width+16*sc;});
     cv.toBlob(blob=>{if(!blob){snapToast("Couldn't save the image."); return;}
-      const name=`glowworms-ruse-${ev}-${label}.png`, url=URL.createObjectURL(blob), l=document.createElement("a");
+      const name=`glowworms-ruse-${ev}-phase-${S.ph+1}-${label}.png`, url=URL.createObjectURL(blob), l=document.createElement("a");
       l.href=url; l.download=name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); snapToast("Image saved");},"image/png");
   };
   pic.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(xml);
@@ -774,7 +842,7 @@ $("snapCancel").onclick=e=>{e.stopPropagation(); $("snapOv").hidden=true;};
   ov.addEventListener("wheel",e=>{e.preventDefault(); const r=wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top);},{passive:false});
 })();
 
-renderKey(); setMode(S.mode); renderAll(); renderTools(); fit();
+renderKey(); setMode(S.mode); renderAll(); renderTools(); renderPhases(); fit();
 })();
 </script>
 
