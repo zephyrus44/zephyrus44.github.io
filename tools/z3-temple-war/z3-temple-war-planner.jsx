@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
-/* Temple War · Z3 — v5
+/* Z3 — v5
    Full map from a CAD-traced SVG: 46 closed territories
    (43 bases · 2 sanctuaries · temple) + 12 gate markers on the ring.
    Rulers show approximate game coordinates (anchor: temple = 500,500,
@@ -202,7 +202,7 @@ export default function TempleWarPlanner() {
       <div style={{ maxWidth: 1180, margin: "0 auto" }}>
         <header style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 20, marginBottom: 28 }}>
           <div>
-            <h1 style={{ margin: "0 0 8px", fontSize: 32, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.1 }}>Z3 Temple War</h1>
+            <h1 style={{ margin: "0 0 8px", fontSize: 32, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.1 }}>Z3</h1>
             <div style={{ color: C.mut, fontSize: 15 }}>Claim Zone 3 territories for each alliance. Each alliance can earn up to 10,000 points.</div>
           </div>
           <div style={{ marginLeft: "auto", display: "flex", gap: 18, flexWrap: "wrap" }}>

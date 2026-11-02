@@ -2,7 +2,7 @@ name: Update Deng's Den data
 
 on:
   schedule:
-    - cron: "17 8 * * *"   # 08:17 UTC daily (Deng's snapshot lands ~07:00 UTC)
+    - cron: "17 */6 * * *"   # every 6 hours; Deng's daily snapshot doesn't land at a fixed time
   workflow_dispatch:        # lets you run it by hand from the Actions tab
 
 permissions:

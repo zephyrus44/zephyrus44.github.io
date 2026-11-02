@@ -42,7 +42,7 @@ window.ARC_TOOLS = [
   },
   {
     id: "z3",
-    name: "Z3 Temple War",
+    name: "Z3",
     group: "planners",
     blurb: "Claim Zone 3 territories for each alliance and track points against the 10,000 reward cap.",
     accent: "#F4BF41",
