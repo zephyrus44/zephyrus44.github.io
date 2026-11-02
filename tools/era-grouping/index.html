@@ -17,6 +17,7 @@
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
   .wrap { max-width: 880px; margin: 0 auto; padding: 48px 40px 72px; }
   .eyebrow { display: none; }
@@ -85,7 +86,7 @@
   .note { color: var(--muted); font-size: 13px; line-height: 1.65; max-width: 72ch; margin-top: 24px; }
   .note b { color: var(--text); font-weight: 600; }
   .note a { color: var(--accent); }
-  @media (max-width: 600px) { .wrap { padding: 28px 16px 56px; } h1 { font-size: 26px; } .card { padding: 16px; } table { min-width: 0; } th, td { padding: 10px; } td:first-child, td.mono { white-space: nowrap; } .wzs { grid-template-columns: 1fr 1fr; gap: 6px; } .wz { padding: 8px 9px; } .wz .w { font-size: 12.5px; } .mgrid { grid-template-columns: 90px 1fr; } .mgrid .sel { grid-column: 2; } }
+  @media (max-width: 600px) { .wrap { padding: 28px 16px 56px; } h1 { font-size: 26px; } .card { padding: 16px; } table { min-width: 0; table-layout: fixed; } th, td { padding: 10px 8px; } th:first-child, td:first-child { width: 34%; } th:nth-child(2) { width: 22%; } th:nth-child(3) { width: 30%; } th:last-child, td:last-child { width: 14%; } td:first-child, td.mono { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } tr.detail td { white-space: normal; overflow: visible; } .wzs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; } .check { overflow-wrap: anywhere; } .wz { padding: 8px 9px; } .wz .w { font-size: 12.5px; } .mgrid { grid-template-columns: 90px 1fr; } .mgrid .sel { grid-column: 2; } }
 </style>
 </head>
 <body>

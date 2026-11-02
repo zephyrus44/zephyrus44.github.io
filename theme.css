@@ -47,6 +47,11 @@
   color-scheme: dark;
 }
 
+/* Stop iPhone browsers from enlarging text on their own, and keep pages
+ * from scrolling sideways inside the site's frame. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { overflow-x: hidden; }
+
 /* Touch screens (phones, tablets) ----------------------------------------
  * Fields under 16px make iPhone Safari zoom the page on tap, so they are
  * bumped to 16px. Small checkboxes and sliders get room for a fingertip.
