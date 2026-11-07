@@ -114,11 +114,13 @@ textarea:focus{outline:none;border-color:var(--accent)}
 .mapwrap{position:absolute;inset:0;overflow:hidden;touch-action:none;cursor:grab}
 .mapwrap.drag{cursor:grabbing}
 .mapwrap.drawing{cursor:crosshair}
-svg#gm-svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none}
-svg#gm-svg .terr.claimable:hover{stroke:var(--fg);stroke-width:1.6}
-svg#gm-svg:not(.selecting) .items{pointer-events:none}
-svg#gm-svg.selecting .items [data-item]{cursor:move}
-svg#gm-svg [data-handle]{cursor:grab}
+svg#gm-svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none;pointer-events:none}
+.mapwrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.mapwrap.over-item{cursor:move}
+.mapwrap.over-handle{cursor:grab}
+.mapwrap.claiming{cursor:pointer}
+#gm-stage{touch-action:none}
+#gm-stage .mapkey .key.editing,#gm-stage .selcard{touch-action:pan-y}
 .dtools{position:absolute;top:10px;left:10px;right:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;pointer-events:none;z-index:4}
 .dgrp{display:flex;gap:2px;background:var(--panel);border:1px solid var(--line-strong);border-radius:9px;padding:3px;box-shadow:0 4px 12px rgba(0,0,0,.16);pointer-events:auto;flex-wrap:wrap;justify-content:center}
 .dgrp button{display:flex;align-items:center;gap:5px;border:0;background:transparent;border-radius:6px;padding:5px 8px;font-size:12px;font-weight:600;color:var(--fg);cursor:pointer}
@@ -137,6 +139,16 @@ svg#gm-svg [data-handle]{cursor:grab}
 .tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.45;box-shadow:0 6px 18px rgba(0,0,0,.18);min-width:150px;z-index:5}
 .tip b{font-size:13px}
 .tip .k{color:var(--muted)}
+.ptags{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.ptags .note{margin-right:2px}
+.chip{display:inline-flex;align-items:center;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 9px;font-size:12px;font-weight:600;max-width:100%}
+.chip button{border:0;background:transparent;color:var(--muted);cursor:pointer;width:20px;height:20px;border-radius:50%;font-size:14px;line-height:1;padding:0}
+.chip button:hover{color:var(--danger);background:var(--panel)}
+.ptagadd{position:relative}
+.ptaglist{position:absolute;left:0;right:0;bottom:calc(100% + 4px);background:var(--panel);border:1px solid var(--line-strong);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:3px;display:flex;flex-direction:column;max-height:220px;overflow-y:auto;z-index:8}
+.ptaglist button{border:0;background:transparent;text-align:left;border-radius:6px;padding:7px 9px;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;color:var(--fg)}
+.ptaglist button:hover,.ptaglist button.on{background:var(--bg)}
+.ptaglist small{color:var(--muted);font-size:11.5px;white-space:nowrap}
 .selcard{width:min(320px,100%);background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:12px;display:flex;flex-direction:column;gap:9px;z-index:6}
 .selcard .head b{font-size:13px}
 .selcard .x{border:0;background:transparent;color:var(--muted);cursor:pointer;width:26px;height:26px;border-radius:6px;font-size:16px}
@@ -315,7 +327,10 @@ function readTokens() {
 }
 
 /* ---------- scale ---------- */
-function ppu() { var r = $svg.getBoundingClientRect(); if (!r.width) return 1; return Math.min(r.width / st.view.w, r.height / st.view.h); }
+function rectSz() { var r = $wrap.getBoundingClientRect(); return { w: r.width || 1, h: r.height || 1, l: r.left, t: r.top }; }
+function fitScale() { var r = rectSz(); return Math.min(r.w / VB0.w, r.h / VB0.h); }
+function fitView() { st.cam = { cx: VB0.x + VB0.w / 2, cy: VB0.y + VB0.h / 2, s: fitScale() }; }
+function ppu() { if (!st.cam) fitView(); return st.cam.s; }
 var F = 1;
 function S(n) { return +(n * F).toFixed(2); }
 function liveF() { return Math.max(0.22, Math.min(1.5, 0.8 / ppu())); }
@@ -359,6 +374,8 @@ function lbl(x, y, text, size) {
   if (!text) return '';
   return '<text x="' + x + '" y="' + y + '" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-weight="700" font-size="' + S(size) + '" fill="#fff" stroke="' + HALO + '" stroke-width="' + S(size * .3) + '" stroke-linejoin="round" paint-order="stroke">' + esc(text) + '</text>';
 }
+function taggedPlayers(it) { if (!it.players || !it.players.length || !plan.roster) return []; var by = {}; R().players.forEach(function (p) { by[p.id] = p; }); return it.players.map(function (id) { return by[id]; }).filter(Boolean); }
+function tagLine(it) { var ps = taggedPlayers(it); if (!ps.length) return ''; var n = ps.slice(0, 3).map(function (p) { return p.name; }).join(', '); return ps.length > 3 ? n + ' +' + (ps.length - 3) : n; }
 function itemSVG(it, selected, ghost) {
   var col = it.color || '#ffffff', s = '', tm = it.team && plan.roster ? rteam(it.team) : null, L = ghost ? '' : (it.label || (tm ? tm.name : ''));
   if (it.type === 'arrow' || it.type === 'line') {
@@ -374,7 +391,7 @@ function itemSVG(it, selected, ghost) {
     s += '<path d="' + d + '" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="' + S(5.5) + '" stroke-linecap="round"' + dash + '/>';
     s += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + S(3) + '" stroke-linecap="round"' + dash + '/>';
     if (!isLine) s += '<path d="' + head + '" fill="' + col + '" stroke="rgba(0,0,0,.45)" stroke-width="' + S(1.2) + '" stroke-linejoin="round"/>';
-    if (L) { var m = arrowMid(it); s += lbl(m.x, m.y - S(7), L, 11.5); }
+    var m = arrowMid(it), TL = ghost ? '' : tagLine(it); if (L) s += lbl(m.x, m.y - S(7), L, 11.5); if (TL) s += lbl(m.x, m.y + (L ? S(8) : -S(7)), TL, 10);
   } else if (it.type === 'city' || it.type === 'reinforce' || it.type === 'attack') {
     var r = S(9), cy = it.y - r * 1.55;
     var pin = 'M' + it.x + ' ' + it.y + ' L' + (it.x - r * .62) + ' ' + (cy + r * .8) + ' A' + r + ' ' + r + ' 0 1 1 ' + (it.x + r * .62) + ' ' + (cy + r * .8) + 'Z';
@@ -382,20 +399,21 @@ function itemSVG(it, selected, ghost) {
     s += '<path d="' + pin + '" fill="' + col + '" stroke="rgba(0,0,0,.7)" stroke-width="' + S(1.4) + '" stroke-linejoin="round"/>';
     var gs = r * 1.45 / 24, ink = isLight(col) ? '#14181E' : '#FFFFFF';
     s += '<path transform="translate(' + (it.x - r * .725) + ' ' + (cy - r * .725) + ') scale(' + gs.toFixed(4) + ')" d="' + G[it.type] + '" fill="none" stroke="' + ink + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
-    if (L) s += lbl(it.x, it.y + S(12), L, 11.5);
+    var TL2 = ghost ? '' : tagLine(it); if (L) s += lbl(it.x, it.y + S(12), L, 11.5); if (TL2) s += lbl(it.x, it.y + S(L ? 24 : 12), TL2, 10);
   } else if (it.type === 'label') {
     var fs = 14 * (it.size || 1);
     s += '<text x="' + it.x + '" y="' + it.y + '" text-anchor="middle" dominant-baseline="central" font-family="Geist, Arial, sans-serif" font-weight="700" font-size="' + S(fs) + '" fill="' + col + '" stroke="' + HALO + '" stroke-width="' + S(fs * .28) + '" stroke-linejoin="round" paint-order="stroke">' + esc(it.label || 'Text') + '</text>';
+    var TL3 = ghost ? '' : tagLine(it); if (TL3) s += lbl(it.x, it.y + S(fs * .75 + 11), TL3, 10);
     if (selected) { var w = Math.max(24, (it.label || 'Text').length * fs * .55); s += '<rect x="' + (it.x - S(w / 2 + 5)) + '" y="' + (it.y - S(fs * .75)) + '" width="' + S(w + 10) + '" height="' + S(fs * 1.5) + '" rx="' + S(3) + '" fill="none" stroke="#7ea0ff" stroke-width="' + S(1.4) + '" stroke-dasharray="' + S(3) + ' ' + S(2.5) + '"/>'; }
   } else if (it.type === 'circle') {
     s += '<circle cx="' + it.x + '" cy="' + it.y + '" r="' + it.r + '" fill="' + col + '" fill-opacity=".12" stroke="rgba(0,0,0,.4)" stroke-width="' + S(4.5) + '"/>';
     s += '<circle cx="' + it.x + '" cy="' + it.y + '" r="' + it.r + '" fill="none" stroke="' + col + '" stroke-width="' + S(2.4) + '"' + (it.dash ? ' stroke-dasharray="' + S(8) + ' ' + S(5) + '"' : '') + '/>';
-    if (L) s += lbl(it.x, it.y - it.r - S(6), L, 11.5);
+    var TL4 = ghost ? '' : tagLine(it); if (L) s += lbl(it.x, it.y - it.r - S(6), L, 11.5); if (TL4) s += lbl(it.x, it.y + it.r + S(13), TL4, 10);
   } else if (it.type === 'rect' || it.type === 'square') {
     var a = 'x="' + it.x + '" y="' + it.y + '" width="' + it.w + '" height="' + it.h + '" rx="' + S(2) + '"';
     s += '<rect ' + a + ' fill="' + col + '" fill-opacity=".12" stroke="rgba(0,0,0,.4)" stroke-width="' + S(4.5) + '"/>';
     s += '<rect ' + a + ' fill="none" stroke="' + col + '" stroke-width="' + S(2.4) + '"' + (it.dash ? ' stroke-dasharray="' + S(8) + ' ' + S(5) + '"' : '') + '/>';
-    if (L) s += lbl(it.x + it.w / 2, it.y - S(6), L, 11.5);
+    var TL5 = ghost ? '' : tagLine(it); if (L) s += lbl(it.x + it.w / 2, it.y - S(6), L, 11.5); if (TL5) s += lbl(it.x + it.w / 2, it.y + it.h + S(13), TL5, 10);
   }
   return s;
 }
@@ -426,13 +444,16 @@ function findIn(phase, id) { for (var i = 0; i < phase.items.length; i++) if (ph
 var draft = null;
 function renderMap() {
   readTokens(); F = liveF();
-  var v = st.view; $svg.setAttribute('viewBox', v.x + ' ' + v.y + ' ' + v.w + ' ' + v.h);
+  if (!st.cam) fitView();
+  var rs = rectSz(), c = st.cam, vw = rs.w / c.s, vh = rs.h / c.s;
+  var v = st.view = { x: c.cx - vw / 2, y: c.cy - vh / 2, w: vw, h: vh }; $svg.setAttribute('viewBox', v.x + ' ' + v.y + ' ' + v.w + ' ' + v.h);
   var prev = st.ghost && st.phase > 0 ? plan.phases[st.phase - 1] : null;
   var s = boardSVG(ph().owners, st.nums) + itemsSVG(ph(), prev, st.sel);
   if (draft) s += '<g opacity=".85" pointer-events="none">' + itemSVG(draft, false, false) + '</g>';
+  if (st.tool === 'claim' && st.hoverRid && REG[st.hoverRid] && REG[st.hoverRid].t !== 'spawn' && REG[st.hoverRid].t !== 'blocked') s += '<path d="' + REG[st.hoverRid].d + '" fill="none" stroke="' + P.fg + '" stroke-width="' + S(2.4) + '" stroke-linejoin="round"/>';
   $svg.innerHTML = s;
   $svg.setAttribute('class', st.tool === 'select' ? 'selecting' : st.tool === 'claim' ? 'claiming' : 'drawing');
-  $wrap.classList.toggle('drawing', st.tool !== 'select' && st.tool !== 'claim');
+  $wrap.classList.toggle('drawing', st.tool !== 'select' && st.tool !== 'claim'); $wrap.classList.toggle('claiming', st.tool === 'claim');
 }
 function phaseMeta(p) {
   var n = Object.keys(p.owners).length, m = p.items.length;
@@ -530,6 +551,12 @@ function renderSel() {
     opts += '<div class="seg">' + [[0.8, 'S'], [1, 'M'], [1.4, 'L'], [2, 'XL']].map(function (z) { return '<button data-size="' + z[0] + '" aria-pressed="' + ((it.size || 1) === z[0]) + '">' + z[1] + '</button>'; }).join('') + '</div>';
   if ((it.type === 'arrow' || it.type === 'line') && it.cx != null) opts += '<button class="btn ghost" data-act="straighten">Straighten</button>';
   if (R().teams.length) h += '<div class="row"><label class="note" for="gm-iteam">Team</label><select class="input" id="gm-iteam" style="flex:1;width:auto"><option value="">None</option>' + R().teams.map(function (t) { return '<option value="' + t.id + '"' + (it.team === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') + '</select></div>';
+  if (R().players.length) {
+    var tagged = taggedPlayers(it), tmS = it.team && rteam(it.team);
+    h += '<div class="ptags"><span class="note">Players</span>' + (tagged.length ? tagged.map(function (p) { return '<span class="chip">' + esc(p.name) + '<button data-untag="' + p.id + '" aria-label="Untag ' + esc(p.name) + '">×</button></span>'; }).join('') : '<span class="note">None tagged</span>') + '</div>';
+    h += '<div class="ptagadd"><input class="input" id="gm-ptag" placeholder="Tag a player…" autocomplete="off" aria-label="Tag a player"><div class="ptaglist" id="gm-ptaglist" hidden></div></div>';
+    if (tmS && R().players.some(function (p) { return p.team === tmS.id && (it.players || []).indexOf(p.id) < 0; })) h += '<div class="row"><button class="btn ghost" data-act="tag-team">+ Tag everyone in ' + esc(tmS.name) + '</button></div>';
+  }
   h += '<div class="row">' + opts + '<span style="flex:1"></span><button class="btn" data-act="dup-item">Duplicate</button><button class="btn danger" data-act="del-item">Delete</button></div></div>';
   el.innerHTML = h;
 }
@@ -573,73 +600,123 @@ function renderAll() {
 }
 
 /* ---------- pointer ---------- */
-function pt(e) { var p = $svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; var m = $svg.getScreenCTM(); if (!m) return { x: 0, y: 0 }; p = p.matrixTransform(m.inverse()); return { x: p.x, y: p.y }; }
+// All input lands on the map wrapper (never redrawn); what is under the finger is worked out from map coordinates.
+function pt(e) { var r = rectSz(), c = st.cam || (fitView(), st.cam); return { x: c.cx + (e.clientX - r.l - r.w / 2) / c.s, y: c.cy + (e.clientY - r.t - r.h / 2) / c.s }; }
 var ptrs = {}, gest = null;
 function clampView() {
-  var v = st.view, maxW = VB0.w * 1.5, minW = 60;
-  if (v.w > maxW) { var k = maxW / v.w; v.w *= k; v.h *= k; }
-  if (v.w < minW) { var k2 = minW / v.w; v.w *= k2; v.h *= k2; }
-  var cx = v.x + v.w / 2, cy = v.y + v.h / 2;
-  cx = Math.max(VB0.x, Math.min(VB0.x + VB0.w, cx)); cy = Math.max(VB0.y, Math.min(VB0.y + VB0.h, cy));
-  v.x = cx - v.w / 2; v.y = cy - v.h / 2;
+  var c = st.cam, f = fitScale(), r = rectSz();
+  c.s = Math.min(Math.max(f * 0.7, Math.min(c.s, Math.max(f * 14, r.w / 60))), Math.max(f * 14, r.w / 60));
+  c.cx = Math.max(VB0.x, Math.min(VB0.x + VB0.w, c.cx)); c.cy = Math.max(VB0.y, Math.min(VB0.y + VB0.h, c.cy));
 }
-function zoomAt(f, sx, sy) {
-  var v = st.view, nw = v.w / f, nh = v.h / f;
-  if (nw < 60 || nw > VB0.w * 1.5) return;
-  v.x = sx - (sx - v.x) * (nw / v.w); v.y = sy - (sy - v.y) * (nh / v.h); v.w = nw; v.h = nh;
-  clampView(); renderMap();
+function zoomAt(f, mx, my) {
+  var c = st.cam || (fitView(), st.cam), s0 = c.s; c.s = s0 * f; clampView();
+  var k = s0 / c.s; c.cx = mx - (mx - c.cx) * k; c.cy = my - (my - c.cy) * k; clampView(); st.camTouched = true; renderMap();
+}
+/* hit testing */
+function polyOf(r) { if (!r._p) { var n = r.d.match(/-?[\d.]+/g).map(Number), p = []; for (var i = 0; i + 1 < n.length; i += 2) p.push([n[i], n[i + 1]]); r._p = p; } return r._p; }
+function inPoly(x, y, p) { var c = false; for (var i = 0, j = p.length - 1; i < p.length; j = i++) { var xi = p[i][0], yi = p[i][1], xj = p[j][0], yj = p[j][1]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+function regionAt(p) { for (var i = MAP.r.length - 1; i >= 0; i--) if (inPoly(p.x, p.y, polyOf(MAP.r[i]))) return MAP.r[i].id; return null; }
+function curveDist(it, p) {
+  var c = ctrl(it), best = Infinity;
+  for (var i = 0; i <= 32; i++) { var t = i / 32, u = 1 - t, x = u * u * it.x + 2 * u * t * c.x + t * t * it.x2, y = u * u * it.y + 2 * u * t * c.y + t * t * it.y2; best = Math.min(best, Math.hypot(p.x - x, p.y - y)); }
+  return best;
+}
+// distance from p to the item (0 when on/inside it); areas count their inside only when insideOk
+function itemDist(it, p, insideOk) {
+  if (it.type === 'arrow' || it.type === 'line') return curveDist(it, p);
+  if (it.type === 'city' || it.type === 'reinforce' || it.type === 'attack') {
+    var r = 9 * F, cy = it.y - r * 1.55; return Math.max(0, Math.min(Math.hypot(p.x - it.x, p.y - cy) - r, Math.hypot(p.x - it.x, p.y - it.y)));
+  }
+  if (it.type === 'label') {
+    var fs = 14 * (it.size || 1) * F, hw = Math.max(24 * F, (it.label || 'Text').length * fs * .55) / 2, hh = fs * .75;
+    return Math.hypot(Math.max(0, Math.abs(p.x - it.x) - hw), Math.max(0, Math.abs(p.y - it.y) - hh));
+  }
+  if (it.type === 'circle') { var d = Math.hypot(p.x - it.x, p.y - it.y) - it.r; return d < 0 && insideOk ? 0 : Math.abs(d); }
+  if (it.type === 'rect' || it.type === 'square') {
+    var ox = Math.max(it.x - p.x, 0, p.x - (it.x + it.w)), oy = Math.max(it.y - p.y, 0, p.y - (it.y + it.h));
+    if (ox || oy) return Math.hypot(ox, oy);
+    if (insideOk) return 0;
+    return Math.min(p.x - it.x, it.x + it.w - p.x, p.y - it.y, it.y + it.h - p.y);
+  }
+  return Infinity;
+}
+function itemAt(p, tol, insideOk) {
+  var its = ph().items, best = null, bd = Infinity, area = null;
+  for (var i = its.length - 1; i >= 0; i--) {
+    var it = its[i], isArea = it.type === 'circle' || it.type === 'rect' || it.type === 'square', d = itemDist(it, p, insideOk);
+    if (d > tol) continue;
+    if (isArea) { if (!area && (d > 0 || insideOk)) area = it; continue; }
+    if (d < bd) { bd = d; best = it; }
+  }
+  return (best || area || {}).id || null;
+}
+function handlePos(it) {
+  if (it.type === 'arrow' || it.type === 'line') { var m = arrowMid(it); return [['start', it.x, it.y], ['end', it.x2, it.y2], ['bend', m.x, m.y]]; }
+  if (it.type === 'circle') return [['radius', it.x + it.r, it.y]];
+  if (it.type === 'rect' || it.type === 'square') return [['corner', it.x + it.w, it.y + it.h]];
+  return [];
+}
+function handleAt(p, tol) {
+  var it = st.sel && findItem(st.sel); if (!it) return null;
+  var hs = handlePos(it), best = null, bd = tol;
+  hs.forEach(function (h) { var d = Math.hypot(p.x - h[1], p.y - h[2]); if (d <= bd) { bd = d; best = h[0]; } });
+  return best;
 }
 var DRAW = { arrow: 1, line: 1, circle: 1, rect: 1, square: 1 };
-$svg.addEventListener('pointerdown', function (e) {
+$wrap.addEventListener('pointerdown', function (e) {
   if (e.button > 0) return;
+  e.preventDefault();
   ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
-  try { $svg.setPointerCapture(e.pointerId); } catch (er) {}
+  try { $wrap.setPointerCapture(e.pointerId); } catch (er) {}
   var ids = Object.keys(ptrs);
   hideTip();
   if (ids.length === 2) {
-    if (gest && gest.kind === 'draw') draft = null;
+    if (gest && gest.kind === 'draw') { draft = null; }
+    if (gest && gest.committed) changed();
     var a = ptrs[ids[0]], b = ptrs[ids[1]];
-    gest = { kind: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, view: clone(st.view), ppu: ppu() };
-    return;
+    gest = { kind: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    renderMap(); return;
   }
   if (ids.length > 2) return;
-  var p = pt(e), tgt = e.target;
-  var hEl = tgt.closest && tgt.closest('[data-handle]'), iEl = tgt.closest && tgt.closest('[data-item]');
-  var down = { sx: e.clientX, sy: e.clientY, p: p, moved: false, rid: tgt.getAttribute && tgt.getAttribute('data-rid') };
-  if (st.tool === 'select') {
-    if (hEl && st.sel) { gest = Object.assign(down, { kind: 'handle', h: hEl.getAttribute('data-handle') }); return; }
-    if (iEl) {
-      var id = iEl.getAttribute('data-item');
-      if (st.sel !== id) { st.sel = id; renderMap(); renderSel(); }
-      gest = Object.assign(down, { kind: 'move', orig: clone(findItem(id)) });
+  F = liveF();
+  var p = pt(e), touch = e.pointerType !== 'mouse', tol = (touch ? 22 : 9) / ppu();
+  var down = { sx: e.clientX, sy: e.clientY, p: p, moved: false, rid: regionAt(p), cam0: { cx: st.cam.cx, cy: st.cam.cy } };
+  if (st.tool !== 'claim') {
+    var h = handleAt(p, (touch ? 26 : 12) / ppu());
+    if (h) { gest = Object.assign(down, { kind: 'handle', h: h }); return; }
+    var hit = itemAt(p, tol, st.tool === 'select');
+    if (hit) {
+      if (st.sel !== hit) { st.sel = hit; renderMap(); renderSel(); }
+      gest = Object.assign(down, { kind: 'move', orig: clone(findItem(hit)) });
       return;
     }
-    gest = Object.assign(down, { kind: 'pan', view: clone(st.view), ppu: ppu() });
-    return;
   }
+  if (st.tool === 'select') { gest = Object.assign(down, { kind: 'pan' }); return; }
   if (DRAW[st.tool]) { gest = Object.assign(down, { kind: 'draw' }); return; }
-  gest = Object.assign(down, { kind: 'tap', view: clone(st.view), ppu: ppu() });
+  gest = Object.assign(down, { kind: 'tap' });
 });
-$svg.addEventListener('pointermove', function (e) {
+$wrap.addEventListener('pointermove', function (e) {
   if (ptrs[e.pointerId]) ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
   if (!gest) { hover(e); return; }
+  if (!ptrs[e.pointerId]) return;
   if (gest.kind === 'pinch') {
     var ids = Object.keys(ptrs); if (ids.length < 2) return;
-    var a = ptrs[ids[0]], b = ptrs[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
-    var k = gest.d / d, v0 = gest.view, rect = $svg.getBoundingClientRect();
-    var nw = Math.max(60, Math.min(VB0.w * 1.5, v0.w * k)), kk = nw / v0.w, nh = v0.h * kk;
-    var ax = v0.x + (gest.mx - rect.left - (rect.width - v0.w * gest.ppu) / 2) / gest.ppu, ay = v0.y + (gest.my - rect.top - (rect.height - v0.h * gest.ppu) / 2) / gest.ppu;
-    var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, np = gest.ppu / kk;
-    st.view = { x: ax - (mx - rect.left - (rect.width - nw * np) / 2) / np, y: ay - (my - rect.top - (rect.height - nh * np) / 2) / np, w: nw, h: nh };
-    clampView(); renderMap(); return;
+    var a = ptrs[ids[0]], b = ptrs[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    var r = rectSz(), c = st.cam;
+    // the map point under the previous midpoint stays under the fingers
+    var ax = c.cx + (gest.mx - r.l - r.w / 2) / c.s, ay = c.cy + (gest.my - r.t - r.h / 2) / c.s;
+    c.s = c.s * (d / gest.d); clampView();
+    c.cx = ax - (mx - r.l - r.w / 2) / c.s; c.cy = ay - (my - r.t - r.h / 2) / c.s; clampView();
+    gest.d = d; gest.mx = mx; gest.my = my; st.camTouched = true;
+    renderMap(); return;
   }
   var dx = e.clientX - gest.sx, dy = e.clientY - gest.sy;
-  if (!gest.moved && Math.hypot(dx, dy) > 5) gest.moved = true;
+  if (!gest.moved && Math.hypot(dx, dy) > 6) gest.moved = true;
   if (!gest.moved) return;
   var p = pt(e);
   if (gest.kind === 'pan' || gest.kind === 'tap') {
     $wrap.classList.add('drag');
-    st.view.x = gest.view.x - dx / gest.ppu; st.view.y = gest.view.y - dy / gest.ppu; clampView(); renderMap();
+    st.cam.cx = gest.cam0.cx - dx / st.cam.s; st.cam.cy = gest.cam0.cy - dy / st.cam.s; clampView(); st.camTouched = true; renderMap();
   } else if (gest.kind === 'move') {
     var it = findItem(st.sel); if (!it) return;
     if (!gest.committed) { commit(); gest.committed = true; }
@@ -668,33 +745,47 @@ function shapeFrom(tool, a, b) {
   return { type: tool, x: Math.min(a.x, a.x + w), y: Math.min(a.y, a.y + h), w: Math.max(4, Math.abs(w)), h: Math.max(4, Math.abs(h)), color: col };
 }
 function endPointer(e) {
+  if (!ptrs[e.pointerId]) return;
   delete ptrs[e.pointerId]; $wrap.classList.remove('drag');
+  try { $wrap.releasePointerCapture(e.pointerId); } catch (er) {}
   if (!gest) return;
-  if (gest.kind === 'pinch') { if (Object.keys(ptrs).length < 2) gest = null; return; }
+  if (gest.kind === 'pinch') { if (Object.keys(ptrs).length < 2) gest = null; return; }   // the finger still down does nothing until lifted
   var g = gest; gest = null;
-  if (g.kind === 'move' || g.kind === 'handle') { if (g.committed) { changed(); renderPhases(); } return; }
-  if (g.kind === 'pan') { if (!g.moved) { if (st.sel) { st.sel = null; renderMap(); renderSel(); } hover(e); } return; }
+  var up = e.type === 'pointerup';
+  if (g.kind === 'move' || g.kind === 'handle') { if (g.committed) { changed(); renderPhases(); renderSel(); } return; }
+  if (g.kind === 'pan') { if (!g.moved && up) { if (st.sel) { st.sel = null; renderMap(); renderSel(); } hover(e); } return; }
   if (g.kind === 'draw') {
     var d = draft; draft = null;
-    var big = d && g.moved && (d.type === 'arrow' || d.type === 'line' ? Math.hypot(d.x2 - d.x, d.y2 - d.y) * ppu() > 14 : d.type === 'circle' ? d.r * ppu() > 8 : (d.w * ppu() > 8 && d.h * ppu() > 8));
+    var big = up && d && g.moved && (d.type === 'arrow' || d.type === 'line' ? Math.hypot(d.x2 - d.x, d.y2 - d.y) * ppu() > 14 : d.type === 'circle' ? d.r * ppu() > 8 : (d.w * ppu() > 8 && d.h * ppu() > 8));
     if (!big) { renderMap(); return; }
     addItem(d); return;
   }
-  if (g.kind === 'tap' && !g.moved && e.type === 'pointerup') {
+  if (g.kind === 'tap' && !g.moved && up) {
     if (st.tool === 'claim') { claim(g.rid, e); return; }
     var it = { type: st.tool, x: g.p.x, y: g.p.y, color: st.color };
     if (st.tool === 'label') { it.label = 'Text'; it.size = 1; }
     addItem(it, st.tool === 'label');
   }
 }
-$svg.addEventListener('pointerup', endPointer);
-$svg.addEventListener('pointercancel', function (e) { if (gest && gest.kind === 'draw') { draft = null; renderMap(); } if (gest && gest.kind !== 'pinch') gest = null; delete ptrs[e.pointerId]; $wrap.classList.remove('drag'); });
-$svg.addEventListener('pointerleave', hideTip);
-$svg.addEventListener('wheel', function (e) { e.preventDefault(); var p = pt(e); zoomAt(Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
+$wrap.addEventListener('pointerup', endPointer);
+$wrap.addEventListener('pointercancel', endPointer);
+$wrap.addEventListener('lostpointercapture', function (e) { if (ptrs[e.pointerId]) endPointer({ pointerId: e.pointerId, type: 'pointercancel', clientX: 0, clientY: 0 }); });
+$wrap.addEventListener('pointerleave', function (e) { if (!gest) { hideTip(); $wrap.classList.remove('over-item', 'over-handle'); if (st.hoverRid) { st.hoverRid = null; if (st.tool === 'claim') renderMap(); } } });
+$wrap.addEventListener('wheel', function (e) { e.preventDefault(); var p = pt(e); zoomAt(Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
+$wrap.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+// stop the browser's own page zoom/scroll from taking over the map on phones (iOS ignores touch-action for pinch)
+['touchstart', 'touchmove'].forEach(function (t) { $wrap.addEventListener(t, function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false }); });
+['gesturestart', 'gesturechange'].forEach(function (t) { $wrap.addEventListener(t, function (e) { e.preventDefault(); }); });
 
 function hideTip() { $('gm-tip').hidden = true; }
 function hover(e) {
-  var el = document.elementFromPoint(e.clientX, e.clientY), rid = el && el.getAttribute && el.getAttribute('data-rid'), tip = $('gm-tip');
+  var mp = pt(e), rid = regionAt(mp), tip = $('gm-tip');
+  if (e.pointerType === 'mouse' && e.type === 'pointermove') {
+    F = liveF();
+    var oh = st.tool !== 'claim' && !!handleAt(mp, 12 / ppu()), oi = !oh && st.tool !== 'claim' && !!itemAt(mp, 9 / ppu(), st.tool === 'select');
+    $wrap.classList.toggle('over-handle', oh); $wrap.classList.toggle('over-item', oi);
+  }
+  if (st.tool === 'claim' && st.hoverRid !== rid && e.pointerType === 'mouse') { st.hoverRid = rid; renderMap(); }
   if (!rid || !REG[rid] || (e.pointerType === 'touch' && st.tool !== 'select' && st.tool !== 'claim')) { tip.hidden = true; return; }
   var r = REG[rid], ow = ph().owners[rid], t = ow && teamById(ow), html;
   if (r.t === 'spawn') { var ct = teamById(r.c); html = '<b>Starting area</b><br><span class="k">' + esc(ct ? ct.name : '') + ' side</span>'; }
@@ -722,9 +813,9 @@ function addItem(it, focus) {
 }
 
 /* ---------- controls ---------- */
-$('gm-zin').onclick = function () { var v = st.view; zoomAt(1.4, v.x + v.w / 2, v.y + v.h / 2); };
-$('gm-zout').onclick = function () { var v = st.view; zoomAt(1 / 1.4, v.x + v.w / 2, v.y + v.h / 2); };
-$('gm-fit').onclick = function () { st.view = clone(VB0); renderMap(); };
+$('gm-zin').onclick = function () { ppu(); zoomAt(1.4, st.cam.cx, st.cam.cy); };
+$('gm-zout').onclick = function () { ppu(); zoomAt(1 / 1.4, st.cam.cx, st.cam.cy); };
+$('gm-fit').onclick = function () { fitView(); st.camTouched = false; renderMap(); };
 $('gm-undo').onclick = undo; $('gm-redo').onclick = redo;
 $('gm-nums').onchange = function (e) { st.nums = e.target.checked; renderMap(); };
 $('gm-ghost').onchange = function (e) { st.ghost = e.target.checked; renderMap(); };
@@ -750,13 +841,37 @@ document.addEventListener('click', function (e) {
   if (ds.teamDot != null) { var ti = +ds.teamDot; st.picker = st.picker === ti ? null : ti; st.team = ti; renderTeams(); return; }
   if (ds.teamColor) { commit(); plan.teams[st.picker].color = ds.teamColor; if (st.team === st.picker) st.color = ds.teamColor; st.picker = null; changed(); renderAll(); return; }
   if (ds.teamRow != null) { if (e.target.tagName === 'INPUT') return; st.team = +ds.teamRow; if (st.tool === 'claim') st.color = plan.teams[st.team].color; renderTeams(); renderTools(); return; }
+  if (ds.untag) { var iu = findItem(st.sel); if (iu && iu.players) { commit(); iu.players = iu.players.filter(function (x) { return x !== ds.untag; }); changed(); renderMap(); renderSel(); } return; }
+  if (ds.tag) { tagPlayer(ds.tag); return; }
   if (ds.icolor) { var it = findItem(st.sel); if (it) { commit(); it.color = ds.icolor; changed(); renderMap(); renderSel(); } return; }
   if (ds.dash != null) { var i2 = findItem(st.sel); if (i2) { commit(); i2.dash = ds.dash === '1'; changed(); renderMap(); renderSel(); } return; }
   if (ds.size) { var i3 = findItem(st.sel); if (i3) { commit(); i3.size = +ds.size; changed(); renderMap(); renderSel(); } return; }
   var a = ds.act; if (!a || !ACTS[a]) return;
   ACTS[a](b);
 });
+function tagPlayer(id) {
+  var it = findItem(st.sel); if (!it) return;
+  it.players = it.players || []; if (it.players.indexOf(id) >= 0) return;
+  commit(); it.players.push(id); changed(); renderMap(); renderSel();
+  var inp = $('gm-ptag'); if (inp) inp.focus();
+}
+function renderTagList() {
+  var inp = $('gm-ptag'), box = $('gm-ptaglist'), it = findItem(st.sel); if (!inp || !box || !it) return;
+  var q = inp.value.trim().toLowerCase(), have = it.players || [];
+  var list = R().players.filter(function (p) { return have.indexOf(p.id) < 0 && (!q || p.name.toLowerCase().indexOf(q) >= 0); });
+  list.sort(function (a, b) { var as = a.name.toLowerCase().indexOf(q) === 0 ? 0 : 1, bs = b.name.toLowerCase().indexOf(q) === 0 ? 0 : 1; return as - bs || a.name.localeCompare(b.name); });
+  list = list.slice(0, 8);
+  if (!list.length) { box.innerHTML = '<button disabled>' + (q ? 'No player matches' : 'Everyone is tagged') + '</button>'; box.hidden = false; return; }
+  box.innerHTML = list.map(function (p, i) { var t = rteam(p.team); return '<button data-tag="' + p.id + '"' + (i === 0 ? ' class="on"' : '') + '><span>' + esc(p.name) + '</span><small>' + (t ? esc(t.name) : '') + (p.power != null ? (t ? ' · ' : '') + fmtPower(p.power) : '') + '</small></button>'; }).join('');
+  box.hidden = false;
+}
 var ACTS = {
+  'tag-team': function () {
+    var it = findItem(st.sel), t = it && it.team && rteam(it.team); if (!t) return;
+    commit(); it.players = it.players || [];
+    R().players.forEach(function (p) { if (p.team === t.id && it.players.indexOf(p.id) < 0) it.players.push(p.id); });
+    changed(); renderMap(); renderSel();
+  },
   'key-edit': function () { st.keyEdit = true; renderKey(); },
   'key-done': function () { st.keyEdit = false; renderKey(); },
   'key-reset': function () { commit(); plan.key = { labels: {}, hidden: {} }; changed(); renderKey(); },
@@ -1227,6 +1342,15 @@ function teamsImageBlock(W, y0, fg, mu) {
   return { svg: svg, h: y - y0 };
 }
 
+$('gm-sel').addEventListener('input', function (e) { if (e.target.id === 'gm-ptag') renderTagList(); });
+$('gm-sel').addEventListener('focusin', function (e) { if (e.target.id === 'gm-ptag') renderTagList(); });
+$('gm-sel').addEventListener('focusout', function (e) { if (e.target.id === 'gm-ptag') setTimeout(function () { var b = $('gm-ptaglist'); if (b && !$('gm-sel').contains(document.activeElement)) b.hidden = true; }, 150); });
+$('gm-sel').addEventListener('pointerdown', function (e) { if (e.target.closest('#gm-ptaglist')) e.preventDefault(); });
+$('gm-sel').addEventListener('keydown', function (e) {
+  if (e.target.id !== 'gm-ptag') return;
+  if (e.key === 'Enter') { e.preventDefault(); var first = $('gm-ptaglist') && $('gm-ptaglist').querySelector('[data-tag]'); if (first) tagPlayer(first.dataset.tag); }
+  if (e.key === 'Escape') { e.stopPropagation(); e.target.blur(); }
+});
 $('gm-sel').addEventListener('change', function (e) {
   if (e.target.id !== 'gm-iteam') return;
   var it = findItem(st.sel); if (!it) return;
@@ -1242,7 +1366,8 @@ if (st.standalone && location.hash.indexOf('#p=') === 0) {
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
   }).catch(function () { toast('That share link is incomplete. Ask for it again.'); });
 }
-if (window.ResizeObserver) new ResizeObserver(function () { renderMap(); }).observe($wrap);
+// keep the same centre and zoom when the map area changes size (phone toolbars, rotation); only refit while untouched
+if (window.ResizeObserver) new ResizeObserver(function () { if (!st.camTouched) fitView(); renderMap(); }).observe($wrap);
 })();
 </script>
 
