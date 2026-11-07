@@ -196,12 +196,37 @@ select.pin{border-color:var(--line);background:var(--bg);cursor:pointer;padding:
 #gm-rfoot:empty{display:none}
 #gm-radd{min-height:110px;font-size:12.5px}
 @media (max-width:600px){.dgrp [data-tool] span{display:none}}
+/* map column: on desktop it is just the map; on phones the tools sit above it and the editor, key and toggles below it */
+.mapcol{display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}
+.mapcol>.stage{flex:1;min-height:0}
+.mtop:empty,.munder:empty{display:none}
+.selbar{display:none}
 @media (max-width:820px){
   html,body{height:auto}
   #app{height:auto}
   .app{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto}
-  .stage{height:min(78vh,620px);order:-1}
+  .mapcol{order:-1}
+  .mapcol>.stage{flex:none;width:100%;aspect-ratio:1/1.06;height:auto;max-height:66vh;max-height:66svh;min-height:280px}
   .rail{overflow:visible}
+  .mtop .dtools{position:static;pointer-events:auto;padding:0;gap:6px}
+  .mtop .dgrp{box-shadow:none;width:100%;justify-content:space-between}
+  .mtop #gm-tools{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
+  .mtop #gm-tools .sep{display:none}
+  .mtop #gm-colors{justify-content:center}
+  .mtop .dhint{font-size:12px;color:var(--muted)}
+  .mtop .dhint span{background:none;border:0;padding:0}
+  .munder .blstack{position:static;max-width:100%;align-items:stretch;gap:8px}
+  .munder .selcard{width:100%;box-shadow:none}
+  .munder .mapkey{width:100%;box-shadow:none}
+  .munder .legend{justify-content:flex-start}
+  .selbar{position:absolute;left:8px;right:8px;bottom:8px;z-index:6;display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;padding:6px 6px 6px 12px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+  .selbar[hidden]{display:none}
+  .selbar .nm{flex:1;min-width:0;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .selbar .nm small{font-weight:400;color:var(--muted);margin-left:6px}
+  .selbar button{border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);border-radius:8px;min-height:36px;padding:0 10px;font-size:13px;font-weight:600;cursor:pointer}
+  .selbar button.danger{color:var(--danger)}
+  .stage.busy .selbar,.stage.busy .tip{display:none}
+  .stage .hud{bottom:auto;top:8px;right:8px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
@@ -270,7 +295,7 @@ function normalize(p) {
 var plan = normalize(clone(EMBED));
 var st = { phase: 0, tool: 'select', color: null, team: 3, sel: null, view: clone(VB0), nums: true, ghost: false, dirty: false, canSave: null, confirm: null, picker: null, showImp: false };
 var hist = [], fut = [], restoredBanner = null;
-st.keyOn = !(window.matchMedia && window.matchMedia('(max-width: 600px)').matches); try { var kv = localStorage.getItem('gm-key-on'); if (kv) st.keyOn = kv === '1'; } catch (e) {}
+st.keyOn = true; try { var kv = localStorage.getItem('gm-key-on'); if (kv) st.keyOn = kv === '1'; } catch (e) {}
 try { var ss = JSON.parse(sessionStorage.getItem('gm-ui') || 'null'); if (ss) { st.phase = ss.phase || 0; st.nums = ss.nums !== false; sessionStorage.removeItem('gm-ui'); } } catch (e) {}
 try {
   var dr = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
@@ -308,16 +333,24 @@ document.getElementById('app').innerHTML =
  '<section class="card" id="gm-roster"><div class="head"><h2>Roster</h2><span class="note" id="gm-rsum"></span></div><div id="gm-rhead" class="rhead"></div><div class="rfilters" id="gm-rfilters"></div><div class="rlist" id="gm-rlist"></div><div class="row" id="gm-rfoot"></div></section>' +
  '<section class="card"><div class="head"><h2>Share &amp; backup</h2></div><div id="gm-share"></div></section>' +
 '</aside>' +
-'<main class="stage" id="gm-stage"><div class="mapwrap" id="gm-wrap"><svg id="gm-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg></div>' +
+'<main class="mapcol" id="gm-col"><div class="mtop" id="gm-top"></div><div class="stage" id="gm-stage"><div class="mapwrap" id="gm-wrap"><svg id="gm-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg></div>' +
  '<div class="dtools" id="gm-dtools"><div class="dgrp" id="gm-tools" role="toolbar" aria-label="Tools"></div><div class="dgrp" id="gm-colors" role="group" aria-label="Color"></div><div class="dhint" id="gm-hint"></div></div>' +
  '<div class="blstack"><div id="gm-sel"></div><div class="mapkey" id="gm-keywrap"><div class="key" id="gm-key"></div></div>' +
  '<div class="legend" id="gm-legend"><label><input type="checkbox" id="gm-keychk" checked> Key</label><label><input type="checkbox" id="gm-nums"> Tower labels</label><label><input type="checkbox" id="gm-ghost"> Previous phase</label></div></div>' +
  '<div class="hud"><button id="gm-zin" aria-label="Zoom in">+</button><button id="gm-zout" aria-label="Zoom out">−</button><button id="gm-fit" aria-label="Fit map" style="font-size:13px">⤢</button></div>' +
- '<div class="tip" id="gm-tip" hidden></div>' +
-'</main></div><div id="gm-toast"></div>';
+ '<div class="tip" id="gm-tip" hidden></div><div class="selbar" id="gm-selbar" hidden></div>' +
+'</div><div class="munder" id="gm-under"></div></main></div><div id="gm-toast"></div>';
 
 var $ = function (id) { return document.getElementById(id); };
 var $svg = $('gm-svg'), $wrap = $('gm-wrap');
+var PHONE = window.matchMedia('(max-width: 820px)');
+function placeChrome() {
+  var stage = $('gm-stage'), dt = $('gm-dtools'), bl = document.querySelector('.blstack');
+  if (PHONE.matches) { $('gm-top').appendChild(dt); $('gm-under').appendChild(bl); }
+  else { stage.insertBefore(dt, stage.querySelector('.hud')); stage.insertBefore(bl, stage.querySelector('.hud')); }
+}
+placeChrome();
+if (PHONE.addEventListener) PHONE.addEventListener('change', function () { placeChrome(); renderSel(); renderMap(); });
 
 /* ---------- colors from theme tokens ---------- */
 var P = {};
@@ -536,8 +569,17 @@ function renderTools() {
   var hint = { select: 'Tap a marking to edit it. Drag the map to pan.', claim: 'Tap a territory to claim it for ' + tn + '. Tap again to clear.', arrow: 'Drag from start to end.', line: 'Drag from one end to the other.', city: 'Tap where the city should move.', reinforce: 'Tap the spot to reinforce.', attack: 'Tap the target.', label: 'Tap to place text.', circle: 'Drag out from the centre.', rect: 'Drag corner to corner.', square: 'Drag corner to corner.' }[st.tool];
   $('gm-hint').innerHTML = '<span>' + esc(hint) + (st.tool !== 'select' && st.tool !== 'claim' ? ' Two fingers or the scroll wheel move the map.' : '') + '</span>';
 }
+function renderSelBar(it) {
+  var bar = $('gm-selbar'); if (!bar) return;
+  if (!it || !PHONE.matches) { bar.hidden = true; bar.innerHTML = ''; return; }
+  var tl = tagLine(it), sub = it.label || tl;
+  bar.innerHTML = '<span class="nm">' + esc(TYPE_NAME[it.type]) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</span>' +
+    '<button data-act="sel-edit">Edit</button><button class="danger" data-act="del-item">Delete</button><button data-act="desel" aria-label="Done">Done</button>';
+  bar.hidden = false;
+}
 function renderSel() {
   var it = st.sel && findItem(st.sel), el = $('gm-sel');
+  renderSelBar(it);
   $('gm-keywrap').hidden = !!it || !st.keyOn;
   if (!it) { el.innerHTML = ''; return; }
   var cols = []; plan.teams.forEach(function (t) { cols.push(t.color); }); DCOLS.forEach(function (c) { if (cols.map(function (x) { return x.toLowerCase(); }).indexOf(c.toLowerCase()) < 0) cols.push(c); });
@@ -666,6 +708,8 @@ var DRAW = { arrow: 1, line: 1, circle: 1, rect: 1, square: 1 };
 $wrap.addEventListener('pointerdown', function (e) {
   if (e.button > 0) return;
   e.preventDefault();
+  if (e.isPrimary) { ptrs = {}; if (gest) { gest = null; draft = null; $wrap.classList.remove('drag'); } }
+  var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) ae.blur();
   ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
   try { $wrap.setPointerCapture(e.pointerId); } catch (er) {}
   var ids = Object.keys(ptrs);
@@ -711,7 +755,7 @@ $wrap.addEventListener('pointermove', function (e) {
     renderMap(); return;
   }
   var dx = e.clientX - gest.sx, dy = e.clientY - gest.sy;
-  if (!gest.moved && Math.hypot(dx, dy) > 6) gest.moved = true;
+  if (!gest.moved && Math.hypot(dx, dy) > 6) { gest.moved = true; if (gest.kind !== 'pan' && gest.kind !== 'tap') $('gm-stage').classList.add('busy'); }
   if (!gest.moved) return;
   var p = pt(e);
   if (gest.kind === 'pan' || gest.kind === 'tap') {
@@ -746,7 +790,7 @@ function shapeFrom(tool, a, b) {
 }
 function endPointer(e) {
   if (!ptrs[e.pointerId]) return;
-  delete ptrs[e.pointerId]; $wrap.classList.remove('drag');
+  delete ptrs[e.pointerId]; $wrap.classList.remove('drag'); $('gm-stage').classList.remove('busy');
   try { $wrap.releasePointerCapture(e.pointerId); } catch (er) {}
   if (!gest) return;
   if (gest.kind === 'pinch') { if (Object.keys(ptrs).length < 2) gest = null; return; }   // the finger still down does nothing until lifted
@@ -773,6 +817,10 @@ $wrap.addEventListener('lostpointercapture', function (e) { if (ptrs[e.pointerId
 $wrap.addEventListener('pointerleave', function (e) { if (!gest) { hideTip(); $wrap.classList.remove('over-item', 'over-handle'); if (st.hoverRid) { st.hoverRid = null; if (st.tool === 'claim') renderMap(); } } });
 $wrap.addEventListener('wheel', function (e) { e.preventDefault(); var p = pt(e); zoomAt(Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
 $wrap.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+function resetPointers() { if (!Object.keys(ptrs).length && !gest) return; ptrs = {}; gest = null; draft = null; $wrap.classList.remove('drag'); $('gm-stage').classList.remove('busy'); renderMap(); }
+$wrap.addEventListener('touchend', function (e) { if (!e.touches.length) setTimeout(function () { if (Object.keys(ptrs).length) resetPointers(); }, 60); });
+document.addEventListener('visibilitychange', function () { if (document.hidden) resetPointers(); });
+window.addEventListener('blur', resetPointers);
 // stop the browser's own page zoom/scroll from taking over the map on phones (iOS ignores touch-action for pinch)
 ['touchstart', 'touchmove'].forEach(function (t) { $wrap.addEventListener(t, function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false }); });
 ['gesturestart', 'gesturechange'].forEach(function (t) { $wrap.addEventListener(t, function (e) { e.preventDefault(); }); });
@@ -795,6 +843,7 @@ function hover(e) {
     html = '<b>' + esc(title) + '</b><br><span class="k">' + zone + '</span><br>' + (t ? '<span style="color:' + t.color + '">●</span> ' + esc(t.name) : '<span class="k">Unclaimed</span>');
   }
   tip.innerHTML = html; tip.hidden = false;
+  clearTimeout(hover.t); if (e.pointerType && e.pointerType !== 'mouse') hover.t = setTimeout(hideTip, 2200);
   var rect = $('gm-stage').getBoundingClientRect(), x = e.clientX - rect.left + 14, y = e.clientY - rect.top + 14, w = tip.offsetWidth, hh = tip.offsetHeight;
   if (x + w > rect.width - 6) x = e.clientX - rect.left - w - 14; if (y + hh > rect.height - 6) y = e.clientY - rect.top - hh - 14;
   tip.style.left = Math.max(4, x) + 'px'; tip.style.top = Math.max(4, y) + 'px';
@@ -866,6 +915,7 @@ function renderTagList() {
   box.hidden = false;
 }
 var ACTS = {
+  'sel-edit': function () { var c = document.querySelector('#gm-sel .selcard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); },
   'tag-team': function () {
     var it = findItem(st.sel), t = it && it.team && rteam(it.team); if (!t) return;
     commit(); it.players = it.players || [];
@@ -902,6 +952,10 @@ var ACTS = {
 function movePhase(d) { var i = st.phase, j = i + d; if (j < 0 || j >= plan.phases.length) return; commit(); var t = plan.phases[i]; plan.phases[i] = plan.phases[j]; plan.phases[j] = t; st.phase = j; changed(); renderAll(); }
 function deleteSel() { if (!findItem(st.sel)) return; commit(); var id = st.sel; ph().items = ph().items.filter(function (i) { return i.id !== id; }); st.sel = null; changed(); renderMap(); renderSel(); renderPhases(); }
 
+document.addEventListener('focusin', function (e) {
+  var t = e.target; if (!PHONE.matches || !t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.type === 'checkbox') return;
+  setTimeout(function () { try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (er) {} }, 350);
+});
 var typing = null;
 document.addEventListener('input', function (e) {
   var t = e.target, key;
