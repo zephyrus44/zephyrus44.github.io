@@ -329,7 +329,7 @@ function normalize(p) {
   p.roster = p.roster && typeof p.roster === 'object' ? p.roster : {};
   if (!Array.isArray(p.roster.teams)) p.roster.teams = [{ id: 'rt1', name: 'Team 1', color: RCOLS[0] }, { id: 'rt2', name: 'Team 2', color: RCOLS[1] }];
   p.roster.teams = p.roster.teams.filter(function (t) { return t && t.id; }).map(function (t, i) { return { id: String(t.id), name: String(t.name || 'Team ' + (i + 1)), color: t.color || RCOLS[i % RCOLS.length] }; });
-  p.roster.players = (Array.isArray(p.roster.players) ? p.roster.players : []).filter(function (x) { return x && x.name; }).map(function (x) { return { id: x.id || uid(), name: String(x.name), power: typeof x.power === 'number' ? x.power : null, team: x.team || '' }; });
+  p.roster.players = (Array.isArray(p.roster.players) ? p.roster.players : []).filter(function (x) { return x && x.name; }).map(function (x) { return { id: x.id || uid(), name: String(x.name), power: typeof x.power === 'number' ? x.power : null, team: x.team || '', src: typeof x.src === 'number' ? x.src : undefined }; });
   return p;
 }
 var plan = normalize(clone(EMBED));
@@ -1334,8 +1334,8 @@ function applyPlayers(list, mode) {
   var added = 0, updated = 0;
   list.forEach(function (x) {
     var t = x.teamName ? teamByName(x.teamName, true) : null, ex = byName[x.name.toLowerCase()];
-    if (ex) { if (x.power != null) ex.power = x.power; if (t) ex.team = t.id; updated++; }
-    else { var p = { id: uid(), name: x.name.slice(0, 32), power: x.power, team: t ? t.id : '' }; R().players.push(p); byName[x.name.toLowerCase()] = p; added++; }
+    if (ex) { if (x.power != null) ex.power = x.power; if (t) ex.team = t.id; if (x.src) ex.src = x.src; updated++; }
+    else { var p = { id: uid(), name: x.name.slice(0, 32), power: x.power, team: t ? t.id : '' }; if (x.src) p.src = x.src; R().players.push(p); byName[x.name.toLowerCase()] = p; added++; }
   });
   changed(); renderRoster(); renderSel(); renderMap();
   return { added: added, updated: updated };
@@ -1434,7 +1434,8 @@ function renderRoster() {
   sel.value = st.rfilter || '';
   $('gm-rfilters').hidden = !r.players.length;
   renderRosterList();
-  $('gm-rfoot').innerHTML = '<button class="btn" data-act="r-upload">Upload CSV</button><button class="btn" data-act="r-download" ' + (r.players.length || r.teams.length ? '' : 'disabled') + '>Download CSV</button>' +
+  var fromDeng = r.players.filter(function (p) { return p.src; }).length;
+  $('gm-rfoot').innerHTML = (fromDeng ? '<button class="btn" data-act="r-refresh" title="Update the power of the ' + fromDeng + ' players added from Deng\u2019s Den">Refresh power</button>' : '') + '<button class="btn" data-act="r-upload">Upload CSV</button><button class="btn" data-act="r-download" ' + (r.players.length || r.teams.length ? '' : 'disabled') + '>Download CSV</button>' +
     (r.players.length ? '<button class="btn ghost danger" data-act="r-clear">Clear</button>' : '');
 }
 function renderRosterList() {
@@ -1691,13 +1692,41 @@ $('gm-deng').addEventListener('click', function (e) {
     var sel = dgSelected(), al2 = dg.data.alliances[dg.ally], tn = '';
     if (!sel.length) return;
     if (dg.team === '@new') tn = al2.name; else if (dg.team) { var t = rteam(dg.team); tn = t ? t.name : ''; }
-    var res = applyPlayers(sel.map(function (p) { return { name: p[0], power: p[1], teamName: tn }; }), 'merge');
+    var res = applyPlayers(sel.map(function (p) { return { name: p[0], power: p[1], teamName: tn, src: dg.server }; }), 'merge');
     dg.sel = {}; renderDengList(); renderRoster();
     toast('Added ' + res.added + (res.updated ? ', updated ' + res.updated : '') + ' from ' + al2.name);
   }
 });
 
-Object.assign(ACTS, { 'r-deng': function () { dgOpen(); renderRoster(); } });
+function refreshPower(btn) {
+  var bySrv = {};
+  R().players.forEach(function (p) { if (p.src) (bySrv[p.src] = bySrv[p.src] || []).push(p); });
+  var srvs = Object.keys(bySrv); if (!srvs.length) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Refreshing\u2026'; }
+  Promise.all(srvs.map(function (n) { return dgFetch('servers/' + n + '.json').then(function (j) { return { n: n, j: j }; }, function () { return { n: n, j: null }; }); })).then(function (res) {
+    var upd = 0, same = 0, missing = [], failed = 0, when = '';
+    var changes = [];
+    res.forEach(function (x) {
+      if (!x.j) { failed += bySrv[x.n].length; return; }
+      when = x.j.taken_at || when;
+      var pw = {}; x.j.alliances.forEach(function (a) { a.players.forEach(function (p) { pw[p[0].toLowerCase()] = p[1]; }); });
+      bySrv[x.n].forEach(function (p) {
+        var v = pw[p.name.toLowerCase()];
+        if (v == null) missing.push(p.name);
+        else if (v !== p.power) changes.push([p, v]);
+        else same++;
+      });
+    });
+    if (changes.length) { commit(); changes.forEach(function (c) { c[0].power = c[1]; }); upd = changes.length; changed(); }
+    renderRoster();
+    var msg = upd ? 'Updated power for ' + upd + ' player' + (upd === 1 ? '' : 's') : 'Power is already up to date';
+    if (when) msg += ' (Deng\u2019s Den, ' + dgDate(when) + ')';
+    if (missing.length) msg += '. Not found: ' + missing.slice(0, 3).join(', ') + (missing.length > 3 ? ' +' + (missing.length - 3) : '');
+    if (failed) msg += '. Couldn\u2019t reach the data for ' + failed + ' player' + (failed === 1 ? '' : 's') + '.';
+    toast(msg);
+  });
+}
+Object.assign(ACTS, { 'r-deng': function () { dgOpen(); renderRoster(); }, 'r-refresh': function (b) { refreshPower(b); } });
 
 /* ---------- boot ---------- */
 renderAll();
