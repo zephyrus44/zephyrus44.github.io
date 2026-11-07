@@ -158,6 +158,13 @@ svg#gm-svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-s
 .imgscroll img{display:block;width:100%;height:auto;-webkit-touch-callout:default;user-select:auto}
 @media (max-width:600px){.imgbar b{flex-basis:100%}.imgbtns{width:100%}.imgbtns .btn{flex:1;justify-content:center}}
 .imgnote{margin:0;text-align:center;color:var(--muted);font-size:12.5px}
+.startpick{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.spbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.spbtns button{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:7px 10px;font-size:12.5px;font-weight:600;cursor:pointer;min-height:34px;text-align:left}
+.spbtns button i{width:12px;height:12px;border-radius:3px;flex:none}
+.spbtns button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.spbtns button:last-child{grid-column:1/-1;justify-content:center;color:var(--muted)}
+.spbtns button:last-child[aria-pressed="true"]{color:var(--fg)}
 .selcard{width:min(320px,100%);background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:12px;display:flex;flex-direction:column;gap:9px;z-index:6}
 .selcard .head b{font-size:13px}
 .selcard .x{border:0;background:transparent;color:var(--muted);cursor:pointer;width:26px;height:26px;border-radius:6px;font-size:16px}
@@ -293,6 +300,7 @@ function normalize(p) {
   if (!Array.isArray(p.phases) || !p.phases.length) p.phases = [{ id: uid(), name: 'Phase 1', notes: '', owners: {}, items: [] }];
   p.phases.forEach(function (ph) { ph.id = ph.id || uid(); ph.owners = ph.owners || {}; ph.items = Array.isArray(ph.items) ? ph.items : []; ph.notes = ph.notes || ''; ph.name = ph.name || 'Phase'; });
   p.name = p.name || 'Grand Melee plan';
+  if (['red', 'teal', 'yellow', 'blue'].indexOf(p.start) < 0) p.start = '';
   p.key = p.key && typeof p.key === 'object' ? p.key : {};
   p.key.labels = p.key.labels || {}; p.key.hidden = p.key.hidden || {};
   p.roster = p.roster && typeof p.roster === 'object' ? p.roster : {};
@@ -338,7 +346,7 @@ document.getElementById('app').innerHTML =
  '<p class="sub">Plan each phase on the map: where cities move, who reinforces, what gets hit. <span class="status" id="gm-status"></span></p></section>' +
  '<section class="card banner" id="gm-banner" hidden></section>' +
  '<section class="card"><div class="head"><h2>Phases</h2><div class="row"><button class="btn" data-act="phase-dup" title="New phase starting from the current one">+ Copy</button><button class="btn ghost" data-act="phase-new">+ Blank</button></div></div><div class="goals" id="gm-phases"></div><div class="detail" id="gm-phdetail"></div></section>' +
- '<section class="card"><div class="head"><h2>Sides</h2><span class="note">claimed</span></div><div class="alli" id="gm-teams"></div><p class="sub">Tap a side to claim for it. Tap its dot to change its color.</p></section>' +
+ '<section class="card"><div class="head"><h2>Sides</h2><span class="note">claimed</span></div><div class="alli" id="gm-teams"></div><p class="sub">Tap a side to claim for it. Tap its dot to change its color.</p><div class="startpick" id="gm-start"></div></section>' +
  '<section class="card" id="gm-roster"><div class="head"><h2>Roster</h2><span class="note" id="gm-rsum"></span></div><div id="gm-rhead" class="rhead"></div><div class="rfilters" id="gm-rfilters"></div><div class="rlist" id="gm-rlist"></div><div class="row" id="gm-rfoot"></div></section>' +
  '<section class="card"><div class="head"><h2>Share &amp; backup</h2></div><div id="gm-share"></div></section>' +
 '</aside>' +
@@ -383,7 +391,7 @@ function boardSVG(owners, nums) {
     '<rect x="' + VB0.x + '" y="' + VB0.y + '" width="' + VB0.w + '" height="' + VB0.h + '" fill="' + P['map-bg'] + '"/><g class="terrs">';
   MAP.r.forEach(function (r) {
     var fill = P.tile, op = 1, cls = 'terr claimable';
-    if (r.t === 'spawn') { fill = teamColor(r.c); op = 0.32; cls = 'terr'; }
+    if (r.t === 'spawn') { cls = 'terr'; if (plan.start === r.c) { fill = teamColor(r.c); op = 0.55; } else { fill = P.tile; } }
     else if (r.t === 'blocked') { fill = 'url(#gm-hatch)'; cls = 'terr'; }
     else if (owners[r.id]) { fill = teamColor(owners[r.id]); op = 0.62; }
     else if (r.t !== 'tower') fill = P['tile-key'];
@@ -527,6 +535,10 @@ function renderTeams() {
     if (st.picker === i) h += '<div class="swatches">' + PALETTE.map(function (c) { return '<button style="background:' + c + '" data-team-color="' + c + '" aria-pressed="' + (c.toLowerCase() === t.color.toLowerCase()) + '" aria-label="' + c + '"></button>'; }).join('') + '</div>';
   });
   $('gm-teams').innerHTML = h;
+  var CORNER = { red: 'Top left', teal: 'Top right', yellow: 'Bottom left', blue: 'Bottom right' };
+  $('gm-start').innerHTML = '<span class="note">Starting position</span><div class="spbtns">' +
+    ['red', 'teal', 'yellow', 'blue'].map(function (c) { var t = teamById(c), on = plan.start === c; return '<button data-start="' + c + '" aria-pressed="' + on + '" title="' + CORNER[c] + '"><i style="background:' + (t ? t.color : '#888') + '"></i>' + CORNER[c] + '</button>'; }).join('') +
+    '<button data-start="" aria-pressed="' + !plan.start + '">None</button></div>';
 }
 function keyIcon(kind, color) {
   var c = color || '#3E8CD7';
@@ -845,7 +857,7 @@ function hover(e) {
   if (st.tool === 'claim' && st.hoverRid !== rid && e.pointerType === 'mouse') { st.hoverRid = rid; renderMap(); }
   if (!rid || !REG[rid] || (e.pointerType === 'touch' && st.tool !== 'select' && st.tool !== 'claim')) { tip.hidden = true; return; }
   var r = REG[rid], ow = ph().owners[rid], t = ow && teamById(ow), html;
-  if (r.t === 'spawn') { var ct = teamById(r.c); html = '<b>Starting area</b><br><span class="k">' + esc(ct ? ct.name : '') + ' side</span>'; }
+  if (r.t === 'spawn') { var ct = teamById(r.c); html = '<b>' + (plan.start === r.c ? 'Our starting position' : 'Starting area') + '</b><br><span class="k">' + esc(ct ? ct.name : '') + ' side</span>'; }
   else if (r.t === 'blocked') html = '<b>Blocked area</b><br><span class="k">Can’t be occupied</span>';
   else {
     var title = r.n, zone = r.t === 'tower' ? (r.q === 'center' ? 'Between the posts' : 'Quadrant ' + r.q + ' · ' + esc((teamById(Q_CORNER[r.q]) || {}).name || '') + ' side') : r.t === 'vault' ? 'Center objective' : 'Guards the vault';
@@ -858,7 +870,8 @@ function hover(e) {
   tip.style.left = Math.max(4, x) + 'px'; tip.style.top = Math.max(4, y) + 'px';
 }
 function claim(rid, e) {
-  if (!rid || !REG[rid] || REG[rid].t === 'spawn' || REG[rid].t === 'blocked') return;
+  if (rid && REG[rid] && REG[rid].t === 'spawn') { commit(); plan.start = plan.start === REG[rid].c ? '' : REG[rid].c; changed(); renderMap(); renderTeams(); if (e) hover(e); return; }
+  if (!rid || !REG[rid] || REG[rid].t === 'blocked') return;
   var team = plan.teams[st.team].id, ow = ph().owners;
   commit(); if (ow[rid] === team) delete ow[rid]; else ow[rid] = team;
   changed(); renderMap(); renderTeams(); renderPhases(); if (e) hover(e);
@@ -898,6 +911,7 @@ document.addEventListener('click', function (e) {
   if (ds.phase != null) { st.phase = +ds.phase; st.sel = null; st.confirm = null; if (st.phase === 0) st.ghost = false; renderAll(); return; }
   if (ds.teamDot != null) { var ti = +ds.teamDot; st.picker = st.picker === ti ? null : ti; st.team = ti; renderTeams(); return; }
   if (ds.teamColor) { commit(); plan.teams[st.picker].color = ds.teamColor; if (st.team === st.picker) st.color = ds.teamColor; st.picker = null; changed(); renderAll(); return; }
+  if (ds.start != null) { if (plan.start !== ds.start) { commit(); plan.start = ds.start; changed(); renderTeams(); renderMap(); } return; }
   if (ds.teamRow != null) { if (e.target.tagName === 'INPUT') return; st.team = +ds.teamRow; if (st.tool === 'claim') st.color = plan.teams[st.team].color; renderTeams(); renderTools(); return; }
   if (ds.untag) { var iu = findItem(st.sel); if (iu && iu.players) { commit(); iu.players = iu.players.filter(function (x) { return x !== ds.untag; }); changed(); renderMap(); renderSel(); } return; }
   if (ds.tag) { tagPlayer(ds.tag); return; }
@@ -1017,7 +1031,7 @@ function copyText(txt, okMsg) {
 function b64u(bytes) { var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 function unb64u(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
 function encodePlan(p) {
-  var raw = new TextEncoder().encode(JSON.stringify({ v: 1, name: p.name, teams: p.teams, phases: p.phases, key: p.key, roster: p.roster }));
+  var raw = new TextEncoder().encode(JSON.stringify({ v: 1, name: p.name, teams: p.teams, phases: p.phases, key: p.key, roster: p.roster, start: p.start }));
   if (typeof CompressionStream === 'undefined') return Promise.resolve('GM1.r.' + b64u(raw));
   return new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer().then(function (buf) { return 'GM1.z.' + b64u(new Uint8Array(buf)); });
 }
