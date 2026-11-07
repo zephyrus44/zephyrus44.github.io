@@ -1091,7 +1091,7 @@ function sidesLegend(W, y, C) {
 function keyImageBlock(W, y0, C) {
   var rows = KEY_ROWS.filter(function (r) { return !plan.key.hidden[r[0]]; });
   if (!rows.length) return { svg: '', h: 0 };
-  var cols = W >= 1100 ? 4 : 3, colW = (W - 48) / cols, s = imgText(24, y0 + 30, 'MAP KEY', 13, C.mu, 600, ' letter-spacing="1.8"');
+  var cols = W >= 1100 ? 4 : W >= 560 ? 3 : 2, colW = (W - 48) / cols, s = imgText(24, y0 + 30, 'MAP KEY', 13, C.mu, 600, ' letter-spacing="1.8"');
   rows.forEach(function (r, i) {
     var x = 24 + (i % cols) * colW, y = y0 + 48 + Math.floor(i / cols) * 34;
     s += imgKeyIcon(r[0], '#3E8CD7', x, y, 24) + imgText(x + 34, y + 18, keyName(r[0], r[1]), 16, C.fg, 500);
@@ -1150,20 +1150,39 @@ function buildPhaseSVG() {
     name: ('grand-melee-phase-' + (st.phase + 1) + '-' + ph().name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '') + '.png' };
 }
 function buildPlanSVG() {
-  var C = imgColors(), W = 1200, y = 0, s = '';
-  s += imgText(24, 38, 'MURONG’S GRAND MELEE · BATTLE PLAN', 14, C.mu, 600, ' letter-spacing="1.8"');
-  s += imgText(24, 76, plan.name, 32, C.fg, 700);
-  s += imgText(24, 102, plan.phases.length + ' phase' + (plan.phases.length === 1 ? '' : 's') + ' · ' + plan.phases.map(function (p, i) { return (i + 1) + '. ' + p.name; }).join('   '), 15, C.mu);
+  // header across the top (title, sides, key beside teams), then the phases as a grid of cards
+  var C = imgColors(), n = plan.phases.length;
+  var cols = n <= 3 ? n : n === 4 ? 2 : n <= 9 ? 3 : 4;
+  var pad = 24, gap = 20, cellW = 760, W = pad * 2 + cols * cellW + (cols - 1) * gap, y = 0, s = '';
+  s += imgText(pad, 38, 'MURONG’S GRAND MELEE · BATTLE PLAN', 14, C.mu, 600, ' letter-spacing="1.8"');
+  s += imgText(pad, 76, plan.name, 32, C.fg, 700);
+  s += imgText(pad, 102, n + ' phase' + (n === 1 ? '' : 's') + ' · ' + plan.phases.map(function (p, i) { return (i + 1) + '. ' + p.name; }).join('   '), 15, C.mu);
   s += sidesLegend(W, 136, C); y = 150;
-  var kb = keyImageBlock(W, y, C); s += kb.svg; y += kb.h;
-  var tb = teamsImageBlock(W, y, C.fg, C.mu); s += tb.svg; y += tb.h;
-  plan.phases.forEach(function (p, i) {
-    s += '<rect x="24" y="' + (y + 18) + '" width="' + (W - 48) + '" height="1" fill="' + C.line + '"/>'; y += 24;
-    var pb = phaseImageBlock(i, W, y, C, true); s += pb.svg; y += pb.h;
-  });
-  y += 12;
+  var hasTeams = R().players.some(function (p) { return rteam(p.team); });
+  if (hasTeams && W >= 1400) {
+    var keyW = Math.round(Math.min(620, W * 0.3)), kb = keyImageBlock(keyW, 0, C), tb = teamsImageBlock(W - keyW, 0, C.fg, C.mu);
+    s += '<g transform="translate(0 ' + y + ')">' + kb.svg + '</g><g transform="translate(' + keyW + ' ' + y + ')">' + tb.svg + '</g>';
+    y += Math.max(kb.h, tb.h);
+  } else {
+    var kb2 = keyImageBlock(W, y, C); s += kb2.svg; y += kb2.h;
+    if (hasTeams) { var tb2 = teamsImageBlock(W, y, C.fg, C.mu); s += tb2.svg; y += tb2.h; }
+  }
+  y += 20;
+  for (var r = 0; r < n; r += cols) {
+    var blocks = [], rowH = 0;
+    for (var j = 0; j < cols && r + j < n; j++) { var pb = phaseImageBlock(r + j, cellW, 0, C, true); blocks.push(pb); rowH = Math.max(rowH, pb.h); }
+    blocks.forEach(function (pb, j) {
+      var x = pad + j * (cellW + gap), cid = 'gmcell' + r + '_' + j;
+      s += '<clipPath id="' + cid + '"><rect x="' + x + '" y="' + y + '" width="' + cellW + '" height="' + rowH + '" rx="12"/></clipPath>';
+      s += '<rect x="' + x + '" y="' + y + '" width="' + cellW + '" height="' + rowH + '" rx="12" fill="' + C.panel + '"/>';
+      s += '<g clip-path="url(#' + cid + ')"><g transform="translate(' + x + ' ' + y + ')">' + pb.svg + '</g></g>';
+      s += '<rect x="' + (x + .5) + '" y="' + (y + .5) + '" width="' + (cellW - 1) + '" height="' + (rowH - 1) + '" rx="12" fill="none" stroke="' + C.line + '"/>';
+    });
+    y += rowH + gap;
+  }
+  y += 4;
   return { svg: '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + y + '" viewBox="0 0 ' + W + ' ' + y + '"><rect width="100%" height="100%" fill="' + C.bg + '"/>' + s + '</svg>', w: W, h: y,
-    name: (function () { var n = (plan.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return (n.indexOf('grand-melee') === 0 ? n : 'grand-melee-' + (n || 'plan')) + '.png'; })() };
+    name: (function () { var nm = (plan.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return (nm.indexOf('grand-melee') === 0 ? nm : 'grand-melee-' + (nm || 'plan')) + '.png'; })() };
 }
 function svgToPng(o) {
   return new Promise(function (resolve, reject) {
