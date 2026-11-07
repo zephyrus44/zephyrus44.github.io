@@ -13,6 +13,11 @@ nav.js          top bar and tool menu for HTML tools opened as full pages (phone
 tools/<name>/   one folder per tool
 data/           world power and warzone data from dengsden.com, used by Era Grouping
 .github/workflows/deng-data.yml   refreshes data/ once a day
+.github/workflows/deng-alliances.yml   builds the top 8 alliances on every server, with
+                each member's power, onto the deng-alliances branch once a day
+                (script: .github/scripts/deng_alliances.py). The Grand Melee planner's
+                "From Deng's Den" import reads it from raw.githubusercontent.com. The
+                branch is replaced on every run, so it adds nothing to main's history.
 ```
 
 Older addresses (`grand-melee-planner.html`, `era-grouping.html`, `GlowwormsRusePlanner/glowworm/`) redirect to the new folders, so old bookmarks and share links keep working.

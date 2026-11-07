@@ -1,0 +1,44 @@
+name: Update alliance rosters
+
+# Top 8 alliances on every server with their members' power, from dengsden.com.
+# Used by the Grand Melee planner's roster import. The data lives on its own
+# branch (deng-alliances), replaced each run, so main's history doesn't grow.
+
+on:
+  schedule:
+    - cron: "41 12 * * *"   # once a day, after Deng's Den's morning snapshot
+  workflow_dispatch:        # run by hand from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency: deng-alliances
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load the current data
+        run: |
+          mkdir -p out
+          if git fetch -q --depth=1 origin deng-alliances; then
+            git archive FETCH_HEAD | tar -x -C out
+          fi
+
+      - name: Download from Deng's Den
+        run: python3 .github/scripts/deng_alliances.py out
+
+      - name: Publish to the deng-alliances branch
+        run: |
+          cd out
+          [ -f .changed ] || { echo "No new snapshot, nothing to publish"; exit 0; }
+          rm .changed
+          git init -q
+          git checkout -q -b deng-alliances
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Alliance rosters $(jq -r .taken_at index.json)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" deng-alliances

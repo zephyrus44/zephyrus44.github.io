@@ -165,6 +165,29 @@ svg#gm-svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-s
 .spbtns button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
 .spbtns button:last-child{grid-column:1/-1;justify-content:center;color:var(--muted)}
 .spbtns button:last-child[aria-pressed="true"]{color:var(--fg)}
+.deng{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line-strong);border-radius:10px;padding:12px;background:var(--bg)}
+.deng[hidden]{display:none}
+.dhead{display:flex;align-items:center;gap:8px}
+.dhead b{flex:1;font-size:13.5px}
+.deng .note a{color:var(--accent)}
+.dlist-pop{top:calc(100% + 4px);bottom:auto}
+.dallies{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dallies button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:7px 9px;font-size:12.5px;font-weight:600;cursor:pointer;text-align:left;min-width:0}
+.dallies button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dallies button small{color:var(--muted);font-weight:400;font-size:11.5px}
+.dallies button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.dallies button:disabled{opacity:.45;cursor:default}
+.dsearch{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px;align-items:center}
+.dplist{display:flex;flex-direction:column;max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.dprow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px}
+.dprow:last-child{border-bottom:0}
+.dprow input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.dpn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.dpn small{font-weight:400;color:var(--muted);font-size:11px}
+.dpp{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.dfoot{display:flex;flex-direction:column;gap:8px}
+.dtot{display:flex;align-items:baseline;gap:6px;font-size:13px}
+.dtot span{margin-left:auto;font-family:var(--f-mono);font-size:12.5px;color:var(--fg)}
 .selcard{width:min(320px,100%);background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:12px;display:flex;flex-direction:column;gap:9px;z-index:6}
 .selcard .head b{font-size:13px}
 .selcard .x{border:0;background:transparent;color:var(--muted);cursor:pointer;width:26px;height:26px;border-radius:6px;font-size:16px}
@@ -347,7 +370,7 @@ document.getElementById('app').innerHTML =
  '<section class="card banner" id="gm-banner" hidden></section>' +
  '<section class="card"><div class="head"><h2>Phases</h2><div class="row"><button class="btn" data-act="phase-dup" title="New phase starting from the current one">+ Copy</button><button class="btn ghost" data-act="phase-new">+ Blank</button></div></div><div class="goals" id="gm-phases"></div><div class="detail" id="gm-phdetail"></div></section>' +
  '<section class="card"><div class="head"><h2>Sides</h2><span class="note">claimed</span></div><div class="alli" id="gm-teams"></div><p class="sub">Tap a side to claim for it. Tap its dot to change its color.</p><div class="startpick" id="gm-start"></div></section>' +
- '<section class="card" id="gm-roster"><div class="head"><h2>Roster</h2><span class="note" id="gm-rsum"></span></div><div id="gm-rhead" class="rhead"></div><div class="rfilters" id="gm-rfilters"></div><div class="rlist" id="gm-rlist"></div><div class="row" id="gm-rfoot"></div></section>' +
+ '<section class="card" id="gm-roster"><div class="head"><h2>Roster</h2><span class="note" id="gm-rsum"></span></div><div class="deng" id="gm-deng" hidden></div><div id="gm-rhead" class="rhead"></div><div class="rfilters" id="gm-rfilters"></div><div class="rlist" id="gm-rlist"></div><div class="row" id="gm-rfoot"></div></section>' +
  '<section class="card"><div class="head"><h2>Share &amp; backup</h2></div><div id="gm-share"></div></section>' +
 '</aside>' +
 '<main class="mapcol" id="gm-col"><div class="mtop" id="gm-top"></div><div class="stage" id="gm-stage"><div class="mapwrap" id="gm-wrap"><svg id="gm-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg></div>' +
@@ -1378,7 +1401,8 @@ function autoSplit(onlyUnassigned) {
 
 function renderRoster() {
   var r = R(), s = teamStats(), h = '';
-  $('gm-rsum').textContent = r.players.length + ' player' + (r.players.length === 1 ? '' : 's');
+  var rtot = r.players.reduce(function (a, p) { return a + (p.power || 0); }, 0);
+  $('gm-rsum').textContent = r.players.length + ' player' + (r.players.length === 1 ? '' : 's') + (rtot ? ' \u00b7 ' + fmtPower(rtot) : '');
   h += '<div class="alli">';
   r.teams.forEach(function (t) {
     var on = st.rfilter === t.id;
@@ -1391,7 +1415,7 @@ function renderRoster() {
   if (!r.teams.length) h += '<div class="empty">No teams yet. Add one, or upload a CSV with a Team column.</div>';
   h += '</div>';
   if (s[''].n && r.teams.length) h += '<p class="note">' + s[''].n + ' unassigned</p>';
-  h += '<div class="row"><button class="btn" data-act="r-addteam">+ Team</button><button class="btn" data-act="r-split" ' + (r.players.length && r.teams.length ? '' : 'disabled') + '>Auto-split</button><button class="btn ghost" data-act="r-toggleadd">' + (st.radd ? 'Hide add' : '+ Add players') + '</button></div>';
+  h += '<div class="row"><button class="btn" data-act="r-addteam">+ Team</button><button class="btn" data-act="r-split" ' + (r.players.length && r.teams.length ? '' : 'disabled') + '>Auto-split</button><button class="btn ghost" data-act="r-toggleadd">' + (st.radd ? 'Hide add' : '+ Add players') + '</button>' + (dg.open ? '' : '<button class="btn ghost" data-act="r-deng">+ From Deng\u2019s Den</button>') + '</div>';
   if (st.rconfirm === 'split') h += '<div class="confirm">Split into ' + r.teams.length + ' equal-size teams with power as even as possible. <button class="btn primary" data-act="r-split-all">Split everyone</button>' + (s[''].n && s[''].n < r.players.length ? '<button class="btn" data-act="r-split-un">Only unassigned (' + s[''].n + ')</button>' : '') + '<button class="btn ghost" data-act="r-cancel">Cancel</button></div>';
   if (st.rconfirm === 'clear') h += '<div class="confirm">Remove all ' + r.players.length + ' players and every team? <button class="btn danger" data-act="r-clear-yes">Clear roster</button><button class="btn ghost" data-act="r-cancel">Cancel</button></div>';
   if (st.rimport) {
@@ -1548,6 +1572,132 @@ $('gm-share').addEventListener('change', function (e) {
   if (e.target.id === 'gm-pngpower') { st.pngPower = e.target.checked; try { localStorage.setItem('gm-png-power', st.pngPower ? '1' : '0'); } catch (er) {} }
 });
 try { if (localStorage.getItem('gm-png-power') === '0') st.pngPower = false; } catch (e) {}
+
+/* ---------- import players from Deng's Den (top 8 alliances per server, refreshed daily) ---------- */
+var DENG_BASE = 'https://raw.githubusercontent.com/zephyrus44/zephyrus44.github.io/deng-alliances/';
+var dg = { open: false, index: null, loading: false, err: '', q: '', server: null, data: null, ally: -1, pq: '', sel: {}, team: '' };
+function dgFetch(path) { return fetch(DENG_BASE + path, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); }
+function dgDate(iso) { var d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
+function dgOpen() {
+  dg.open = true; renderDeng();
+  if (!dg.index && !dg.loading) {
+    dg.loading = true; dg.err = ''; renderDeng();
+    dgFetch('index.json').then(function (j) { dg.index = j; dg.loading = false; renderDeng(); var i = $('gm-dq'); if (i) i.focus(); })
+      .catch(function () { dg.loading = false; dg.err = 'Couldn’t load the Deng’s Den data. Check your connection and try again.'; renderDeng(); });
+  }
+}
+function dgPickServer(n, allyName) {
+  dg.server = n; dg.data = null; dg.ally = -1; dg.sel = {}; dg.pq = ''; dg.err = ''; dg.loading = true; renderDeng();
+  dgFetch('servers/' + n + '.json').then(function (j) {
+    if (dg.server !== n) return;
+    dg.data = j; dg.loading = false;
+    if (allyName) j.alliances.forEach(function (a, i) { if (a.name === allyName) dgPickAlly(i, true); });
+    renderDeng();
+  }).catch(function () { dg.loading = false; dg.err = 'Couldn’t load server ' + n + '. Try again.'; renderDeng(); });
+}
+function dgPickAlly(i, quiet) {
+  dg.ally = i; dg.sel = {}; dg.pq = '';
+  var a = dg.data && dg.data.alliances[i]; dg.team = '';
+  if (!quiet) renderDeng();
+}
+function dgMatches() {
+  var q = dg.q.trim().toLowerCase(), out = [];
+  if (!dg.index) return out;
+  var servers = Object.keys(dg.index.servers).map(Number).sort(function (a, b) { return a - b; });
+  if (!q) return servers.slice(0, 0);
+  if (/^\d+$/.test(q)) servers.filter(function (s) { return String(s).indexOf(q) === 0; }).slice(0, 12).forEach(function (s) {
+    var al = dg.index.servers[s] || []; out.push({ server: s, label: 'Server ' + s, sub: al.slice(0, 3).map(function (a) { return a.name; }).join(', ') });
+  });
+  if (q.length >= 2) servers.forEach(function (s) {
+    (dg.index.servers[s] || []).forEach(function (a) {
+      if (out.length >= 30) return;
+      if ((a.name || '').toLowerCase().indexOf(q) >= 0 || (a.tag || '').toLowerCase().indexOf(q) >= 0) out.push({ server: s, ally: a.name, label: (a.tag ? '[' + a.tag + '] ' : '') + a.name, sub: 'Server ' + s + ' · ' + fmtPower(a.power) + ' · ' + a.n + ' players' });
+    });
+  });
+  return out;
+}
+function dgSelected() {
+  var a = dg.data && dg.data.alliances[dg.ally]; if (!a) return [];
+  return a.players.filter(function (p) { return dg.sel[p[0]]; });
+}
+function renderDengList() {
+  var a = dg.data && dg.data.alliances[dg.ally], box = $('gm-dlist'); if (!a || !box) return;
+  var q = dg.pq.trim().toLowerCase(), inRoster = {};
+  R().players.forEach(function (p) { inRoster[p.name.toLowerCase()] = 1; });
+  var rows = a.players.filter(function (p) { return !q || p[0].toLowerCase().indexOf(q) >= 0; });
+  box.innerHTML = rows.length ? rows.map(function (p) {
+    var id = 'dgp-' + encodeURIComponent(p[0]).replace(/[^a-zA-Z0-9]/g, '_');
+    return '<label class="dprow" for="' + id + '"><input type="checkbox" id="' + id + '" data-dgp="' + esc(p[0]) + '"' + (dg.sel[p[0]] ? ' checked' : '') + '><span class="dpn">' + esc(p[0]) + (inRoster[p[0].toLowerCase()] ? ' <small>in roster</small>' : '') + '</span><span class="dpp">' + fmtPower(p[1]) + '</span></label>';
+  }).join('') : '<p class="note">No player matches.</p>';
+  renderDengFoot();
+}
+function renderDengFoot() {
+  var f = $('gm-dfoot'); if (!f) return;
+  var sel = dgSelected(), tot = sel.reduce(function (s, p) { return s + p[1]; }, 0), a = dg.data && dg.data.alliances[dg.ally];
+  var opts = '<option value="">No team</option>' + R().teams.map(function (t) { return '<option value="' + t.id + '"' + (dg.team === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') +
+    (a ? '<option value="@new"' + (dg.team === '@new' ? ' selected' : '') + '>New team: ' + esc(a.name) + '</option>' : '');
+  f.innerHTML = '<div class="dtot"><b>' + sel.length + '</b> selected<span>' + (sel.length ? fmtPower(tot) + ' total power' : 'Tick players to add them') + '</span></div>' +
+    '<div class="row"><select class="input" id="gm-dteam" aria-label="Add to team" style="flex:1;width:auto">' + opts + '</select><button class="btn primary" data-act="dg-add"' + (sel.length ? '' : ' disabled') + '>Add to roster</button></div>';
+}
+function renderDeng() {
+  var el = $('gm-deng'); if (!el) return;
+  if (!dg.open) { el.innerHTML = ''; el.hidden = true; return; }
+  el.hidden = false;
+  var h = '<div class="dhead"><b>Import from Deng’s Den</b>' + (dg.index ? '<span class="note">Updated ' + dgDate(dg.index.taken_at) + '</span>' : '') + '<button class="rx" data-act="dg-close" aria-label="Close import">×</button></div>';
+  if (dg.err) h += '<p class="note" style="color:var(--danger)">' + esc(dg.err) + '</p>';
+  if (dg.server == null) {
+    h += '<div class="ptagadd"><input class="input" id="gm-dq" placeholder="Server number or alliance name" autocomplete="off" value="' + esc(dg.q) + '" aria-label="Find a server or alliance"' + (dg.index ? '' : ' disabled') + '><div class="ptaglist dlist-pop" id="gm-dqlist" hidden></div></div>';
+    h += '<p class="note">' + (dg.loading ? 'Loading…' : 'Covers the 8 strongest alliances on every server, with each member’s power. From <a href="https://dengsden.com/avatar/rankings/" target="_blank" rel="noopener">Deng’s Den</a>, refreshed daily.') + '</p>';
+    el.innerHTML = h; return;
+  }
+  h += '<div class="row"><span class="chip">Server ' + dg.server + '<button data-act="dg-unserver" aria-label="Change server">×</button></span></div>';
+  if (dg.loading || !dg.data) { el.innerHTML = h + '<p class="note">Loading server ' + dg.server + '…</p>'; return; }
+  h += '<div class="dallies">' + dg.data.alliances.map(function (a, i) {
+    return '<button data-dga="' + i + '" aria-pressed="' + (dg.ally === i) + '"' + (a.players.length ? '' : ' disabled') + '><span>' + (a.tag ? '<small>[' + esc(a.tag) + ']</small> ' : '') + esc(a.name) + '</span><small>' + fmtPower(a.power) + ' · ' + (a.players.length ? a.players.length + ' players' : 'no list') + '</small></button>';
+  }).join('') + '</div>';
+  var a = dg.data.alliances[dg.ally];
+  if (a) {
+    h += '<div class="dsearch"><input class="input" id="gm-dpq" placeholder="Search ' + esc(a.name) + '" autocomplete="off" value="' + esc(dg.pq) + '" aria-label="Search players"><button class="btn ghost" data-act="dg-all">All</button><button class="btn ghost" data-act="dg-none">None</button></div>';
+    h += '<div class="dplist" id="gm-dlist"></div><div class="dfoot" id="gm-dfoot"></div>';
+  } else h += '<p class="note">Pick an alliance to see its players.</p>';
+  el.innerHTML = h;
+  if (a) renderDengList();
+}
+$('gm-deng').addEventListener('input', function (e) {
+  if (e.target.id === 'gm-dq') {
+    dg.q = e.target.value; var m = dgMatches(), box = $('gm-dqlist');
+    box.innerHTML = m.length ? m.map(function (x, i) { return '<button data-dgs="' + x.server + '"' + (x.ally ? ' data-dgsa="' + esc(x.ally) + '"' : '') + (i === 0 ? ' class="on"' : '') + '><span>' + esc(x.label) + '</span><small>' + esc(x.sub) + '</small></button>'; }).join('') : (dg.q.trim() ? '<button disabled>No server or alliance matches</button>' : '');
+    box.hidden = !box.innerHTML;
+  } else if (e.target.id === 'gm-dpq') { dg.pq = e.target.value; renderDengList(); }
+});
+$('gm-deng').addEventListener('keydown', function (e) {
+  if (e.target.id === 'gm-dq' && e.key === 'Enter') { e.preventDefault(); var f = $('gm-dqlist') && $('gm-dqlist').querySelector('[data-dgs]'); if (f) dgPickServer(+f.dataset.dgs, f.dataset.dgsa); }
+});
+$('gm-deng').addEventListener('pointerdown', function (e) { if (e.target.closest('#gm-dqlist')) e.preventDefault(); });
+$('gm-deng').addEventListener('change', function (e) {
+  if (e.target.dataset.dgp != null) { var n = e.target.dataset.dgp; if (e.target.checked) dg.sel[n] = 1; else delete dg.sel[n]; renderDengFoot(); }
+  if (e.target.id === 'gm-dteam') dg.team = e.target.value;
+});
+$('gm-deng').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.dgs) { dgPickServer(+b.dataset.dgs, b.dataset.dgsa); return; }
+  if (b.dataset.dga != null) { dgPickAlly(+b.dataset.dga); return; }
+  var a = b.dataset.act;
+  if (a === 'dg-close') { dg.open = false; renderDeng(); renderRoster(); }
+  else if (a === 'dg-unserver') { dg.server = null; dg.data = null; dg.ally = -1; dg.sel = {}; renderDeng(); var i = $('gm-dq'); if (i) { i.focus(); i.select(); } }
+  else if (a === 'dg-all') { var al = dg.data.alliances[dg.ally], q = dg.pq.trim().toLowerCase(); al.players.forEach(function (p) { if (!q || p[0].toLowerCase().indexOf(q) >= 0) dg.sel[p[0]] = 1; }); renderDengList(); }
+  else if (a === 'dg-none') { dg.sel = {}; renderDengList(); }
+  else if (a === 'dg-add') {
+    var sel = dgSelected(), al2 = dg.data.alliances[dg.ally], tn = '';
+    if (!sel.length) return;
+    if (dg.team === '@new') tn = al2.name; else if (dg.team) { var t = rteam(dg.team); tn = t ? t.name : ''; }
+    var res = applyPlayers(sel.map(function (p) { return { name: p[0], power: p[1], teamName: tn }; }), 'merge');
+    dg.sel = {}; renderDengList(); renderRoster();
+    toast('Added ' + res.added + (res.updated ? ', updated ' + res.updated : '') + ' from ' + al2.name);
+  }
+});
+
+Object.assign(ACTS, { 'r-deng': function () { dgOpen(); renderRoster(); } });
 
 /* ---------- boot ---------- */
 renderAll();
