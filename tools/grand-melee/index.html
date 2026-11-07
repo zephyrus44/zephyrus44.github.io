@@ -630,6 +630,7 @@ function renderShare() {
   else if (!view) h += '<p class="sub">Save writes every phase into this page, so anyone you share the link with sees the latest plan.</p><div class="row"><button class="btn primary" data-act="save-page" ' + (st.dirty ? '' : 'disabled') + '>' + (st.dirty ? 'Save plan' : 'Plan saved') + '</button><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
   else if (view) h += '<p class="sub">This view can’t save to the page. Copy the plan and send it to whoever owns the planner.</p><div class="row"><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
   if (R().players.some(function (p) { return rteam(p.team); })) h += '<label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="gm-pngteams"' + (st.pngTeams !== false ? ' checked' : '') + '> Include team lists in phase images</label>';
+  if (R().players.some(function (p) { return rteam(p.team) && p.power != null; })) h += '<label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="gm-pngpower"' + (st.pngPower !== false ? ' checked' : '') + '> Show power in images</label>';
   h += '<div class="row"><button class="btn" data-act="copy-code">Copy full plan</button><button class="btn ghost" data-act="toggle-imp">Paste plan…</button></div>';
   if (st.showImp) h += '<textarea class="code" id="gm-imp" placeholder="Paste a copied plan here"></textarea><div class="row"><button class="btn primary" data-act="load-code">Load</button><span class="note" id="gm-impmsg"></span></div>';
   h += '<span class="ok" id="gm-cpmsg" hidden></span>';
@@ -1514,10 +1515,10 @@ function teamsImageBlock(W, y0, fg, mu) {
       var cx = 24 + j * colW, yy = y + 22, pw = x.ps.reduce(function (a, p) { return a + (p.power || 0); }, 0);
       svg += '<rect x="' + cx + '" y="' + (yy - 13) + '" width="14" height="14" rx="7" fill="' + x.t.color + '"/>';
       svg += '<text x="' + (cx + 22) + '" y="' + yy + '" font-family="Geist, Arial, sans-serif" font-size="18" font-weight="700" fill="' + fg + '">' + esc(x.t.name) + '</text>';
-      svg += '<text x="' + (cx + 22) + '" y="' + (yy + 20) + '" font-family="Geist, Arial, sans-serif" font-size="13" fill="' + mu + '">' + x.ps.length + (x.ps.length === 1 ? ' player' : ' players') + (pw ? ' · ' + fmtPower(pw) : '') + '</text>';
+      svg += '<text x="' + (cx + 22) + '" y="' + (yy + 20) + '" font-family="Geist, Arial, sans-serif" font-size="13" fill="' + mu + '">' + x.ps.length + (x.ps.length === 1 ? ' player' : ' players') + (pw && st.pngPower !== false ? ' · ' + fmtPower(pw) : '') + '</text>';
       var shown = x.ps.slice(0, maxRows);
       shown.forEach(function (p, k) {
-        svg += '<text x="' + (cx + 22) + '" y="' + (yy + 46 + k * 22) + '" font-family="Geist, Arial, sans-serif" font-size="16" fill="' + fg + '">' + esc(p.name) + (p.power != null ? '<tspan fill="' + mu + '">  ' + fmtPower(p.power) + '</tspan>' : '') + '</text>';
+        svg += '<text x="' + (cx + 22) + '" y="' + (yy + 46 + k * 22) + '" font-family="Geist, Arial, sans-serif" font-size="16" fill="' + fg + '">' + esc(p.name) + (p.power != null && st.pngPower !== false ? '<tspan fill="' + mu + '">  ' + fmtPower(p.power) + '</tspan>' : '') + '</text>';
       });
       var extra = x.ps.length - shown.length;
       if (extra > 0) svg += '<text x="' + (cx + 22) + '" y="' + (yy + 46 + shown.length * 22) + '" font-family="Geist, Arial, sans-serif" font-size="15" fill="' + mu + '">+' + extra + ' more</text>';
@@ -1542,7 +1543,11 @@ $('gm-sel').addEventListener('change', function (e) {
   var it = findItem(st.sel); if (!it) return;
   commit(); it.team = e.target.value; var t = rteam(it.team); if (t) it.color = t.color; changed(); renderMap(); renderSel();
 });
-$('gm-share').addEventListener('change', function (e) { if (e.target.id === 'gm-pngteams') st.pngTeams = e.target.checked; });
+$('gm-share').addEventListener('change', function (e) {
+  if (e.target.id === 'gm-pngteams') st.pngTeams = e.target.checked;
+  if (e.target.id === 'gm-pngpower') { st.pngPower = e.target.checked; try { localStorage.setItem('gm-png-power', st.pngPower ? '1' : '0'); } catch (er) {} }
+});
+try { if (localStorage.getItem('gm-png-power') === '0') st.pngPower = false; } catch (e) {}
 
 /* ---------- boot ---------- */
 renderAll();
