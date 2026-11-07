@@ -1048,11 +1048,29 @@ function autoSplit(onlyUnassigned) {
     else pool.push(p);
   });
   pool.sort(function (a, b) { return (b.power || 0) - (a.power || 0) || a.name.localeCompare(b.name); });
+  var mv = {}; teams.forEach(function (t) { mv[t.id] = []; });
   pool.forEach(function (p) {
     var best = null;
     teams.forEach(function (t) { var s = tot[t.id]; if (!best || s.n < tot[best].n || (s.n === tot[best].n && s.p < tot[best].p)) best = t.id; });
-    p.team = best; tot[best].n++; tot[best].p += p.power || 0;
+    p.team = best; tot[best].n++; tot[best].p += p.power || 0; mv[best].push(p);
   });
+  // trade players between teams (sizes stay equal) until power totals are as close as possible
+  var G = teams.map(function (t) { return { id: t.id, p: tot[t.id].p, ps: mv[t.id] }; }), pw = function (p) { return p.power || 0; };
+  var avg = G.reduce(function (a, g) { return a + g.p; }, 0) / G.length;
+  for (var it = 0; it < 500; it++) {
+    var gain = 0, bi = -1, bj = -1, ba = -1, bb = -1;
+    for (var i = 0; i < G.length; i++) for (var j = i + 1; j < G.length; j++) {
+      var A = G[i], B = G[j], before = Math.pow(A.p - avg, 2) + Math.pow(B.p - avg, 2);
+      for (var x = 0; x < A.ps.length; x++) for (var y = 0; y < B.ps.length; y++) {
+        var d = pw(A.ps[x]) - pw(B.ps[y]); if (!d) continue;
+        var g = before - (Math.pow(A.p - d - avg, 2) + Math.pow(B.p + d - avg, 2));
+        if (g > gain + 1e-6) { gain = g; bi = i; bj = j; ba = x; bb = y; }
+      }
+    }
+    if (bi < 0) break;
+    var A2 = G[bi], B2 = G[bj], pa = A2.ps[ba], pb = B2.ps[bb], dd = pw(pa) - pw(pb);
+    A2.ps[ba] = pb; B2.ps[bb] = pa; pa.team = B2.id; pb.team = A2.id; A2.p -= dd; B2.p += dd;
+  }
   changed(); renderRoster(); toast('Split ' + pool.length + ' player' + (pool.length === 1 ? '' : 's') + ' across ' + teams.length + ' teams');
 }
 
@@ -1072,7 +1090,7 @@ function renderRoster() {
   h += '</div>';
   if (s[''].n && r.teams.length) h += '<p class="note">' + s[''].n + ' unassigned</p>';
   h += '<div class="row"><button class="btn" data-act="r-addteam">+ Team</button><button class="btn" data-act="r-split" ' + (r.players.length && r.teams.length ? '' : 'disabled') + '>Auto-split</button><button class="btn ghost" data-act="r-toggleadd">' + (st.radd ? 'Hide add' : '+ Add players') + '</button></div>';
-  if (st.rconfirm === 'split') h += '<div class="confirm">Balance players by power across ' + r.teams.length + ' teams. <button class="btn primary" data-act="r-split-all">Split everyone</button>' + (s[''].n && s[''].n < r.players.length ? '<button class="btn" data-act="r-split-un">Only unassigned (' + s[''].n + ')</button>' : '') + '<button class="btn ghost" data-act="r-cancel">Cancel</button></div>';
+  if (st.rconfirm === 'split') h += '<div class="confirm">Split into ' + r.teams.length + ' equal-size teams with power as even as possible. <button class="btn primary" data-act="r-split-all">Split everyone</button>' + (s[''].n && s[''].n < r.players.length ? '<button class="btn" data-act="r-split-un">Only unassigned (' + s[''].n + ')</button>' : '') + '<button class="btn ghost" data-act="r-cancel">Cancel</button></div>';
   if (st.rconfirm === 'clear') h += '<div class="confirm">Remove all ' + r.players.length + ' players and every team? <button class="btn danger" data-act="r-clear-yes">Clear roster</button><button class="btn ghost" data-act="r-cancel">Cancel</button></div>';
   if (st.rimport) {
     var im = st.rimport, tn = {}; im.list.forEach(function (p) { if (p.teamName) tn[p.teamName.toLowerCase()] = 1; });
