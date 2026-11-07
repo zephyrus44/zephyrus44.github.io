@@ -149,6 +149,15 @@ svg#gm-svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-s
 .ptaglist button{border:0;background:transparent;text-align:left;border-radius:6px;padding:7px 9px;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;color:var(--fg)}
 .ptaglist button:hover,.ptaglist button.on{background:var(--bg)}
 .ptaglist small{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.imgmodal{position:fixed;inset:0;z-index:2000;background:rgba(6,8,12,.86);display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));gap:10px}
+.imgbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--fg);background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;padding:8px 10px}
+.imgbar b{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imgbtns{display:flex;gap:6px;flex-wrap:wrap}
+.imgbtns .btn{min-height:36px}
+.imgscroll{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--line-strong);background:var(--bg)}
+.imgscroll img{display:block;width:100%;height:auto;-webkit-touch-callout:default;user-select:auto}
+@media (max-width:600px){.imgbar b{flex-basis:100%}.imgbtns{width:100%}.imgbtns .btn{flex:1;justify-content:center}}
+.imgnote{margin:0;text-align:center;color:var(--muted);font-size:12.5px}
 .selcard{width:min(320px,100%);background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:12px;display:flex;flex-direction:column;gap:9px;z-index:6}
 .selcard .head b{font-size:13px}
 .selcard .x{border:0;background:transparent;color:var(--muted);cursor:pointer;width:26px;height:26px;border-radius:6px;font-size:16px}
@@ -605,10 +614,10 @@ function renderSel() {
 function renderShare() {
   var view = st.canSave === false;
   var h = '';
-  if (st.standalone) h += '<p class="sub">Your plan stays in this browser. To share it, copy a link: whoever opens it sees the whole plan, every phase.</p><div class="row"><button class="btn primary" data-act="copy-link">Copy share link</button><button class="btn" data-act="save-png">Save image of phase</button></div>';
-  else if (!view) h += '<p class="sub">Save writes every phase into this page, so anyone you share the link with sees the latest plan.</p><div class="row"><button class="btn primary" data-act="save-page" ' + (st.dirty ? '' : 'disabled') + '>' + (st.dirty ? 'Save plan' : 'Plan saved') + '</button><button class="btn" data-act="save-png">Save image of phase</button></div>';
-  else if (view) h += '<p class="sub">This view can’t save to the page. Copy the plan and send it to whoever owns the planner.</p><div class="row"><button class="btn" data-act="save-png">Save image of phase</button></div>';
-  if (R().players.some(function (p) { return rteam(p.team); })) h += '<label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="gm-pngteams"' + (st.pngTeams !== false ? ' checked' : '') + '> Include team lists in the image</label>';
+  if (st.standalone) h += '<p class="sub">Your plan stays in this browser. To share it, copy a link: whoever opens it sees the whole plan, every phase.</p><div class="row"><button class="btn primary" data-act="copy-link">Copy share link</button><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
+  else if (!view) h += '<p class="sub">Save writes every phase into this page, so anyone you share the link with sees the latest plan.</p><div class="row"><button class="btn primary" data-act="save-page" ' + (st.dirty ? '' : 'disabled') + '>' + (st.dirty ? 'Save plan' : 'Plan saved') + '</button><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
+  else if (view) h += '<p class="sub">This view can’t save to the page. Copy the plan and send it to whoever owns the planner.</p><div class="row"><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
+  if (R().players.some(function (p) { return rteam(p.team); })) h += '<label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="gm-pngteams"' + (st.pngTeams !== false ? ' checked' : '') + '> Include team lists in phase images</label>';
   h += '<div class="row"><button class="btn" data-act="copy-code">Copy full plan</button><button class="btn ghost" data-act="toggle-imp">Paste plan…</button></div>';
   if (st.showImp) h += '<textarea class="code" id="gm-imp" placeholder="Paste a copied plan here"></textarea><div class="row"><button class="btn primary" data-act="load-code">Load</button><span class="note" id="gm-impmsg"></span></div>';
   h += '<span class="ok" id="gm-cpmsg" hidden></span>';
@@ -947,7 +956,8 @@ var ACTS = {
       .catch(function () { $('gm-impmsg').textContent = 'That text isn’t a copied plan. Paste the whole thing.'; });
   },
   'save-page': function (b) { savePage(b); },
-  'save-png': function () { savePNG(); }
+  'save-png': function () { exportImage('phase'); },
+  'save-plan-png': function () { exportImage('plan'); }
 };
 function movePhase(d) { var i = st.phase, j = i + d; if (j < 0 || j >= plan.phases.length) return; commit(); var t = plan.phases[i]; plan.phases[i] = plan.phases[j]; plan.phases[j] = t; st.phase = j; changed(); renderAll(); }
 function deleteSel() { if (!findItem(st.sel)) return; commit(); var id = st.sel; ph().items = ph().items.filter(function (i) { return i.id !== id; }); st.sel = null; changed(); renderMap(); renderSel(); renderPhases(); }
@@ -978,6 +988,7 @@ document.addEventListener('input', function (e) {
 });
 document.addEventListener('focusout', function () { typing = null; });
 document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && $('gm-imgmodal')) { closeImage(); return; }
   var tag = (e.target.tagName || '').toLowerCase(), inField = tag === 'input' || tag === 'textarea' || tag === 'select';
   if ((e.ctrlKey || e.metaKey) && !inField && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if ((e.ctrlKey || e.metaKey) && !inField && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
@@ -1050,52 +1061,140 @@ function wrapText(t, max) {
     var line = ''; para.split(/\s+/).forEach(function (w) { if ((line + ' ' + w).trim().length > max) { if (line) out.push(line); line = w; } else line = (line + ' ' + w).trim(); }); out.push(line);
   }); return out.filter(function (l) { return l; });
 }
-function savePNG() {
-  readTokens();
-  var name = ('grand-melee-phase-' + (st.phase + 1) + '-' + ph().name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '') + '.png';
-  var picked = null;
-  if (st.standalone && window.showSaveFilePicker) {
-    try { picked = window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'PNG image', accept: { 'image/png': ['.png'] } }] }); } catch (e) { picked = null; }
-  }
-  var W = 1600, scale = W / VB0.w, mapH = Math.round(VB0.h * scale);
-  var notes = wrapText(ph().notes, 112).slice(0, 14), headH = 104, notesH = notes.length ? 40 + notes.length * 26 + 16 : 0, H = headH + mapH + notesH + 20;
-  var bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(), fg = getComputedStyle(document.documentElement).getPropertyValue('--fg').trim(), mu = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
-  var tb = st.pngTeams !== false ? teamsImageBlock(W, headH + mapH + notesH, fg, mu) : { svg: '', h: 0 }; H += tb.h;
-  var savedF = F; F = 0.85;
-  var legend = plan.teams.map(function (t, i) { var x = W - 24 - (4 - i) * 150; return '<rect x="' + x + '" y="44" width="14" height="14" rx="7" fill="' + t.color + '"/><text x="' + (x + 22) + '" y="56" font-family="Geist, Arial, sans-serif" font-size="16" font-weight="600" fill="' + fg + '">' + esc(t.name) + '</text>'; }).join('');
-  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '"><rect width="100%" height="100%" fill="' + bg + '"/>' +
-    '<text x="24" y="38" font-family="Geist, Arial, sans-serif" font-size="14" font-weight="600" letter-spacing="1.8" fill="' + mu + '">MURONG’S GRAND MELEE · PHASE ' + (st.phase + 1) + ' OF ' + plan.phases.length + '</text>' +
-    '<text x="24" y="74" font-family="Geist, Arial, sans-serif" font-size="30" font-weight="700" fill="' + fg + '">' + esc(ph().name) + '</text>' +
-    '<text x="24" y="96" font-family="Geist, Arial, sans-serif" font-size="15" fill="' + mu + '">' + esc(plan.name) + '</text>' + legend +
-    '<svg x="0" y="' + headH + '" width="' + W + '" height="' + mapH + '" viewBox="' + VB0.x + ' ' + VB0.y + ' ' + VB0.w + ' ' + VB0.h + '">' + boardSVG(ph().owners, st.nums) + itemsSVG(ph(), null, null) + '</svg>';
-  if (notes.length) {
-    svg += '<text x="24" y="' + (headH + mapH + 38) + '" font-family="Geist, Arial, sans-serif" font-size="13" font-weight="600" letter-spacing="1.8" fill="' + mu + '">ORDERS</text>';
-    notes.forEach(function (l, i) { svg += '<text x="24" y="' + (headH + mapH + 66 + i * 26) + '" font-family="Geist, Arial, sans-serif" font-size="18" fill="' + fg + '">' + esc(l) + '</text>'; });
-  }
-  svg += tb.svg + '</svg>'; F = savedF;
-  var img = new Image();
-  img.onload = function () {
-    var cv = document.createElement('canvas'); cv.width = W; cv.height = H; cv.getContext('2d').drawImage(img, 0, 0);
-    cv.toBlob(function (blob) {
-      var download = function () {
-        var url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(function () { URL.revokeObjectURL(url); }, 4000); toast('Image downloaded');
-      };
-      if (picked) {
-        picked.then(function (h) { return h.createWritable().then(function (w) { return w.write(blob).then(function () { return w.close(); }); }); })
-          .then(function () { toast('Image saved'); }, function (err) { if (!err || err.name !== 'AbortError') download(); });
-        return;
-      }
-      if (!caps.downloads) {
-        if (!st.standalone) { toast('Saving files isn’t available here. Take a screenshot instead.'); return; }
-        download(); return;
-      }
-      caps.downloads.save({ filename: name, data: blob }).then(function () { toast('Image saved'); }, function (err) { if (!err || err.code !== 'declined') toast('The image wasn’t saved.'); });
-    }, 'image/png');
-  };
-  img.onerror = function () { toast('Couldn’t draw the image.'); };
-  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+/* ---------- images: one phase, or the whole plan ---------- */
+var IMG_FONT = 'Geist, Helvetica, Arial, sans-serif';
+function imgText(x, y, txt, size, fill, weight, extra) { return '<text x="' + x + '" y="' + y + '" font-family="' + IMG_FONT + '" font-size="' + size + '" font-weight="' + (weight || 400) + '" fill="' + fill + '"' + (extra || '') + '>' + esc(txt) + '</text>'; }
+function imgColors() { var cs = getComputedStyle(document.documentElement); readTokens(); return { bg: cs.getPropertyValue('--bg').trim() || '#0E1116', panel: cs.getPropertyValue('--panel').trim() || '#161A21', line: cs.getPropertyValue('--line').trim() || '#232934', fg: cs.getPropertyValue('--fg').trim() || '#E8EAEE', mu: cs.getPropertyValue('--muted').trim() || '#8B93A1' }; }
+function imgKeyIcon(kind, c, x, y, sz) {
+  var s = keyIcon(kind, c).replace(/var\(--([a-z-]+)\)/g, function (m, n) { return P[n] || '#888'; });
+  return s.replace('<svg viewBox', '<svg x="' + x + '" y="' + y + '" width="' + sz + '" height="' + sz + '" viewBox');
 }
+function sidesLegend(W, y, C) {
+  var s = '', x = 24;
+  plan.teams.forEach(function (t) { s += '<rect x="' + x + '" y="' + (y - 12) + '" width="14" height="14" rx="7" fill="' + t.color + '"/>' + imgText(x + 22, y, t.name, 16, C.fg, 600); x += 34 + t.name.length * 9 + 20; });
+  return s;
+}
+function keyImageBlock(W, y0, C) {
+  var rows = KEY_ROWS.filter(function (r) { return !plan.key.hidden[r[0]]; });
+  if (!rows.length) return { svg: '', h: 0 };
+  var cols = W >= 1100 ? 4 : 3, colW = (W - 48) / cols, s = imgText(24, y0 + 30, 'MAP KEY', 13, C.mu, 600, ' letter-spacing="1.8"');
+  rows.forEach(function (r, i) {
+    var x = 24 + (i % cols) * colW, y = y0 + 48 + Math.floor(i / cols) * 34;
+    s += imgKeyIcon(r[0], '#3E8CD7', x, y, 24) + imgText(x + 34, y + 18, keyName(r[0], r[1]), 16, C.fg, 500);
+  });
+  return { svg: s, h: 48 + Math.ceil(rows.length / cols) * 34 + 8 };
+}
+function itemListLines(phase) {
+  var out = [];
+  phase.items.forEach(function (it) {
+    var tl = taggedPlayers(it).map(function (p) { return p.name; }), tm = it.team && rteam(it.team);
+    if (!it.label && !tl.length && !tm) return;
+    var where = REG[regionAt({ x: it.x, y: it.y }) || ''], wn = where && where.t !== 'spawn' && where.t !== 'blocked' ? (where.t === 'tower' ? where.lb : where.n) : '';
+    var line = keyName(it.type === 'arrow' && it.dash ? 'dash' : it.type === 'circle' || it.type === 'rect' || it.type === 'square' ? 'area' : it.type, TYPE_NAME[it.type]);
+    if (it.type === 'label') line = 'Note';
+    line += (wn ? ' at ' + wn : '') + (it.label ? ': ' + it.label : '') + (tm ? ' · ' + tm.name : '') + (tl.length ? ' · ' + tl.join(', ') : '');
+    out.push({ color: it.color || '#fff', text: line });
+  });
+  return out;
+}
+function phaseImageBlock(idx, W, y0, C, withHead) {
+  var phase = plan.phases[idx], mapH = Math.round(VB0.h * (W / VB0.w)), s = '', y = y0, maxCh = Math.floor((W - 48) / 9.2);
+  if (withHead) {
+    s += imgText(24, y + 30, 'PHASE ' + (idx + 1) + ' OF ' + plan.phases.length, 13, C.mu, 600, ' letter-spacing="1.8"');
+    s += imgText(24, y + 64, phase.name, 28, C.fg, 700);
+    y += 84;
+  }
+  var savedF = F; F = 0.85 * (VB0.w / W) * 1.9;
+  s += '<svg x="0" y="' + y + '" width="' + W + '" height="' + mapH + '" viewBox="' + VB0.x + ' ' + VB0.y + ' ' + VB0.w + ' ' + VB0.h + '">' + boardSVG(phase.owners, st.nums) + itemsSVG(phase, null, null) + '</svg>';
+  F = savedF; y += mapH;
+  var notes = wrapText(phase.notes, maxCh);
+  if (notes.length) {
+    s += imgText(24, y + 36, 'ORDERS', 13, C.mu, 600, ' letter-spacing="1.8"'); y += 46;
+    notes.forEach(function (l) { s += imgText(24, y + 20, l, 18, C.fg); y += 26; });
+  }
+  var items = itemListLines(phase);
+  if (items.length) {
+    s += imgText(24, y + 36, 'MARKUPS', 13, C.mu, 600, ' letter-spacing="1.8"'); y += 46;
+    items.forEach(function (it) {
+      wrapText(it.text, maxCh - 3).forEach(function (l, k) {
+        if (!k) s += '<rect x="24" y="' + (y + 7) + '" width="10" height="10" rx="5" fill="' + it.color + '" stroke="rgba(0,0,0,.5)"/>';
+        s += imgText(44, y + 17, l, 16, C.fg); y += 24;
+      });
+    });
+  }
+  return { svg: s, h: y - y0 + 16 };
+}
+function buildPhaseSVG() {
+  var C = imgColors(), W = 1600, y = 0, s = '';
+  s += imgText(24, 38, 'MURONG’S GRAND MELEE · PHASE ' + (st.phase + 1) + ' OF ' + plan.phases.length, 14, C.mu, 600, ' letter-spacing="1.8"');
+  s += imgText(24, 74, ph().name, 30, C.fg, 700) + imgText(24, 98, plan.name, 15, C.mu);
+  s += sidesLegend(W, 130, C); y = 146;
+  var pb = phaseImageBlock(st.phase, W, y, C, false); s += pb.svg; y += pb.h;
+  if (st.pngTeams !== false) { var tb = teamsImageBlock(W, y, C.fg, C.mu); s += tb.svg; y += tb.h; }
+  var kb = keyImageBlock(W, y, C); s += kb.svg; y += kb.h + 12;
+  return { svg: '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + y + '" viewBox="0 0 ' + W + ' ' + y + '"><rect width="100%" height="100%" fill="' + C.bg + '"/>' + s + '</svg>', w: W, h: y,
+    name: ('grand-melee-phase-' + (st.phase + 1) + '-' + ph().name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '') + '.png' };
+}
+function buildPlanSVG() {
+  var C = imgColors(), W = 1200, y = 0, s = '';
+  s += imgText(24, 38, 'MURONG’S GRAND MELEE · BATTLE PLAN', 14, C.mu, 600, ' letter-spacing="1.8"');
+  s += imgText(24, 76, plan.name, 32, C.fg, 700);
+  s += imgText(24, 102, plan.phases.length + ' phase' + (plan.phases.length === 1 ? '' : 's') + ' · ' + plan.phases.map(function (p, i) { return (i + 1) + '. ' + p.name; }).join('   '), 15, C.mu);
+  s += sidesLegend(W, 136, C); y = 150;
+  var kb = keyImageBlock(W, y, C); s += kb.svg; y += kb.h;
+  var tb = teamsImageBlock(W, y, C.fg, C.mu); s += tb.svg; y += tb.h;
+  plan.phases.forEach(function (p, i) {
+    s += '<rect x="24" y="' + (y + 18) + '" width="' + (W - 48) + '" height="1" fill="' + C.line + '"/>'; y += 24;
+    var pb = phaseImageBlock(i, W, y, C, true); s += pb.svg; y += pb.h;
+  });
+  y += 12;
+  return { svg: '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + y + '" viewBox="0 0 ' + W + ' ' + y + '"><rect width="100%" height="100%" fill="' + C.bg + '"/>' + s + '</svg>', w: W, h: y,
+    name: (function () { var n = (plan.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return (n.indexOf('grand-melee') === 0 ? n : 'grand-melee-' + (n || 'plan')) + '.png'; })() };
+}
+function svgToPng(o) {
+  return new Promise(function (resolve, reject) {
+    // phones cap canvas size; shrink very tall plans to fit
+    var k = Math.min(1, Math.sqrt(16000000 / (o.w * o.h)), 16000 / o.h), cw = Math.round(o.w * k), ch = Math.round(o.h * k);
+    var img = new Image();
+    img.onload = function () {
+      var cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+      var cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, cw, ch);
+      cv.toBlob(function (b) { b ? resolve(b) : reject(new Error('blob')); }, 'image/png');
+    };
+    img.onerror = function () { reject(new Error('draw')); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(o.svg);
+  });
+}
+var imgPrev = null;
+function closeImage() { var m = $('gm-imgmodal'); if (m) m.remove(); if (imgPrev) { URL.revokeObjectURL(imgPrev.url); imgPrev = null; } document.documentElement.style.overflow = ''; }
+function canShareFile(file) { try { return !!(navigator.canShare && navigator.share && navigator.canShare({ files: [file] })); } catch (e) { return false; } }
+function exportImage(kind) {
+  toast('Drawing the image…');
+  var o;
+  try { o = kind === 'plan' ? buildPlanSVG() : buildPhaseSVG(); } catch (e) { toast('Couldn’t draw the image.'); return; }
+  svgToPng(o).then(function (blob) {
+    closeImage();
+    var file = null; try { file = new File([blob], o.name, { type: 'image/png' }); } catch (e) {}
+    imgPrev = { blob: blob, name: o.name, url: URL.createObjectURL(blob), file: file };
+    var share = file && canShareFile(file);
+    var m = document.createElement('div'); m.id = 'gm-imgmodal'; m.className = 'imgmodal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-label', 'Image preview');
+    m.innerHTML = '<div class="imgbar"><b>' + (kind === 'plan' ? 'Whole plan' : 'Phase ' + (st.phase + 1) + ': ' + esc(ph().name)) + '</b><span class="imgbtns">' +
+      (share ? '<button class="btn primary" data-img="share">Save to Photos / Share</button><button class="btn" data-img="dl">Download</button>' : '<button class="btn primary" data-img="dl">Download</button>') +
+      '<button class="btn ghost" data-img="close">Close</button></span></div>' +
+      '<div class="imgscroll"><img src="' + imgPrev.url + '" alt="Preview of the saved image"></div>' +
+      (share ? '' : '<p class="imgnote">On a phone you can also press and hold the image to save it.</p>');
+    document.body.appendChild(m); document.documentElement.style.overflow = 'hidden';
+    m.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-img]'); if (!b) { if (e.target === m) closeImage(); return; }
+      var a = b.dataset.img;
+      if (a === 'close') closeImage();
+      else if (a === 'share') navigator.share({ files: [imgPrev.file], title: plan.name }).catch(function (err) { if (err && err.name !== 'AbortError') toast('Sharing didn’t work here. Use Download, or press and hold the image.'); });
+      else if (a === 'dl') saveFile(imgPrev.name, imgPrev.blob, 'Image saved', { description: 'PNG image', accept: { 'image/png': ['.png'] } });
+    });
+  }, function () { toast('Couldn’t draw the image.'); });
+}
+function savePNG() { exportImage('phase'); }
+
 
 /* ---------- roster ---------- */
 function R() { return plan.roster; }
