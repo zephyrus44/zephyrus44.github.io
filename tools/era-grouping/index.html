@@ -143,7 +143,7 @@
   </div>
 
   <div class="note">
-    <b>Ages.</b> Each world's age is its in-game Day counter on the era cutoff date (start date + offset, 00:00 UTC). Day counts for 1001–1111 were read from the Migration screen on Nov 1, 2026. New worlds open every Friday at 00:00 UTC and are marked <span class="acc">~</span> until they exist.<br><br>
+    <b>Ages.</b> Each world's age is its in-game Day counter on the era cutoff date (the round's first day, 00:00 UTC). The day offset moves the whole round, including its era cutoff and Matching day. Day counts for 1001–1111 were read from the Migration screen on Nov 1, 2026. New worlds open every Friday at 00:00 UTC and are marked <span class="acc">~</span> until they exist.<br><br>
     <b>Schedule.</b> Rounds run 4 weeks on, 4 weeks off from Oct 3, 2026, so ◀ ▶ step 56 days. Each round: Announcement (5 days), Matching (1 day), Matching Reveal &amp; Prelude (5 days), Land of the Abyss (14 days), Closing (3 days). Eras are set by world age at the start of the round; warzones are set from power on Matching day.<br><br>
     <b>Power.</b> Top-100 power comes from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>.
   </div>
@@ -284,20 +284,22 @@ const open = new Set(JSON.parse(saved('open', '["Frontier"]')));
 const view = JSON.parse(saved('view', '{}')); // era -> 'wz' | 'ages'
 
 function render() {
-  const start = fromInput($('date').value || '2026-11-28');
+  const base = fromInput($('date').value || '2026-11-28');
   const off = parseInt($('offset').value, 10) || 0;
-  const t = start + off * DAY;
+  const start = base + off * DAY;   // the offset moves the whole round
+  const t = start;                  // era cutoff = first day of the round
   save('date', $('date').value); save('offset', String(off)); save('server', $('server').value);
   save('open', JSON.stringify([...open])); save('view', JSON.stringify(view));
 
-  const n = Math.round((start - ANCHOR) / (56 * DAY));
-  const onCycle = (start - ANCHOR) % (56 * DAY) === 0;
+  const n = Math.round((base - ANCHOR) / (56 * DAY));
+  const onCycle = (base - ANCHOR) % (56 * DAY) === 0;
   const power = powerFor(start);
-  const actual = actualFor(start);
-  const actualZ = actualZones(start);
+  const actual = actualFor(base) || actualFor(start);
+  const actualZ = actualZones(base) || actualZones(start);
   $('eff').innerHTML = `${onCycle ? `Round ${n + 1} · ` : ''}Event <b>${fmt(start)} – ${fmt(start + 27 * DAY)}</b>` +
-    `${onCycle ? '' : ' <span class="acc">(off the Oct 3 cycle)</span>'}<br>Era cutoff <b>${fmt(t)}</b> · Matching <b>${fmt(start + MATCH_OFFSET * DAY)}</b>` +
-    (off ? ` <span class="acc">(${off > 0 ? '+' : ''}${off} day${Math.abs(off) === 1 ? '' : 's'})</span>` : '') +
+    `${onCycle ? '' : ' <span class="acc">(off the Oct 3 cycle)</span>'}` +
+    (off ? ` <span class="acc">(${off > 0 ? '+' : ''}${off} day${Math.abs(off) === 1 ? '' : 's'} from ${fmtShort(base)})</span>` : '') +
+    `<br>Era cutoff <b>${fmt(t)}</b> · Matching <b>${fmt(start + MATCH_OFFSET * DAY)}</b>` +
     `<br>Power <b>${power.label}</b> ` +
     (actual ? ` · <span style="color:var(--ok)">actual warzones available</span>` : '');
 
