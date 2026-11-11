@@ -432,7 +432,7 @@ function boardSVG_classic(owners, nums) {
     } else if (r.t === 'post') {
       var p = 6.5;
       s += '<rect x="' + (r.x - p) + '" y="' + (r.y - p) + '" width="' + p * 2 + '" height="' + p * 2 + '" rx="1.5" fill="' + P.amber + '" stroke="rgba(0,0,0,.7)" stroke-width="1.1"/>';
-      s += '<text x="' + r.x + '" y="' + (r.y + 19) + '" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-weight="700" font-size="9.5" letter-spacing=".5" fill="' + P.label + '">POST</text>';
+      s += '<text x="' + r.x + '" y="' + (r.y + 19) + '" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-weight="700" font-size="9.5" letter-spacing=".5" fill="' + P.label + '">' + (r.c || 'POST') + '</text>';
     } else if (r.t === 'tower') {
       if (nums) s += '<text x="' + r.x + '" y="' + r.y + '" text-anchor="middle" dominant-baseline="central" font-family="Geist Mono, monospace" font-weight="500" font-size="11" fill="' + P.label + '">' + r.lb + '</text>';
       else s += '<circle cx="' + r.x + '" cy="' + r.y + '" r="2.6" fill="' + P.label + '" fill-opacity=".7"/>';
@@ -575,14 +575,9 @@ function boardSVG(owners, nums) {
   // structure marks and labels keep the same size on screen at any zoom, like the markers
   MAP.r.forEach(function (r) {
     if (r.t === 'vault') {
-      var v = 7.5 * F;
-      if (cmd) s += '<rect x="' + (r.x - v) + '" y="' + (r.y - v) + '" width="' + 2 * v + '" height="' + 2 * v + '" rx="' + S(1) + '" transform="rotate(45 ' + r.x + ' ' + r.y + ')" fill="none" stroke="' + L.gold + '" stroke-width="' + S(1.8) + '"/><circle cx="' + r.x + '" cy="' + r.y + '" r="' + S(2.4) + '" fill="' + L.gold + '"/>';
-      else s += '<rect x="' + (r.x - v) + '" y="' + (r.y - v) + '" width="' + 2 * v + '" height="' + 2 * v + '" rx="' + S(2) + '" transform="rotate(45 ' + r.x + ' ' + r.y + ')" fill="' + L.gold + '"/>';
-      s += '<text x="' + r.x + '" y="' + (r.y + 22 * F) + '" text-anchor="middle" font-family="' + (cmd ? 'Geist Mono, monospace' : 'Geist, Arial, sans-serif') + '" font-weight="600" font-size="' + S(10) + '" letter-spacing="' + S(1.4) + '" fill="' + L.gold + '" fill-opacity=".85">VAULT</text>';
+      s += vaultMark(r.x, r.y, cmd, L);
     } else if (r.t === 'post') {
-      var q = 5.5 * F;
-      if (cmd) s += '<rect x="' + (r.x - q) + '" y="' + (r.y - q) + '" width="' + 2 * q + '" height="' + 2 * q + '" fill="none" stroke="' + L.post + '" stroke-width="' + S(1.6) + '"/>';
-      else s += '<rect x="' + (r.x - q) + '" y="' + (r.y - q) + '" width="' + 2 * q + '" height="' + 2 * q + '" rx="' + S(2.5) + '" fill="' + L.post + '"/>';
+      s += postMark(r.x, r.y, r.c || '', cmd, L);
     } else if (r.t === 'tower') {
       if (nums) s += '<text x="' + r.x + '" y="' + r.y + '" text-anchor="middle" dominant-baseline="central" font-family="Geist Mono, monospace" font-weight="500" font-size="' + S(12) + '" fill="' + L.label + '">' + r.lb + '</text>';
       else s += '<circle cx="' + r.x + '" cy="' + r.y + '" r="' + S(2.6) + '" fill="' + L.label + '"/>';
@@ -590,6 +585,61 @@ function boardSVG(owners, nums) {
   });
   return s + '</g>';
 }
+
+/* vault and post symbols: a badge with a glyph or the post's direction, sized like the markers */
+function vaultMark(x, y, cmd, L) {
+  var r = 12 * F, s = '';
+  if (cmd) {
+    var v = 11 * F;
+    s += '<rect x="' + (x - v) + '" y="' + (y - v) + '" width="' + 2 * v + '" height="' + 2 * v + '" rx="' + S(1.5) + '" transform="rotate(45 ' + x + ' ' + y + ')" fill="' + L.ink + '" fill-opacity=".9" stroke="' + L.gold + '" stroke-width="' + S(1.6) + '"/>';
+    s += '<rect x="' + (x - v * .42) + '" y="' + (y - v * .42) + '" width="' + v * .84 + '" height="' + v * .84 + '" transform="rotate(45 ' + x + ' ' + y + ')" fill="' + L.gold + '"/>';
+    var tw1 = tw('VAULT', 9 * F, 600) + 4 * 1.6 * F + 12 * F, ty = y + 18 * F;
+    s += '<rect x="' + (x - tw1 / 2) + '" y="' + ty + '" width="' + tw1 + '" height="' + 15 * F + '" rx="' + S(3) + '" fill="' + L.ink + '" stroke="' + L.gold + '" stroke-opacity=".8" stroke-width="' + S(1) + '"/>';
+    s += '<text x="' + x + '" y="' + (ty + 10.6 * F) + '" text-anchor="middle" font-family="Geist Mono, monospace" font-weight="600" font-size="' + S(9) + '" letter-spacing="' + S(1.6) + '" fill="' + L.gold + '">VAULT</text>';
+    return s;
+  }
+  s += '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#1C1A13" stroke="' + L.gold + '" stroke-width="' + S(1.8) + '" filter="url(#gm-sh)"/>';
+  // vault door: wheel with spokes
+  var w = 5.6 * F;
+  s += '<circle cx="' + x + '" cy="' + y + '" r="' + w + '" fill="none" stroke="' + L.gold + '" stroke-width="' + S(1.6) + '"/>';
+  for (var i = 0; i < 4; i++) { var a = i * Math.PI / 2 + Math.PI / 4; s += '<line x1="' + (x + Math.cos(a) * w) + '" y1="' + (y + Math.sin(a) * w) + '" x2="' + (x + Math.cos(a) * w * 1.55) + '" y2="' + (y + Math.sin(a) * w * 1.55) + '" stroke="' + L.gold + '" stroke-width="' + S(1.6) + '" stroke-linecap="round"/>'; }
+  s += '<circle cx="' + x + '" cy="' + y + '" r="' + S(1.8) + '" fill="' + L.gold + '"/>';
+  var pw = tw('VAULT', 8.5 * F, 700) + 4 * 1.5 * F + 14 * F, py = y + r + 5 * F;
+  s += '<rect x="' + (x - pw / 2) + '" y="' + py + '" width="' + pw + '" height="' + 15 * F + '" rx="' + 7.5 * F + '" fill="' + L.pill + '" stroke="' + L.gold + '" stroke-opacity=".55" stroke-width="' + S(1) + '"/>';
+  s += '<text x="' + x + '" y="' + (py + 10.5 * F) + '" text-anchor="middle" font-family="Geist, Inter, Arial, sans-serif" font-weight="700" font-size="' + S(8.5) + '" letter-spacing="' + S(1.5) + '" fill="' + L.gold + '">VAULT</text>';
+  return s;
+}
+function postMark(x, y, dir, cmd, L) {
+  var h = 15 * F, w = Math.max(h, tw(dir, 9 * F, 700) + 10 * F), s = '';
+  if (cmd) {
+    s += '<rect x="' + (x - w / 2) + '" y="' + (y - h / 2) + '" width="' + w + '" height="' + h + '" fill="' + L.ink + '" fill-opacity=".9" stroke="' + L.post + '" stroke-width="' + S(1.4) + '"/>';
+    s += '<text x="' + x + '" y="' + (y + 3.3 * F) + '" text-anchor="middle" font-family="Geist Mono, monospace" font-weight="600" font-size="' + S(9) + '" fill="' + L.post + '">' + esc(dir) + '</text>';
+    return s;
+  }
+  s += '<rect x="' + (x - w / 2) + '" y="' + (y - h / 2) + '" width="' + w + '" height="' + h + '" rx="' + 4 * F + '" fill="#211C14" stroke="' + L.post + '" stroke-width="' + S(1.5) + '" filter="url(#gm-sh)"/>';
+  s += '<text x="' + x + '" y="' + (y + 3.3 * F) + '" text-anchor="middle" font-family="Geist, Inter, Arial, sans-serif" font-weight="700" font-size="' + S(9) + '" letter-spacing="' + S(.6) + '" fill="' + L.post + '">' + esc(dir) + '</text>';
+  return s;
+}
+
+/* leader lines: a label moved away from its marker, joined by a thin line */
+var LEADER_DEF = { dx: 30, dy: -34 };
+function leaderPlace(it, g, wpx, hpx) {
+  if (!it.ld || !(PIN[it.type] || it.type === 'label')) return false;
+  var o = it.lo || LEADER_DEF, px = it.x + o.dx * F, py = it.y + o.dy * F;
+  g.x = o.dx >= 0 ? px : px - wpx; g.y = py - hpx / 2;
+  g.leader = { x1: it.x, y1: it.y, x2: o.dx >= 0 ? g.x : g.x + wpx, y2: py };
+  return true;
+}
+function drawLeader(it, g, cmd) {
+  var Ld = g.leader; if (!Ld) return '';
+  var sx = Ld.x1, sy = Ld.y1, dx = Ld.x2 - sx, dy = Ld.y2 - sy, l = Math.hypot(dx, dy) || 1;
+  var start = PIN[it.type] ? (cmd ? 3 : 11.5) * F : 0;
+  sx += dx / l * start; sy += dy / l * start;
+  var s = '<line x1="' + sx + '" y1="' + sy + '" x2="' + Ld.x2 + '" y2="' + Ld.y2 + '" stroke="#E8EAEE" stroke-opacity=".6" stroke-width="' + S(1.2) + '" stroke-linecap="round"/>';
+  if (it.type === 'label') s += '<circle cx="' + Ld.x1 + '" cy="' + Ld.y1 + '" r="' + S(3) + '" fill="' + (it.color || '#fff') + '" stroke="' + lookPal().ink + '" stroke-width="' + S(1.2) + '"/>';
+  return s;
+}
+function labelBox(it) { return st.look === 'classic' ? null : (st.look === 'cmd' ? cmdChip(it) : opsPill(it)); }
 
 /* label pill (Night Ops) and chip (Command) geometry, shared by drawing and hit testing */
 var PIN = { city: 1, reinforce: 1, attack: 1 };
@@ -607,7 +657,9 @@ function opsPill(it) {
   else if (it.type === 'arrow' || it.type === 'line') { var m = arrowMid(it); x = m.x + 8 * F; y = m.y - h * F - 2 * F; }
   else if (it.type === 'circle') { x = it.x - it.r * .72; y = it.y - it.r * .72 - h * F - 3 * F; }
   else { x = it.x; y = it.y - h * F - 4 * F; }
-  return { x: x, y: y, w: w * F, h: h * F, fs: fs * F, text: text, count: count, dot: dot, big: big };
+  var g = { x: x, y: y, w: w * F, h: h * F, fs: fs * F, text: text, count: count, dot: dot, big: big };
+  leaderPlace(it, g, w * F, h * F);
+  return g;
 }
 function cmdChip(it) {
   var tm = it.team && plan.roster ? rteam(it.team) : null, ps = tagShort(it);
@@ -622,7 +674,9 @@ function cmdChip(it) {
   else if (it.type === 'arrow' || it.type === 'line') { var c = ctrl(it); var m = it.cx != null ? c : arrowMid(it); x = m.x + 10 * F; y = m.y - h * F - 2 * F; }
   else if (it.type === 'circle') { x = it.x - w * F / 2; y = it.y - it.r * .78 - h * F - 6 * F; }
   else { x = it.x; y = it.y - h * F - 6 * F; }
-  return { x: x, y: y, w: w * F, h: h * F, fs: fs * F, iw: iw * F, text: text, ps: ps, icon: icon, big: big };
+  var g = { x: x, y: y, w: w * F, h: h * F, fs: fs * F, iw: iw * F, text: text, ps: ps, icon: icon, big: big };
+  leaderPlace(it, g, w * F, h * F);
+  return g;
 }
 function drawOpsPill(g, sel) {
   var r = g.h / 2, s = '<rect x="' + g.x + '" y="' + g.y + '" width="' + g.w + '" height="' + g.h + '" rx="' + r + '" fill="' + lookPal().pill + '" stroke="' + (sel ? lookPal().sel : 'rgba(255,255,255,.12)') + '" stroke-width="' + S(sel ? 1.4 : 1) + '"/>';
@@ -692,7 +746,7 @@ function itemSVG(it, selected, ghost) {
     if (selected) s += '<path d="' + d + '" fill="none" stroke="' + L.sel + '" stroke-opacity=".55" stroke-width="' + S(cmd ? 7 : 9) + '" stroke-linecap="round"/>';
   } else if (PIN[it.type]) {
     if (cmd) {
-      s += '<line x1="' + it.x + '" y1="' + it.y + '" x2="' + (it.x + 9 * F) + '" y2="' + (it.y - 12 * F) + '" stroke="#E8EAEE" stroke-opacity=".7" stroke-width="' + S(1) + '"/>';
+      if (!it.ld) s += '<line x1="' + it.x + '" y1="' + it.y + '" x2="' + (it.x + 9 * F) + '" y2="' + (it.y - 12 * F) + '" stroke="#E8EAEE" stroke-opacity=".7" stroke-width="' + S(1) + '"/>';
       s += '<circle cx="' + it.x + '" cy="' + it.y + '" r="' + S(3) + '" fill="' + col + '" stroke="#E8EAEE" stroke-width="' + S(1.2) + '"/>';
     } else {
       var rb = 11.5 * F;
@@ -718,8 +772,8 @@ function itemSVG(it, selected, ghost) {
     }
   }
   if (!ghost) {
-    if (cmd) { var gc = cmdChip(it); if (gc) s += drawCmdChip(gc, it.type, col, selected && (PIN[it.type] || it.type === 'label')); }
-    else { var gp = opsPill(it); if (gp) s += drawOpsPill(gp, selected && it.type === 'label'); }
+    if (cmd) { var gc = cmdChip(it); if (gc) s = drawLeader(it, gc, true) + s + drawCmdChip(gc, it.type, col, selected && (PIN[it.type] || it.type === 'label')); }
+    else { var gp = opsPill(it); if (gp) s = drawLeader(it, gp, false) + s + drawOpsPill(gp, selected && (it.type === 'label' || !!it.ld)); }
   }
   return s;
 }
@@ -731,7 +785,7 @@ function lookDist(it, p) {
     var core = Math.max(0, Math.hypot(p.x - it.x, p.y - it.y) - (st.look === 'cmd' ? 4 : 11.5) * F);
     return Math.min(core, dBox);
   }
-  if (it.type === 'label') return g ? dBox : Infinity;
+  if (it.type === 'label') return Math.min(g ? dBox : Infinity, it.ld ? Math.max(0, Math.hypot(p.x - it.x, p.y - it.y) - 4 * F) : Infinity);
   return null;
 }
 function keyIcon(kind, color) {
@@ -752,6 +806,9 @@ function keyIcon(kind, color) {
     : o + '<rect x="2" y="4" width="18" height="14" rx="2.5" fill="' + c + '" fill-opacity=".22" stroke="' + c + '" stroke-width="1.4"/>' + e;
   if (kind === 'text') return cmd ? o + '<rect x="2" y="5" width="18" height="12" rx="2.5" fill="#0B1220" stroke="#8B93A1"/><rect x="2" y="5" width="7" height="12" rx="2.5" fill="#8B93A1"/>' + e
     : o + '<rect x="2" y="6" width="18" height="10" rx="5" fill="#0E1116" stroke="rgba(255,255,255,.25)"/><rect x="2" y="6" width="2" height="10" rx="1" fill="#E8EAEE" fill-opacity=".6"/><path d="M7 11h9" stroke="#E8EAEE" stroke-width="1.4" stroke-linecap="round"/>' + e;
+  if (kind === 'vault' && !cmd) return o + '<circle cx="11" cy="11" r="8.5" fill="#1C1A13" stroke="#F4BF41" stroke-width="1.4"/><circle cx="11" cy="11" r="3.8" fill="none" stroke="#F4BF41" stroke-width="1.3"/><circle cx="11" cy="11" r="1.2" fill="#F4BF41"/><path d="M13.7 8.3 15.4 6.6M8.3 8.3 6.6 6.6M8.3 13.7 6.6 15.4M13.7 13.7 15.4 15.4" stroke="#F4BF41" stroke-width="1.3" stroke-linecap="round"/>' + e;
+  if (kind === 'post') return cmd ? o + '<rect x="2.5" y="6" width="17" height="10" fill="#0B1220" stroke="#D49A45" stroke-width="1.2"/><text x="11" y="13.6" text-anchor="middle" font-family="Geist Mono, monospace" font-size="7" font-weight="600" fill="#D49A45">NE</text>' + e
+    : o + '<rect x="2.5" y="6" width="17" height="10" rx="3" fill="#211C14" stroke="#D49A45" stroke-width="1.2"/><text x="11" y="13.6" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-size="7" font-weight="700" fill="#D49A45">NE</text>' + e;
   if (kind === 'vault') return cmd ? o + '<rect x="6.5" y="6.5" width="9" height="9" transform="rotate(45 11 11)" fill="none" stroke="#F4BF41" stroke-width="1.6"/><circle cx="11" cy="11" r="1.8" fill="#F4BF41"/>' + e
     : o + '<rect x="6" y="6" width="10" height="10" rx="1.5" transform="rotate(45 11 11)" fill="#F4BF41"/>' + e;
   if (kind === 'post') return cmd ? o + '<rect x="6" y="6" width="10" height="10" fill="none" stroke="#D49A45" stroke-width="1.6"/>' + e
@@ -878,6 +935,8 @@ function renderSel() {
   h += '<input class="input" id="gm-item-label" maxlength="48" placeholder="' + (it.type === 'label' ? 'Text' : 'Label (optional), e.g. Squad 2 · 20:00') + '" value="' + esc(it.label || '') + '" aria-label="Label">';
   h += '<div class="cols">' + cols.map(function (c) { return '<button style="background:' + c + '" data-icolor="' + c + '" aria-pressed="' + (c.toLowerCase() === (it.color || '').toLowerCase()) + '" aria-label="Color ' + c + '"></button>'; }).join('') + '</div>';
   var opts = '';
+  if ((PIN[it.type] || it.type === 'label') && st.look !== 'classic')
+    opts += '<div class="seg" title="Move the label away from the marker, joined by a line"><button data-leader="0" aria-pressed="' + !it.ld + '">Label beside</button><button data-leader="1" aria-pressed="' + !!it.ld + '">Leader line</button></div>';
   if (it.type === 'arrow' || it.type === 'line' || it.type === 'circle' || it.type === 'rect' || it.type === 'square')
     opts += '<div class="seg"><button data-dash="0" aria-pressed="' + !it.dash + '">Solid</button><button data-dash="1" aria-pressed="' + !!it.dash + '">Dashed</button></div>';
   if (it.type === 'label')
@@ -1024,7 +1083,12 @@ $wrap.addEventListener('pointerdown', function (e) {
     var hit = itemAt(p, tol, st.tool === 'select');
     if (hit) {
       if (st.sel !== hit) { st.sel = hit; renderMap(); renderSel(); }
-      gest = Object.assign(down, { kind: 'move', orig: clone(findItem(hit)) });
+      var hi = findItem(hit), lb = hi && hi.ld ? labelBox(hi) : null, pad = tol * .6;
+      if (lb && lb.leader && p.x >= lb.x - pad && p.x <= lb.x + lb.w + pad && p.y >= lb.y - pad && p.y <= lb.y + lb.h + pad) {
+        gest = Object.assign(down, { kind: 'label', lo: clone(hi.lo || LEADER_DEF) });
+        return;
+      }
+      gest = Object.assign(down, { kind: 'move', orig: clone(hi) });
       return;
     }
   }
@@ -1062,6 +1126,11 @@ $wrap.addEventListener('pointermove', function (e) {
     if (o.x2 != null) { it.x2 = o.x2 + ox; it.y2 = o.y2 + oy; }
     if (o.cx != null) { it.cx = o.cx + ox; it.cy = o.cy + oy; }
     renderMap();
+  } else if (gest.kind === 'label') {
+    var il = findItem(st.sel); if (!il) return;
+    if (!gest.committed) { commit(); gest.committed = true; }
+    il.lo = { dx: Math.round(gest.lo.dx + (p.x - gest.p.x) / F), dy: Math.round(gest.lo.dy + (p.y - gest.p.y) / F) };
+    renderMap();
   } else if (gest.kind === 'handle') {
     var h = findItem(st.sel); if (!h) return;
     if (!gest.committed) { commit(); gest.committed = true; }
@@ -1089,7 +1158,7 @@ function endPointer(e) {
   if (gest.kind === 'pinch') { if (Object.keys(ptrs).length < 2) gest = null; return; }   // the finger still down does nothing until lifted
   var g = gest; gest = null;
   var up = e.type === 'pointerup';
-  if (g.kind === 'move' || g.kind === 'handle') { if (g.committed) { changed(); renderPhases(); renderSel(); } return; }
+  if (g.kind === 'move' || g.kind === 'handle' || g.kind === 'label') { if (g.committed) { changed(); renderPhases(); renderSel(); } return; }
   if (g.kind === 'pan') { if (!g.moved && up) { if (st.sel) { st.sel = null; renderMap(); renderSel(); } hover(e); } return; }
   if (g.kind === 'draw') {
     var d = draft; draft = null;
@@ -1190,6 +1259,7 @@ document.addEventListener('click', function (e) {
   if (ds.untag) { var iu = findItem(st.sel); if (iu && iu.players) { commit(); iu.players = iu.players.filter(function (x) { return x !== ds.untag; }); changed(); renderMap(); renderSel(); } return; }
   if (ds.tag) { tagPlayer(ds.tag); return; }
   if (ds.icolor) { var it = findItem(st.sel); if (it) { commit(); it.color = ds.icolor; changed(); renderMap(); renderSel(); } return; }
+  if (ds.leader != null) { var il2 = findItem(st.sel); if (il2) { commit(); il2.ld = ds.leader === '1'; if (il2.ld && !il2.lo) il2.lo = clone(LEADER_DEF); changed(); renderMap(); renderSel(); if (il2.ld) toast('Drag the label to move it'); } return; }
   if (ds.dash != null) { var i2 = findItem(st.sel); if (i2) { commit(); i2.dash = ds.dash === '1'; changed(); renderMap(); renderSel(); } return; }
   if (ds.size) { var i3 = findItem(st.sel); if (i3) { commit(); i3.size = +ds.size; changed(); renderMap(); renderSel(); } return; }
   var a = ds.act; if (!a || !ACTS[a]) return;
