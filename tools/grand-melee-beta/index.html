@@ -1,0 +1,1996 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Murong's Grand Melee (preview)</title>
+<meta name="robots" content="noindex">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="/theme.css">
+<script src="/nav.js" data-title="Grand Melee preview" data-accent="#F08C33" defer></script>
+<style id="gm-css">
+/* Layout: control rail on the left, full-bleed pannable map on the right; stacks on phones (same system as the Glowworm's Ruse planner) */
+:root{
+  --bg:#f3f4f6; --panel:#ffffff; --line:#dfe2e8; --line-strong:#c5cad4;
+  --fg:#161a22; --muted:#626a7a; --accent:#2f5fd0; --accent-soft:#e7edfb;
+  --map-bg:#e9e6df; --tile:#f6f3ec; --tile-line:#8f8676; --tile-key:#ebe4d4; --gold:#b98512; --amber:#c9731f; --label:#4a443a;
+  --danger:#c2412d; --ok:#1d8a50; --ok-soft:#dcf3e6;
+  --f-ui:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1115; --panel:#171a20; --line:#262a33; --line-strong:#353b47;
+  --fg:#e8eaef; --muted:#8d95a5; --accent:#7ea0ff; --accent-soft:#1d2640;
+  --map-bg:#14161a; --tile:#2a2823; --tile-line:#6d6658; --tile-key:#363024; --gold:#f0b23a; --amber:#e08a3c; --label:#cfc7b6;
+  --danger:#ff7a63; --ok:#5fd394; --ok-soft:#173326; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#171a20; --line:#262a33; --line-strong:#353b47;
+  --fg:#e8eaef; --muted:#8d95a5; --accent:#7ea0ff; --accent-soft:#1d2640;
+  --map-bg:#14161a; --tile:#2a2823; --tile-line:#6d6658; --tile-key:#363024; --gold:#f0b23a; --amber:#e08a3c; --label:#cfc7b6;
+  --danger:#ff7a63; --ok:#5fd394; --ok-soft:#173326; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;box-sizing:border-box}
+*{box-sizing:border-box}
+#app{height:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:350px minmax(0,1fr);gap:12px;height:100%}
+.rail{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:auto;padding-right:2px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{font-size:17px;font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-size:11px;font-weight:600;margin:0;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.sub{color:var(--muted);font-size:12.5px;line-height:1.45;margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.btn{border:1px solid var(--line-strong);background:var(--panel);border-radius:7px;padding:6px 10px;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--accent)}
+.btn[disabled]{opacity:.45;cursor:default;border-color:var(--line)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--fg)}
+.btn.danger{color:var(--danger)}
+.btn svg{width:15px;height:15px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.plan-name{border:0;background:transparent;font-weight:700;font-size:17px;letter-spacing:-.01em;padding:0;min-width:0;width:100%}
+.plan-name:focus{outline:none;border-bottom:1px solid var(--accent)}
+.status{font-size:12px;color:var(--muted)}
+.status.dirty{color:var(--accent);font-weight:600}
+.iconbtns{display:flex;gap:2px}
+.iconbtns button{width:28px;height:28px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;padding:0}
+.iconbtns button:hover:not([disabled]){border-color:var(--line-strong);color:var(--fg)}
+.iconbtns button[disabled]{opacity:.35;cursor:default}
+.iconbtns svg{width:16px;height:16px}
+
+/* phases (goal-list rows) */
+.goals{display:flex;flex-direction:column;gap:4px}
+.goal{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-radius:8px;border:1px solid transparent;cursor:pointer;text-align:left;background:transparent;width:100%}
+.goal:hover{background:var(--bg)}
+.goal.sel{border-color:var(--accent);background:var(--accent-soft)}
+.goal .ch{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);text-align:center}
+.goal .tt{font-weight:600;font-size:13px;line-height:1.3}
+.goal .meta{font-size:11.5px;color:var(--muted);margin-top:2px}
+.pill{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:999px;white-space:nowrap}
+.p-live{background:var(--accent);color:#fff}
+.p-up{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
+.detail{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:12px;font-weight:600;color:var(--muted)}
+.input{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:var(--bg);font-size:13px}
+.input:focus{outline:none;border-color:var(--accent)}
+textarea{width:100%;min-height:76px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);font-size:13px;line-height:1.45;resize:vertical}
+textarea.code{font-family:var(--f-mono);font-size:11.5px;min-height:90px}
+textarea:focus{outline:none;border-color:var(--accent)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+
+/* teams (alliance rows) */
+.alli{display:flex;flex-direction:column;gap:4px}
+.al{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+.al:hover{background:var(--bg)}
+.al.on{border-color:var(--line-strong);background:var(--bg)}
+.dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line-strong);cursor:pointer;padding:0}
+.al input{border:0;background:transparent;font-weight:600;padding:0;min-width:0;width:100%}
+.al input:focus{outline:none;border-bottom:1px solid var(--accent)}
+.al .pts{font-family:var(--f-mono);font-size:12.5px;text-align:right}
+.al .pts small{display:block;color:var(--muted);font-size:11px}
+.al .bar{grid-column:2/4;height:3px;border-radius:2px;background:var(--line);overflow:hidden}
+.al .bar i{display:block;height:100%}
+.swatches{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;padding:6px 0 2px}
+.swatches button{aspect-ratio:1;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.swatches button[aria-pressed="true"]{border-color:var(--fg)}
+
+/* key */
+.key{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 12px;font-size:12px}
+.key span{display:flex;gap:7px;align-items:center;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.key svg{width:22px;height:18px;flex:none}
+.keyh{grid-column:1/-1;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.keyh:first-child{margin-top:0}
+
+/* stage */
+.stage{position:relative;min-height:0;background:var(--map-bg);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.mapwrap{position:absolute;inset:0;overflow:hidden;touch-action:none;cursor:grab}
+.mapwrap.drag{cursor:grabbing}
+.mapwrap.drawing{cursor:crosshair}
+svg#gm-svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none;pointer-events:none}
+.mapwrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.mapwrap.over-item{cursor:move}
+.mapwrap.over-handle{cursor:grab}
+.mapwrap.claiming{cursor:pointer}
+#gm-stage{touch-action:none}
+#gm-stage .mapkey .key.editing,#gm-stage .selcard{touch-action:pan-y}
+.dtools{position:absolute;top:10px;left:10px;right:10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;pointer-events:none;z-index:4}
+.dgrp{display:flex;gap:2px;background:var(--panel);border:1px solid var(--line-strong);border-radius:9px;padding:3px;box-shadow:0 4px 12px rgba(0,0,0,.16);pointer-events:auto;flex-wrap:wrap;justify-content:center}
+.dgrp button{display:flex;align-items:center;gap:5px;border:0;background:transparent;border-radius:6px;padding:5px 8px;font-size:12px;font-weight:600;color:var(--fg);cursor:pointer}
+.dgrp button:hover{background:var(--bg)}
+.dgrp button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.dgrp svg{width:16px;height:16px}
+.dgrp .sep{width:1px;background:var(--line);margin:3px 2px}
+.dgrp .sw{width:20px;height:20px;padding:0;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+.dgrp .sw[aria-pressed="true"]{outline:2px solid var(--fg);outline-offset:1px;background-clip:padding-box}
+.dhint{width:100%;text-align:center;font-size:11.5px;color:var(--fg);pointer-events:none}
+.dhint span{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.hud{position:absolute;right:calc(10px + env(safe-area-inset-right,0px));bottom:10px;display:flex;flex-direction:column;gap:6px}
+.hud button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line-strong);background:var(--panel);font-size:17px;font-weight:600;cursor:pointer}
+.legend{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;gap:12px;align-items:center;flex-wrap:wrap;max-width:100%}
+.legend label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px;font-size:12.5px;line-height:1.45;box-shadow:0 6px 18px rgba(0,0,0,.18);min-width:150px;z-index:5}
+.tip b{font-size:13px}
+.tip .k{color:var(--muted)}
+.ptags{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.ptags .note{margin-right:2px}
+.chip{display:inline-flex;align-items:center;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 9px;font-size:12px;font-weight:600;max-width:100%}
+.chip button{border:0;background:transparent;color:var(--muted);cursor:pointer;width:20px;height:20px;border-radius:50%;font-size:14px;line-height:1;padding:0}
+.chip button:hover{color:var(--danger);background:var(--panel)}
+.ptagadd{position:relative}
+.ptaglist{position:absolute;left:0;right:0;bottom:calc(100% + 4px);background:var(--panel);border:1px solid var(--line-strong);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:3px;display:flex;flex-direction:column;max-height:220px;overflow-y:auto;z-index:8}
+.ptaglist button{border:0;background:transparent;text-align:left;border-radius:6px;padding:7px 9px;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;color:var(--fg)}
+.ptaglist button:hover,.ptaglist button.on{background:var(--bg)}
+.ptaglist small{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.imgmodal{position:fixed;inset:0;z-index:2000;background:rgba(6,8,12,.86);display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));gap:10px}
+.imgbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--fg);background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;padding:8px 10px}
+.imgbar b{flex:1;min-width:0;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.imgbtns{display:flex;gap:6px;flex-wrap:wrap}
+.imgbtns .btn{min-height:36px}
+.imgscroll{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--line-strong);background:var(--bg)}
+.imgscroll img{display:block;width:100%;height:auto;-webkit-touch-callout:default;user-select:auto}
+@media (max-width:600px){.imgbar b{flex-basis:100%}.imgbtns{width:100%}.imgbtns .btn{flex:1;justify-content:center}}
+.imgnote{margin:0;text-align:center;color:var(--muted);font-size:12.5px}
+.startpick{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:10px}
+.spbtns{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.spbtns button{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:7px 10px;font-size:12.5px;font-weight:600;cursor:pointer;min-height:34px;text-align:left}
+.spbtns button i{width:12px;height:12px;border-radius:3px;flex:none}
+.spbtns button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.spbtns button:last-child{grid-column:1/-1;justify-content:center;color:var(--muted)}
+.spbtns button:last-child[aria-pressed="true"]{color:var(--fg)}
+.deng{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line-strong);border-radius:10px;padding:12px;background:var(--bg)}
+.deng[hidden]{display:none}
+.dhead{display:flex;align-items:center;gap:8px}
+.dhead b{flex:1;font-size:13.5px}
+.deng .note a{color:var(--accent)}
+.dlist-pop{top:calc(100% + 4px);bottom:auto}
+.dallies{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dallies button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:7px 9px;font-size:12.5px;font-weight:600;cursor:pointer;text-align:left;min-width:0}
+.dallies button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dallies button small{color:var(--muted);font-weight:400;font-size:11.5px}
+.dallies button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.dallies button:disabled{opacity:.45;cursor:default}
+.dsearch{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px;align-items:center}
+.dplist{display:flex;flex-direction:column;max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.dprow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px}
+.dprow:last-child{border-bottom:0}
+.dprow input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.dpn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.dpn small{font-weight:400;color:var(--muted);font-size:11px}
+.dpp{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.dfoot{display:flex;flex-direction:column;gap:8px}
+.dtot{display:flex;align-items:baseline;gap:6px;font-size:13px}
+.dtot span{margin-left:auto;font-family:var(--f-mono);font-size:12.5px;color:var(--fg)}
+.lookpick select{border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);border-radius:6px;padding:2px 6px;font:inherit;font-size:12px;margin-left:4px}
+.selcard{width:min(320px,100%);background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);padding:12px;display:flex;flex-direction:column;gap:9px;z-index:6}
+.selcard .head b{font-size:13px}
+.selcard .x{border:0;background:transparent;color:var(--muted);cursor:pointer;width:26px;height:26px;border-radius:6px;font-size:16px}
+.selcard .x:hover{background:var(--bg);color:var(--fg)}
+.seg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:3px;gap:3px}
+.seg button{border:0;background:transparent;border-radius:6px;padding:4px 10px;font-weight:600;font-size:12px;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.cols{display:flex;gap:6px;flex-wrap:wrap}
+.cols button{width:20px;height:20px;border-radius:50%;border:0;padding:0;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+.cols button[aria-pressed="true"]{outline:2px solid var(--fg);outline-offset:1px}
+.note{font-size:12px;color:var(--muted)}
+.ok{color:var(--accent);font-weight:600;font-size:12px}
+.banner{border:1px solid var(--accent);background:var(--accent-soft)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);font-weight:600;font-size:12.5px;padding:8px 14px;border-radius:8px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100% - 32px)}
+.blstack{position:absolute;left:10px;bottom:10px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:calc(100% - 64px);z-index:3}
+.mapkey{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:min(240px,100%);box-shadow:0 4px 12px rgba(0,0,0,.12)}
+.mapkey .key{grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 8px;font-size:11.5px}
+.mapkey .key svg{width:18px;height:16px}
+.mapkey #gm-key{display:flex;flex-direction:column;gap:6px}
+.khead{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kbtn{border:1px solid var(--line-strong);background:var(--panel);border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:600;letter-spacing:0;text-transform:none;cursor:pointer;color:var(--fg)}
+.kbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.mapkey .key.editing{grid-template-columns:1fr;gap:4px;max-height:min(46vh,340px);overflow-y:auto}
+.krow{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:6px;align-items:center}
+.krow.off svg,.krow.off .kin{opacity:.4}
+.kin{border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:3px 6px;font-size:12px;min-width:0;width:100%}
+.kin:focus{outline:none;border-color:var(--accent)}
+.kvis{border:0;background:transparent;color:var(--muted);font-size:11.5px;font-weight:600;cursor:pointer;padding:2px 4px;border-radius:5px}
+.kvis:hover{color:var(--fg);background:var(--bg)}
+.mapkey .qnote{grid-column:1/-1;white-space:normal;color:var(--muted);font-size:11px;line-height:1.35;margin-top:3px}
+@media (max-width:600px){.mapkey{width:min(210px,100%);padding:6px 8px}.mapkey .key{font-size:11px}}
+.rhead{display:flex;flex-direction:column;gap:10px}
+.rteam{grid-template-columns:auto minmax(0,1fr) auto auto}
+.rx{border:0;background:transparent;color:var(--muted);cursor:pointer;width:24px;height:24px;border-radius:6px;font-size:15px;line-height:1;padding:0;flex:none}
+.rx:hover{background:var(--bg);color:var(--danger)}
+.empty{border:1px dashed var(--line-strong);border-radius:8px;padding:12px;color:var(--muted);font-size:12.5px;line-height:1.45}
+.rfilters{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:6px}
+.rlist{display:flex;flex-direction:column;gap:3px;max-height:340px;overflow-y:auto;margin-inline:-4px;padding-inline:4px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) 64px 104px 24px;gap:4px;align-items:center;border-left:3px solid var(--tc);padding-left:6px;border-radius:2px}
+.pin{border:1px solid transparent;background:transparent;border-radius:6px;padding:4px 6px;font-size:12.5px;min-width:0;width:100%}
+.pin:hover{border-color:var(--line)}
+.pin:focus{outline:none;border-color:var(--accent);background:var(--bg)}
+.pin.pw{font-family:var(--f-mono);font-size:11.5px;text-align:right}
+select.pin{border-color:var(--line);background:var(--bg);cursor:pointer;padding:3px 4px}
+#gm-rfoot:empty{display:none}
+#gm-radd{min-height:110px;font-size:12.5px}
+@media (max-width:600px){.dgrp [data-tool] span{display:none}}
+/* map column: on desktop it is just the map; on phones the tools sit above it and the editor, key and toggles below it */
+.mapcol{display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}
+.mapcol>.stage{flex:1;min-height:0}
+.mtop:empty,.munder:empty{display:none}
+.selbar{display:none}
+@media (max-width:820px){
+  html,body{height:auto}
+  #app{height:auto}
+  .app{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto}
+  .mapcol{order:-1}
+  .mapcol>.stage{flex:none;width:100%;aspect-ratio:1/1.06;height:auto;max-height:66vh;max-height:66svh;min-height:280px}
+  .rail{overflow:visible}
+  .mtop .dtools{position:static;pointer-events:auto;padding:0;gap:6px}
+  .mtop .dgrp{box-shadow:none;width:100%;justify-content:space-between}
+  .mtop #gm-tools{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}
+  .mtop #gm-tools .sep{display:none}
+  .mtop #gm-colors{justify-content:center}
+  .mtop .dhint{font-size:12px;color:var(--muted)}
+  .mtop .dhint span{background:none;border:0;padding:0}
+  .munder .blstack{position:static;max-width:100%;align-items:stretch;gap:8px}
+  .munder .selcard{width:100%;box-shadow:none}
+  .munder .mapkey{width:100%;box-shadow:none}
+  .munder .legend{justify-content:flex-start}
+  .selbar{position:absolute;left:8px;right:8px;bottom:8px;z-index:6;display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;padding:6px 6px 6px 12px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+  .selbar[hidden]{display:none}
+  .selbar .nm{flex:1;min-width:0;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .selbar .nm small{font-weight:400;color:var(--muted);margin-left:6px}
+  .selbar button{border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);border-radius:8px;min-height:36px;padding:0 10px;font-size:13px;font-weight:600;cursor:pointer}
+  .selbar button.danger{color:var(--danger)}
+  .stage.busy .selbar,.stage.busy .tip{display:none}
+  .stage .hud{bottom:auto;top:8px;right:8px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ARC Tools shared theme (theme.css): always dark, same colours and type as the rest of the site */
+:root[data-theme="dark"]{--bg:var(--arc-bg,#0E1116);--panel:var(--arc-panel,#161A21);--line:var(--arc-line,#232934);--line-strong:var(--arc-line-2,#2E3542);--fg:var(--arc-text,#E8EAEE);--muted:var(--arc-mut,#8B93A1);--accent:var(--arc-accent,#7EA0FF);--accent-soft:var(--arc-accent-soft,#1D2640);--map-bg:#12151A;--danger:var(--arc-bad,#FF7A63);--ok:var(--arc-ok,#5FD394);--ok-soft:var(--arc-ok-soft,#173326);--f-ui:var(--arc-font,"Geist",system-ui,sans-serif);--f-mono:var(--arc-mono,"Geist Mono",ui-monospace,monospace);color-scheme:dark}
+:root[data-theme="dark"] body{-webkit-font-smoothing:antialiased}
+:root[data-theme="dark"] :is(.btn.primary,.p-live,.dgrp button[aria-pressed="true"],.kbtn.on){color:var(--arc-accent-ink,#0B1020)}
+:root[data-theme="dark"] :is(h2,.keyh,.khead,.zh){text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;color:var(--fg)}
+:root[data-theme="dark"] .pill{text-transform:none;letter-spacing:0;font-size:11.5px;font-weight:600}
+@media (pointer:coarse){.dgrp button{min-height:36px;min-width:36px;justify-content:center}.dgrp .sw{width:28px;height:28px;min-width:28px;min-height:28px}.dot{position:relative}.dot::after{content:"";position:absolute;inset:-12px;border-radius:50%}.rx{width:32px;height:32px}}
+</style>
+<div id="app"></div>
+<script type="application/json" id="gm-plan">{"v":1,"name":"Grand Melee plan","savedAt":"","teams":[{"id":"red","name":"Red","color":"#EC4441"},{"id":"teal","name":"Teal","color":"#428A92"},{"id":"yellow","name":"Yellow","color":"#F4BF41"},{"id":"blue","name":"Blue","color":"#3E8CD7"}],"phases":[{"id":"p1","name":"Phase 1","notes":"","owners":{},"items":[]}],"key":{"labels":{},"hidden":{}}}</script>
+<script type="application/json" id="gm-map">{"W":810,"H":806,"r":[{"id":"Sred","t":"spawn","n":"Starting area","c":"red","d":"M0 0 0 270.7 30 270.7 30 258.6 36 258.6 36 252.6 114 252.6 114 222.6 162 222.6 162 216.5 168 216.5 168 186.5 216 186.5 216 156.4 264 156.4 264 150.4 270 150.4 270 120.3 300 120.3 300 126.3 312 126.3 312 120.3 318 120.3 318 102.3 336 102.3 336 0Z","x":105,"y":105},{"id":"Steal","t":"spawn","n":"Starting area","c":"teal","d":"M456 0 456 102.3 474 102.3 474 108.3 480 108.3 480 120.3 528 120.3 528 156.4 576 156.4 576 186.5 582 186.5 582 192.5 630 192.5 630 222.6 678 222.6 678 258.6 780 258.6 780 270.7 810 270.7 810 0Z","x":699,"y":111},{"id":"Sblue","t":"spawn","n":"Starting area","c":"blue","d":"M762 541.3 762 559.4 678 559.4 678 595.5 624 595.5 624 625.6 576 625.6 576 661.6 522 661.6 522 697.7 474 697.7 474 715.8 456 715.8 456 806 810 806 810 541.3Z","x":699,"y":701},{"id":"Syellow","t":"spawn","n":"Starting area","c":"yellow","d":"M0 541.3 0 806 336 806 336 709.8 318 709.8 318 697.7 306 697.7 306 691.7 300 691.7 300 697.7 270 697.7 270 661.6 222 661.6 222 631.6 216 631.6 216 625.6 168 625.6 168 595.5 120 595.5 120 589.5 114 589.5 114 559.4 30 559.4 30 541.3Z","x":105,"y":701},{"id":"X28","t":"blocked","n":"Blocked area","c":null,"d":"M270 391 270 445.1 354 445.1 354 391Z","x":297,"y":418},{"id":"X29","t":"blocked","n":"Blocked area","c":null,"d":"M438 391 438 445.1 522 445.1 522 391Z","x":465,"y":418},{"id":"6A","t":"tower","n":"Tower 6A","c":null,"d":"M336 0 336 102.3 318 102.3 318 120.3 312 120.3 312 126.3 300 126.3 300 156.4 354 156.4 354 192.5 384 192.5 384 72.2 390 72.2 390 66.2 402 66.2 402 0Z","x":357,"y":65,"q":"A","lb":"6A"},{"id":"10B","t":"tower","n":"Tower 10B","c":null,"d":"M402 0 402 66.2 390 66.2 390 72.2 384 72.2 384 138.3 474 138.3 474 120.3 480 120.3 480 108.3 474 108.3 474 102.3 456 102.3 456 0Z","x":420,"y":83,"q":"B","lb":"10B"},{"id":"3B","t":"tower","n":"Tower 3B","c":null,"d":"M474 120.3 474 138.3 438 138.3 438 174.4 510 174.4 510 204.5 522 204.5 522 210.5 540 210.5 540 204.5 546 204.5 546 156.4 528 156.4 528 120.3Z","x":499,"y":141,"q":"B","lb":"3B"},{"id":"2A","t":"tower","n":"Tower 2A","c":null,"d":"M270 120.3 270 150.4 264 150.4 264 156.4 216 156.4 216 240.6 270 240.6 270 192.5 330 192.5 330 186.5 336 186.5 336 174.4 354 174.4 354 156.4 300 156.4 300 120.3Z","x":239,"y":174,"q":"A","lb":"2A"},{"id":"12B","t":"tower","n":"Tower 12B","c":null,"d":"M384 138.3 384 288.7 396 288.7 396 294.7 420 294.7 420 306.8 492 306.8 492 276.7 474 276.7 474 240.6 438 240.6 438 138.3Z","x":429,"y":268,"q":"B","lb":"12B"},{"id":"2B","t":"tower","n":"Tower 2B","c":null,"d":"M546 156.4 546 204.5 540 204.5 540 240.6 606 240.6 606 222.6 612 222.6 612 192.5 582 192.5 582 186.5 576 186.5 576 156.4Z","x":568,"y":212,"q":"B","lb":"2B"},{"id":"5A","t":"tower","n":"Tower 5A","c":null,"d":"M336 174.4 336 186.5 330 186.5 330 192.5 270 192.5 270 240.6 282 240.6 282 252.6 288 252.6 288 258.6 318 258.6 318 222.6 354 222.6 354 174.4Z","x":290,"y":209,"q":"A","lb":"5A"},{"id":"8B","t":"tower","n":"Tower 8B","c":null,"d":"M438 174.4 438 240.6 492 240.6 492 222.6 510 222.6 510 174.4Z","x":461,"y":199,"q":"B","lb":"8B"},{"id":"1A","t":"tower","n":"Tower 1A","c":null,"d":"M168 186.5 168 216.5 162 216.5 162 222.6 150 222.6 150 324.8 198 324.8 198 318.8 204 318.8 204 276.7 246 276.7 246 270.7 252 270.7 252 240.6 216 240.6 216 186.5Z","x":172,"y":239,"q":"A","lb":"1A"},{"id":"8A","t":"tower","n":"Tower 8A","c":null,"d":"M354 192.5 354 222.6 318 222.6 318 258.6 270 258.6 270 324.8 282 324.8 282 318.8 288 318.8 288 306.8 372 306.8 372 288.7 384 288.7 384 192.5Z","x":350,"y":267,"q":"A","lb":"8A"},{"id":"1B","t":"tower","n":"Tower 1B","c":null,"d":"M612 192.5 612 222.6 606 222.6 606 240.6 594 240.6 594 258.6 606 258.6 606 270.7 612 270.7 612 276.7 672 276.7 672 270.7 678 270.7 678 222.6 630 222.6 630 192.5Z","x":644,"y":242,"q":"B","lb":"1B"},{"id":"6B","t":"tower","n":"Tower 6B","c":null,"d":"M510 204.5 510 222.6 492 222.6 492 240.6 474 240.6 474 276.7 570 276.7 570 270.7 576 270.7 576 240.6 540 240.6 540 210.5 522 210.5 522 204.5Z","x":518,"y":249,"q":"B","lb":"6B"},{"id":"3A","t":"tower","n":"Tower 3A","c":null,"d":"M114 222.6 114 252.6 36 252.6 36 258.6 30 258.6 30 270.7 0 270.7 0 409 84 409 84 306.8 150 306.8 150 222.6Z","x":46,"y":335,"q":"A","lb":"3A"},{"id":"4B","t":"tower","n":"Tower 4B","c":null,"d":"M576 240.6 576 270.7 570 270.7 570 276.7 558 276.7 558 342.9 606 342.9 606 336.8 612 336.8 612 270.7 606 270.7 606 258.6 594 258.6 594 240.6Z","x":582,"y":291,"q":"B","lb":"4B"},{"id":"4A","t":"tower","n":"Tower 4A","c":null,"d":"M252 240.6 252 270.7 246 270.7 246 276.7 204 276.7 204 318.8 198 318.8 198 324.8 270 324.8 270 258.6 288 258.6 288 252.6 282 252.6 282 240.6Z","x":235,"y":293,"q":"A","lb":"4A"},{"id":"5B","t":"tower","n":"Tower 5B","c":null,"d":"M678 258.6 678 270.7 672 270.7 672 276.7 660 276.7 660 324.8 726 324.8 726 409 810 409 810 270.7 780 270.7 780 258.6Z","x":768,"y":298,"q":"B","lb":"5B"},{"id":"7B","t":"tower","n":"Tower 7B","c":null,"d":"M612 276.7 612 324.8 624 324.8 624 409 726 409 726 324.8 660 324.8 660 276.7Z","x":669,"y":375,"q":"B","lb":"7B"},{"id":"9B","t":"tower","n":"Tower 9B","c":null,"d":"M492 276.7 492 306.8 504 306.8 504 312.8 510 312.8 510 324.8 504 324.8 504 354.9 510 354.9 510 360.9 558 360.9 558 276.7Z","x":529,"y":304,"q":"B","lb":"9B"},{"id":"N","t":"tower","n":"North center tower","c":"N","d":"M372 288.7 372 306.8 366 306.8 366 372.9 420 372.9 420 294.7 396 294.7 396 288.7Z","x":392,"y":335,"q":"center","lb":"N"},{"id":"7A","t":"tower","n":"Tower 7A","c":null,"d":"M84 306.8 84 409 216 409 216 324.8 150 324.8 150 306.8Z","x":141,"y":356,"q":"A","lb":"7A"},{"id":"9A","t":"tower","n":"Tower 9A","c":null,"d":"M216 324.8 216 427.1 270 427.1 270 391 288 391 288 342.9 282 342.9 282 324.8Z","x":241,"y":366,"q":"A","lb":"9A"},{"id":"11B","t":"tower","n":"Tower 11B","c":null,"d":"M612 324.8 612 336.8 606 336.8 606 342.9 558 342.9 558 360.9 510 360.9 510 391 522 391 522 409 624 409 624 324.8Z","x":573,"y":363,"q":"B","lb":"11B"},{"id":"10D","t":"tower","n":"Tower 10D","c":null,"d":"M522 409 522 445.1 504 445.1 504 475.2 540 475.2 540 493.2 594 493.2 594 511.3 642 511.3 642 445.1 594 445.1 594 409Z","x":566,"y":450,"q":"D","lb":"10D"},{"id":"6D","t":"tower","n":"Tower 6D","c":null,"d":"M594 409 594 445.1 642 445.1 642 511.3 726 511.3 726 409Z","x":682,"y":459,"q":"D","lb":"6D"},{"id":"5D","t":"tower","n":"Tower 5D","c":null,"d":"M726 409 726 511.3 762 511.3 762 523.3 810 523.3 810 409Z","x":766,"y":460,"q":"D","lb":"5D"},{"id":"6C","t":"tower","n":"Tower 6C","c":null,"d":"M0 409 0 493.2 150 493.2 150 505.3 156 505.3 156 511.3 168 511.3 168 559.4 186 559.4 186 541.3 204 541.3 204 409Z","x":124,"y":452,"q":"C","lb":"6C"},{"id":"8C","t":"tower","n":"Tower 8C","c":null,"d":"M204 409 204 541.3 306 541.3 306 529.3 300 529.3 300 523.3 288 523.3 288 445.1 270 445.1 270 427.1 216 427.1 216 409Z","x":249,"y":478,"q":"C","lb":"8C"},{"id":"S","t":"tower","n":"South center tower","c":"S","d":"M372 457.1 372 523.3 366 523.3 366 529.3 372 529.3 372 541.3 420 541.3 420 457.1Z","x":392,"y":500,"q":"center","lb":"S"},{"id":"7D","t":"tower","n":"Tower 7D","c":null,"d":"M510 475.2 510 523.3 504 523.3 504 529.3 474 529.3 474 577.4 522 577.4 522 547.4 528 547.4 528 541.3 540 541.3 540 475.2Z","x":495,"y":555,"q":"D","lb":"7D"},{"id":"3C","t":"tower","n":"Tower 3C","c":null,"d":"M0 493.2 0 541.3 30 541.3 30 559.4 114 559.4 114 589.5 120 589.5 120 595.5 150 595.5 150 565.4 156 565.4 156 559.4 168 559.4 168 511.3 156 511.3 156 505.3 150 505.3 150 493.2Z","x":73,"y":524,"q":"C","lb":"3C"},{"id":"4D","t":"tower","n":"Tower 4D","c":null,"d":"M540 493.2 540 541.3 654 541.3 654 535.3 660 535.3 660 523.3 654 523.3 654 511.3 594 511.3 594 493.2Z","x":567,"y":518,"q":"D","lb":"4D"},{"id":"2D","t":"tower","n":"Tower 2D","c":null,"d":"M654 511.3 654 523.3 660 523.3 660 535.3 654 535.3 654 541.3 624 541.3 624 589.5 630 589.5 630 595.5 678 595.5 678 559.4 762 559.4 762 541.3 810 541.3 810 523.3 762 523.3 762 511.3Z","x":700,"y":535,"q":"D","lb":"2D"},{"id":"9C","t":"tower","n":"Tower 9C","c":null,"d":"M306 529.3 306 541.3 300 541.3 300 559.4 336 559.4 336 643.6 402 643.6 402 541.3 372 541.3 372 529.3Z","x":369,"y":574,"q":"C","lb":"9C"},{"id":"9D","t":"tower","n":"Tower 9D","c":null,"d":"M420 529.3 420 541.3 402 541.3 402 643.6 522 643.6 522 577.4 474 577.4 474 529.3Z","x":431,"y":574,"q":"D","lb":"9D"},{"id":"3D","t":"tower","n":"Tower 3D","c":null,"d":"M528 541.3 528 547.4 522 547.4 522 643.6 558 643.6 558 577.4 612 577.4 612 559.4 624 559.4 624 541.3Z","x":539,"y":563,"q":"D","lb":"3D"},{"id":"4C","t":"tower","n":"Tower 4C","c":null,"d":"M186 541.3 186 559.4 234 559.4 234 613.5 270 613.5 270 577.4 306 577.4 306 559.4 300 559.4 300 541.3Z","x":258,"y":559,"q":"C","lb":"4C"},{"id":"5C","t":"tower","n":"Tower 5C","c":null,"d":"M306 559.4 306 577.4 270 577.4 270 631.6 288 631.6 288 643.6 300 643.6 300 649.6 306 649.6 306 643.6 336 643.6 336 559.4Z","x":304,"y":607,"q":"C","lb":"5C"},{"id":"1D","t":"tower","n":"Tower 1D","c":null,"d":"M612 559.4 612 577.4 558 577.4 558 643.6 522 643.6 522 661.6 576 661.6 576 625.6 624 625.6 624 595.5 630 595.5 630 589.5 624 589.5 624 559.4Z","x":580,"y":610,"q":"D","lb":"1D"},{"id":"1C","t":"tower","n":"Tower 1C","c":null,"d":"M156 559.4 156 565.4 150 565.4 150 595.5 168 595.5 168 625.6 222 625.6 222 613.5 234 613.5 234 559.4Z","x":185,"y":585,"q":"C","lb":"1C"},{"id":"2C","t":"tower","n":"Tower 2C","c":null,"d":"M222 613.5 222 625.6 216 625.6 216 631.6 222 631.6 222 661.6 270 661.6 270 697.7 300 697.7 300 691.7 306 691.7 306 649.6 300 649.6 300 643.6 288 643.6 288 631.6 270 631.6 270 613.5Z","x":237,"y":641,"q":"C","lb":"2C"},{"id":"7C","t":"tower","n":"Tower 7C","c":null,"d":"M306 643.6 306 697.7 318 697.7 318 709.8 336 709.8 336 806 384 806 384 745.9 402 745.9 402 643.6Z","x":361,"y":689,"q":"C","lb":"7C"},{"id":"8D","t":"tower","n":"Tower 8D","c":null,"d":"M402 643.6 402 745.9 384 745.9 384 806 456 806 456 715.8 474 715.8 474 697.7 522 697.7 522 643.6Z","x":431,"y":725,"q":"D","lb":"8D"},{"id":"PNW","t":"post","n":"North-west post","c":"NW","d":"M288 306.8 288 318.8 282 318.8 282 342.9 288 342.9 288 391 354 391 354 372.9 366 372.9 366 306.8Z","x":325,"y":352},{"id":"PNE","t":"post","n":"North-east post","c":"NE","d":"M420 306.8 420 372.9 438 372.9 438 391 510 391 510 354.9 504 354.9 504 324.8 510 324.8 510 312.8 504 312.8 504 306.8Z","x":465,"y":352},{"id":"PSE","t":"post","n":"South-east post","c":"SE","d":"M438 445.1 438 457.1 420 457.1 420 529.3 504 529.3 504 523.3 510 523.3 510 475.2 504 475.2 504 445.1Z","x":465,"y":491},{"id":"PSW","t":"post","n":"South-west post","c":"SW","d":"M288 445.1 288 523.3 300 523.3 300 529.3 366 529.3 366 523.3 372 523.3 372 463.1 366 463.1 366 457.1 354 457.1 354 445.1Z","x":328,"y":492},{"id":"V","t":"vault","n":"Vault","c":null,"d":"M354 372.9 354 457.1 366 457.1 366 463.1 372 463.1 372 457.1 438 457.1 438 372.9Z","x":395,"y":422}]}</script>
+<script id="gm-app">
+(function () {
+'use strict';
+var MAP = JSON.parse(document.getElementById('gm-map').textContent);
+var EMBED = JSON.parse(document.getElementById('gm-plan').textContent);
+var REG = {}; MAP.r.forEach(function (r) { REG[r.id] = r; });
+var PAD = 10, VB0 = { x: -PAD, y: -PAD, w: MAP.W + PAD * 2, h: MAP.H + PAD * 2 };
+var DRAFT_KEY = 'gm-planner-beta-draft';
+var PALETTE = ['#F4BF41','#F08C33','#BB7128','#784633','#EC4441','#7B2E40','#D7538F','#8647BA','#621D6F','#272742','#3950CF','#3E8CD7','#414569','#627FAB','#428A92','#50B080','#5DA52F','#40632D'];
+var DCOLS = ['#ffffff','#111111','#EC4441','#F4BF41','#50B080','#3E8CD7','#8647BA','#F08C33'];
+var RCOLS = ['#3E8CD7','#F08C33','#50B080','#8647BA','#D7538F','#F4BF41','#EC4441','#428A92','#627FAB','#5DA52F'];
+var Q_CORNER = { A: 'red', B: 'teal', C: 'yellow', D: 'blue' };
+var HALO = 'rgba(0,0,0,.72)';
+
+/* ---------- icons ---------- */
+var G = {
+  city: 'M5 11.5 12 5.5l7 6M7 10v8.5h10V10M10.5 18.5v-4.5h3v4.5',
+  reinforce: 'M12 3.8l7 2.8v5.2c0 4.1-2.9 7.2-7 8.4-4.1-1.2-7-4.3-7-8.4V6.6zM12 8.6v6.6M8.7 11.9h6.6',
+  attack: 'M5.5 5.5 15 15M18.5 5.5 9 15M5 15.8l3.2 3.2M19 15.8l-3.2 3.2M7 19l-2 2M17 19l2 2'
+};
+var I = {
+  select: '<path d="M6 3.5l12 7.4-5.3 1.2 3 6.1-2.5 1.2-3-6.1L6 17.3z" fill="currentColor" stroke="none"/>',
+  claim: '<path d="M5 20V4.5M5 5h11.5l-2.2 3.6 2.2 3.6H5"/>',
+  arrow: '<path d="M4.5 19.5 18 6M10 6h8v8"/>',
+  line: '<path d="M4.5 19.5 19.5 4.5"/>',
+  city: '<path d="' + G.city + '"/>', reinforce: '<path d="' + G.reinforce + '"/>', attack: '<path d="' + G.attack + '"/>',
+  label: '<path d="M5.5 6.5V5h13v1.5M12 5v14M9.2 19h5.6"/>',
+  circle: '<circle cx="12" cy="12" r="7.5"/>', rect: '<rect x="3.5" y="6.5" width="17" height="11" rx="1"/>', square: '<rect x="5.5" y="5.5" width="13" height="13" rx="1"/>',
+  undo: '<path d="M9 7.5 4.5 12 9 16.5M5 12h9.5a5 5 0 0 1 0 10H12"/>', redo: '<path d="M15 7.5 19.5 12 15 16.5M19 12H9.5a5 5 0 0 0 0 10H12"/>'
+};
+function ico(n) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[n] + '</svg>'; }
+var TOOLS = [['select','Select','V'],['claim','Claim','C'],'sep',['arrow','Arrow','A'],['city','City','M'],['reinforce','Reinforce','R'],['attack','Attack','X'],['label','Text','T'],'sep',['line','Line','L'],['circle','Circle','O'],['rect','Box','B'],['square','Square','S']];
+var TYPE_NAME = { arrow: 'Arrow', line: 'Line', city: 'Move city here', reinforce: 'Reinforce', attack: 'Attack', label: 'Text', circle: 'Circle', rect: 'Box', square: 'Square' };
+
+/* ---------- state ---------- */
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function uid() { return Math.random().toString(36).slice(2, 9); }
+function normalize(p) {
+  p = p && typeof p === 'object' ? p : {};
+  if (!Array.isArray(p.teams) || p.teams.length !== 4) p.teams = clone(EMBED.teams);
+  if (!Array.isArray(p.phases) || !p.phases.length) p.phases = [{ id: uid(), name: 'Phase 1', notes: '', owners: {}, items: [] }];
+  p.phases.forEach(function (ph) { ph.id = ph.id || uid(); ph.owners = ph.owners || {}; ph.items = Array.isArray(ph.items) ? ph.items : []; ph.notes = ph.notes || ''; ph.name = ph.name || 'Phase'; });
+  p.name = p.name || 'Grand Melee plan';
+  if (['red', 'teal', 'yellow', 'blue'].indexOf(p.start) < 0) p.start = '';
+  p.key = p.key && typeof p.key === 'object' ? p.key : {};
+  p.key.labels = p.key.labels || {}; p.key.hidden = p.key.hidden || {};
+  p.roster = p.roster && typeof p.roster === 'object' ? p.roster : {};
+  if (!Array.isArray(p.roster.teams)) p.roster.teams = [{ id: 'rt1', name: 'Team 1', color: RCOLS[0] }, { id: 'rt2', name: 'Team 2', color: RCOLS[1] }];
+  p.roster.teams = p.roster.teams.filter(function (t) { return t && t.id; }).map(function (t, i) { return { id: String(t.id), name: String(t.name || 'Team ' + (i + 1)), color: t.color || RCOLS[i % RCOLS.length] }; });
+  p.roster.players = (Array.isArray(p.roster.players) ? p.roster.players : []).filter(function (x) { return x && x.name; }).map(function (x) { return { id: x.id || uid(), name: String(x.name), power: typeof x.power === 'number' ? x.power : null, team: x.team || '', src: typeof x.src === 'number' ? x.src : undefined }; });
+  return p;
+}
+var plan = normalize(clone(EMBED));
+var st = { phase: 0, tool: 'select', color: null, team: 3, sel: null, view: clone(VB0), nums: true, ghost: false, dirty: false, canSave: null, confirm: null, picker: null, showImp: false };
+var hist = [], fut = [], restoredBanner = null;
+st.keyOn = true; try { var kv = localStorage.getItem('gm-key-on'); if (kv) st.keyOn = kv === '1'; } catch (e) {}
+try { var ss = JSON.parse(sessionStorage.getItem('gm-ui') || 'null'); if (ss) { st.phase = ss.phase || 0; st.nums = ss.nums !== false; sessionStorage.removeItem('gm-ui'); } } catch (e) {}
+try {
+  var dr = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+  if (dr && dr.plan) { if (dr.basedOn === (EMBED.savedAt || '')) { plan = normalize(dr.plan); st.dirty = true; } else restoredBanner = dr; }
+} catch (e) {}
+st.standalone = !(window.claude && window.claude.use);
+if (st.standalone) st.canSave = false;
+if (st.phase >= plan.phases.length) st.phase = 0;
+st.color = plan.teams[st.team].color;
+function ph() { return plan.phases[st.phase]; }
+function teamById(id) { for (var i = 0; i < 4; i++) if (plan.teams[i].id === id) return plan.teams[i]; return null; }
+function teamColor(id) { var t = teamById(id); return t ? t.color : '#888'; }
+
+function commit() { hist.push(JSON.stringify(plan)); if (hist.length > 150) hist.shift(); fut = []; }
+function changed() {
+  st.dirty = true;
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ basedOn: EMBED.savedAt || '', plan: plan, at: Date.now() })); } catch (e) {}
+  renderStatus();
+}
+function undo() { if (!hist.length) return; fut.push(JSON.stringify(plan)); plan = normalize(JSON.parse(hist.pop())); afterHistory(); }
+function redo() { if (!fut.length) return; hist.push(JSON.stringify(plan)); plan = normalize(JSON.parse(fut.pop())); afterHistory(); }
+function afterHistory() { if (st.phase >= plan.phases.length) st.phase = plan.phases.length - 1; if (st.sel && !findItem(st.sel)) st.sel = null; changed(); renderAll(); }
+function findItem(id) { var it = ph().items; for (var i = 0; i < it.length; i++) if (it[i].id === id) return it[i]; return null; }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+/* ---------- shell ---------- */
+document.getElementById('app').innerHTML =
+'<div class="app"><aside class="rail">' +
+ '<section class="card"><div class="head"><h1>Murong\'s Grand Melee</h1><div class="iconbtns"><button id="gm-undo" title="Undo (Ctrl+Z)" aria-label="Undo">' + ico('undo') + '</button><button id="gm-redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">' + ico('redo') + '</button></div></div>' +
+ '<input class="plan-name" id="gm-name" aria-label="Plan name" maxlength="60" style="font-size:14px;font-weight:600">' +
+ '<p class="sub">Plan each phase on the map: where cities move, who reinforces, what gets hit. <span class="status" id="gm-status"></span></p></section>' +
+ '<section class="card banner" id="gm-banner" hidden></section>' +
+ '<section class="card"><div class="head"><h2>Phases</h2><div class="row"><button class="btn" data-act="phase-dup" title="New phase starting from the current one">+ Copy</button><button class="btn ghost" data-act="phase-new">+ Blank</button></div></div><div class="goals" id="gm-phases"></div><div class="detail" id="gm-phdetail"></div></section>' +
+ '<section class="card"><div class="head"><h2>Sides</h2><span class="note">claimed</span></div><div class="alli" id="gm-teams"></div><p class="sub">Tap a side to claim for it. Tap its dot to change its color.</p><div class="startpick" id="gm-start"></div></section>' +
+ '<section class="card" id="gm-roster"><div class="head"><h2>Roster</h2><span class="note" id="gm-rsum"></span></div><div class="deng" id="gm-deng" hidden></div><div id="gm-rhead" class="rhead"></div><div class="rfilters" id="gm-rfilters"></div><div class="rlist" id="gm-rlist"></div><div class="row" id="gm-rfoot"></div></section>' +
+ '<section class="card"><div class="head"><h2>Share &amp; backup</h2></div><div id="gm-share"></div></section>' +
+'</aside>' +
+'<main class="mapcol" id="gm-col"><div class="mtop" id="gm-top"></div><div class="stage" id="gm-stage"><div class="mapwrap" id="gm-wrap"><svg id="gm-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg></div>' +
+ '<div class="dtools" id="gm-dtools"><div class="dgrp" id="gm-tools" role="toolbar" aria-label="Tools"></div><div class="dgrp" id="gm-colors" role="group" aria-label="Color"></div><div class="dhint" id="gm-hint"></div></div>' +
+ '<div class="blstack"><div id="gm-sel"></div><div class="mapkey" id="gm-keywrap"><div class="key" id="gm-key"></div></div>' +
+ '<div class="legend" id="gm-legend"><label class="lookpick">Look <select id="gm-look" aria-label="Map look"><option value="ops">Night Ops</option><option value="cmd">Command</option><option value="classic">Current</option></select></label><label><input type="checkbox" id="gm-keychk" checked> Key</label><label><input type="checkbox" id="gm-nums"> Tower labels</label><label><input type="checkbox" id="gm-ghost"> Previous phase</label></div></div>' +
+ '<div class="hud"><button id="gm-zin" aria-label="Zoom in">+</button><button id="gm-zout" aria-label="Zoom out">−</button><button id="gm-fit" aria-label="Fit map" style="font-size:13px">⤢</button></div>' +
+ '<div class="tip" id="gm-tip" hidden></div><div class="selbar" id="gm-selbar" hidden></div>' +
+'</div><div class="munder" id="gm-under"></div></main></div><div id="gm-toast"></div>';
+
+var $ = function (id) { return document.getElementById(id); };
+var $svg = $('gm-svg'), $wrap = $('gm-wrap');
+var PHONE = window.matchMedia('(max-width: 820px)');
+function placeChrome() {
+  var stage = $('gm-stage'), dt = $('gm-dtools'), bl = document.querySelector('.blstack');
+  if (PHONE.matches) { $('gm-top').appendChild(dt); $('gm-under').appendChild(bl); }
+  else { stage.insertBefore(dt, stage.querySelector('.hud')); stage.insertBefore(bl, stage.querySelector('.hud')); }
+}
+placeChrome();
+if (PHONE.addEventListener) PHONE.addEventListener('change', function () { placeChrome(); renderSel(); renderMap(); });
+
+/* ---------- colors from theme tokens ---------- */
+var P = {};
+function readTokens() {
+  var cs = getComputedStyle(document.documentElement);
+  ['map-bg','tile','tile-line','tile-key','gold','amber','label','fg','panel'].forEach(function (k) { P[k] = cs.getPropertyValue('--' + k).trim(); });
+}
+
+/* ---------- scale ---------- */
+function rectSz() { var r = $wrap.getBoundingClientRect(); return { w: r.width || 1, h: r.height || 1, l: r.left, t: r.top }; }
+function fitScale() { var r = rectSz(); return Math.min(r.w / VB0.w, r.h / VB0.h); }
+function fitView() { st.cam = { cx: VB0.x + VB0.w / 2, cy: VB0.y + VB0.h / 2, s: fitScale() }; }
+function ppu() { if (!st.cam) fitView(); return st.cam.s; }
+var F = 1;
+function S(n) { return +(n * F).toFixed(2); }
+function liveF() { return Math.max(0.22, Math.min(1.5, 0.8 / ppu())); }
+
+/* ---------- board ---------- */
+function boardSVG_classic(owners, nums) {
+  var s = '<defs><pattern id="gm-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="7" fill="' + P['map-bg'] + '"/><line x1="0" y1="0" x2="0" y2="7" stroke="' + P['tile-line'] + '" stroke-width="1.6" stroke-opacity=".55"/></pattern></defs>' +
+    '<rect x="' + VB0.x + '" y="' + VB0.y + '" width="' + VB0.w + '" height="' + VB0.h + '" fill="' + P['map-bg'] + '"/><g class="terrs">';
+  MAP.r.forEach(function (r) {
+    var fill = P.tile, op = 1, cls = 'terr claimable';
+    if (r.t === 'spawn') { cls = 'terr'; if (plan.start === r.c) { fill = teamColor(r.c); op = 0.55; } else { fill = P.tile; } }
+    else if (r.t === 'blocked') { fill = 'url(#gm-hatch)'; cls = 'terr'; }
+    else if (owners[r.id]) { fill = teamColor(owners[r.id]); op = 0.62; }
+    else if (r.t !== 'tower') fill = P['tile-key'];
+    if (op < 1) s += '<path d="' + r.d + '" fill="' + P.tile + '"/>';
+    s += '<path class="' + cls + '" data-rid="' + r.id + '" d="' + r.d + '" fill="' + fill + '" fill-opacity="' + op + '" stroke="' + (owners[r.id] ? 'rgba(0,0,0,.55)' : P['tile-line']) + '" stroke-width="1.1" stroke-linejoin="round"/>';
+  });
+  s += '</g><g pointer-events="none">';
+  MAP.r.forEach(function (r) {
+    if (r.t === 'vault') {
+      var v = 9;
+      s += '<rect x="' + (r.x - v) + '" y="' + (r.y - v) + '" width="' + v * 2 + '" height="' + v * 2 + '" rx="1.5" transform="rotate(45 ' + r.x + ' ' + r.y + ')" fill="' + P.gold + '" stroke="rgba(0,0,0,.7)" stroke-width="1.2"/>';
+      s += '<text x="' + r.x + '" y="' + (r.y + 26) + '" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-weight="700" font-size="11" letter-spacing=".6" fill="' + P.label + '">VAULT</text>';
+    } else if (r.t === 'post') {
+      var p = 6.5;
+      s += '<rect x="' + (r.x - p) + '" y="' + (r.y - p) + '" width="' + p * 2 + '" height="' + p * 2 + '" rx="1.5" fill="' + P.amber + '" stroke="rgba(0,0,0,.7)" stroke-width="1.1"/>';
+      s += '<text x="' + r.x + '" y="' + (r.y + 19) + '" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-weight="700" font-size="9.5" letter-spacing=".5" fill="' + P.label + '">POST</text>';
+    } else if (r.t === 'tower') {
+      if (nums) s += '<text x="' + r.x + '" y="' + r.y + '" text-anchor="middle" dominant-baseline="central" font-family="Geist Mono, monospace" font-weight="500" font-size="11" fill="' + P.label + '">' + r.lb + '</text>';
+      else s += '<circle cx="' + r.x + '" cy="' + r.y + '" r="2.6" fill="' + P.label + '" fill-opacity=".7"/>';
+    }
+  });
+  return s + '</g>';
+}
+
+/* ---------- items ---------- */
+function ctrl(it) { return it.cx != null ? { x: it.cx, y: it.cy } : { x: (it.x + it.x2) / 2, y: (it.y + it.y2) / 2 }; }
+function arrowMid(it) { var c = ctrl(it); return { x: .25 * it.x + .5 * c.x + .25 * it.x2, y: .25 * it.y + .5 * c.y + .25 * it.y2 }; }
+function isLight(hex) { var n = parseInt(String(hex).slice(1), 16); return ((n >> 16) * .299 + ((n >> 8) & 255) * .587 + (n & 255) * .114) > 170; }
+function lbl(x, y, text, size) {
+  if (!text) return '';
+  return '<text x="' + x + '" y="' + y + '" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-weight="700" font-size="' + S(size) + '" fill="#fff" stroke="' + HALO + '" stroke-width="' + S(size * .3) + '" stroke-linejoin="round" paint-order="stroke">' + esc(text) + '</text>';
+}
+function taggedPlayers(it) { if (!it.players || !it.players.length || !plan.roster) return []; var by = {}; R().players.forEach(function (p) { by[p.id] = p; }); return it.players.map(function (id) { return by[id]; }).filter(Boolean); }
+function tagLine(it) { var ps = taggedPlayers(it); if (!ps.length) return ''; var n = ps.slice(0, 3).map(function (p) { return p.name; }).join(', '); return ps.length > 3 ? n + ' +' + (ps.length - 3) : n; }
+function itemSVG_classic(it, selected, ghost) {
+  var col = it.color || '#ffffff', s = '', tm = it.team && plan.roster ? rteam(it.team) : null, L = ghost ? '' : (it.label || (tm ? tm.name : ''));
+  if (it.type === 'arrow' || it.type === 'line') {
+    var isLine = it.type === 'line';
+    var c = ctrl(it), tx = it.x2 - c.x, ty = it.y2 - c.y, tl = Math.hypot(tx, ty);
+    if (tl < .01) { tx = it.x2 - it.x; ty = it.y2 - it.y; tl = Math.hypot(tx, ty) || 1; }
+    tx /= tl; ty /= tl;
+    var hl = isLine ? 0 : S(13), hw = S(10), bx = it.x2 - tx * hl * .8, by = it.y2 - ty * hl * .8;
+    var d = 'M' + it.x + ' ' + it.y + ' Q' + c.x + ' ' + c.y + ' ' + bx + ' ' + by;
+    var head = 'M' + it.x2 + ' ' + it.y2 + 'L' + (it.x2 - tx * hl - ty * hw / 2) + ' ' + (it.y2 - ty * hl + tx * hw / 2) + 'L' + (it.x2 - tx * hl + ty * hw / 2) + ' ' + (it.y2 - ty * hl - tx * hw / 2) + 'Z';
+    var dash = it.dash ? ' stroke-dasharray="' + S(9) + ' ' + S(6) + '"' : '';
+    s += '<path d="' + d + '" fill="none" stroke="transparent" stroke-width="' + S(16) + '" pointer-events="stroke"/>';
+    s += '<path d="' + d + '" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="' + S(5.5) + '" stroke-linecap="round"' + dash + '/>';
+    s += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + S(3) + '" stroke-linecap="round"' + dash + '/>';
+    if (!isLine) s += '<path d="' + head + '" fill="' + col + '" stroke="rgba(0,0,0,.45)" stroke-width="' + S(1.2) + '" stroke-linejoin="round"/>';
+    var m = arrowMid(it), TL = ghost ? '' : tagLine(it); if (L) s += lbl(m.x, m.y - S(7), L, 11.5); if (TL) s += lbl(m.x, m.y + (L ? S(8) : -S(7)), TL, 10);
+  } else if (it.type === 'city' || it.type === 'reinforce' || it.type === 'attack') {
+    var r = S(9), cy = it.y - r * 1.55;
+    var pin = 'M' + it.x + ' ' + it.y + ' L' + (it.x - r * .62) + ' ' + (cy + r * .8) + ' A' + r + ' ' + r + ' 0 1 1 ' + (it.x + r * .62) + ' ' + (cy + r * .8) + 'Z';
+    if (selected) s += '<circle cx="' + it.x + '" cy="' + cy + '" r="' + (r + S(5)) + '" fill="none" stroke="#7ea0ff" stroke-width="' + S(1.8) + '" stroke-dasharray="' + S(3) + ' ' + S(2.5) + '"/>';
+    s += '<path d="' + pin + '" fill="' + col + '" stroke="rgba(0,0,0,.7)" stroke-width="' + S(1.4) + '" stroke-linejoin="round"/>';
+    var gs = r * 1.45 / 24, ink = isLight(col) ? '#14181E' : '#FFFFFF';
+    s += '<path transform="translate(' + (it.x - r * .725) + ' ' + (cy - r * .725) + ') scale(' + gs.toFixed(4) + ')" d="' + G[it.type] + '" fill="none" stroke="' + ink + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>';
+    var TL2 = ghost ? '' : tagLine(it); if (L) s += lbl(it.x, it.y + S(12), L, 11.5); if (TL2) s += lbl(it.x, it.y + S(L ? 24 : 12), TL2, 10);
+  } else if (it.type === 'label') {
+    var fs = 14 * (it.size || 1);
+    s += '<text x="' + it.x + '" y="' + it.y + '" text-anchor="middle" dominant-baseline="central" font-family="Geist, Arial, sans-serif" font-weight="700" font-size="' + S(fs) + '" fill="' + col + '" stroke="' + HALO + '" stroke-width="' + S(fs * .28) + '" stroke-linejoin="round" paint-order="stroke">' + esc(it.label || 'Text') + '</text>';
+    var TL3 = ghost ? '' : tagLine(it); if (TL3) s += lbl(it.x, it.y + S(fs * .75 + 11), TL3, 10);
+    if (selected) { var w = Math.max(24, (it.label || 'Text').length * fs * .55); s += '<rect x="' + (it.x - S(w / 2 + 5)) + '" y="' + (it.y - S(fs * .75)) + '" width="' + S(w + 10) + '" height="' + S(fs * 1.5) + '" rx="' + S(3) + '" fill="none" stroke="#7ea0ff" stroke-width="' + S(1.4) + '" stroke-dasharray="' + S(3) + ' ' + S(2.5) + '"/>'; }
+  } else if (it.type === 'circle') {
+    s += '<circle cx="' + it.x + '" cy="' + it.y + '" r="' + it.r + '" fill="' + col + '" fill-opacity=".12" stroke="rgba(0,0,0,.4)" stroke-width="' + S(4.5) + '"/>';
+    s += '<circle cx="' + it.x + '" cy="' + it.y + '" r="' + it.r + '" fill="none" stroke="' + col + '" stroke-width="' + S(2.4) + '"' + (it.dash ? ' stroke-dasharray="' + S(8) + ' ' + S(5) + '"' : '') + '/>';
+    var TL4 = ghost ? '' : tagLine(it); if (L) s += lbl(it.x, it.y - it.r - S(6), L, 11.5); if (TL4) s += lbl(it.x, it.y + it.r + S(13), TL4, 10);
+  } else if (it.type === 'rect' || it.type === 'square') {
+    var a = 'x="' + it.x + '" y="' + it.y + '" width="' + it.w + '" height="' + it.h + '" rx="' + S(2) + '"';
+    s += '<rect ' + a + ' fill="' + col + '" fill-opacity=".12" stroke="rgba(0,0,0,.4)" stroke-width="' + S(4.5) + '"/>';
+    s += '<rect ' + a + ' fill="none" stroke="' + col + '" stroke-width="' + S(2.4) + '"' + (it.dash ? ' stroke-dasharray="' + S(8) + ' ' + S(5) + '"' : '') + '/>';
+    var TL5 = ghost ? '' : tagLine(it); if (L) s += lbl(it.x + it.w / 2, it.y - S(6), L, 11.5); if (TL5) s += lbl(it.x + it.w / 2, it.y + it.h + S(13), TL5, 10);
+  }
+  return s;
+}
+function handlesSVG(it) {
+  var hs = [];
+  if (it.type === 'arrow' || it.type === 'line') { var m = arrowMid(it); hs = [['start', it.x, it.y], ['end', it.x2, it.y2], ['bend', m.x, m.y]]; }
+  else if (it.type === 'circle') hs = [['radius', it.x + it.r, it.y]];
+  else if (it.type === 'rect' || it.type === 'square') hs = [['corner', it.x + it.w, it.y + it.h]];
+  return hs.map(function (h) {
+    var b = h[0] === 'bend';
+    return '<circle data-handle="' + h[0] + '" cx="' + h[1] + '" cy="' + h[2] + '" r="' + S(b ? 4.5 : 5.5) + '" fill="' + (b ? '#7ea0ff' : '#fff') + '" stroke="#111" stroke-width="' + S(1.5) + '"/>' +
+      '<circle data-handle="' + h[0] + '" cx="' + h[1] + '" cy="' + h[2] + '" r="' + S(14) + '" fill="transparent"/>';
+  }).join('');
+}
+function itemsSVG(phase, prev, sel) {
+  var s = '';
+  if (prev) s += '<g opacity=".3" pointer-events="none">' + prev.items.map(function (it) { return itemSVG(it, false, true); }).join('') + '</g>';
+  s += '<g class="items">';
+  phase.items.forEach(function (it) { s += '<g data-item="' + it.id + '">' + itemSVG(it, it.id === sel, false) + '</g>'; });
+  s += '</g>';
+  var si = sel && findIn(phase, sel);
+  if (si) s += '<g>' + handlesSVG(si) + '</g>';
+  return s;
+}
+function findIn(phase, id) { for (var i = 0; i < phase.items.length; i++) if (phase.items[i].id === id) return phase.items[i]; return null; }
+
+/* ---------- looks: Night Ops and Command (preview) ---------- */
+var LOOKS = { ops: 'Night Ops', cmd: 'Command', classic: 'Current' };
+var LK = {
+  ops: { bg: '#12161C', tile: '#1A1F27', line: '#2B323D', spawn: '#151A21', key: '#1E222A', label: '#6B7482', gold: '#F4BF41', post: '#D49A45', ink: '#0E1116', text: '#E8EAEE', pill: 'rgba(14,17,22,.9)', sel: '#7EA0FF' },
+  cmd: { bg: '#0B111C', tile: '#0F1726', line: '#1F2B40', spawn: '#0C1320', key: '#111A2A', label: '#55658A', gold: '#F4BF41', post: '#D49A45', ink: '#0B1220', text: '#E8EAEE', pill: 'rgba(11,18,32,.94)', sel: '#7EA0FF' }
+};
+st.look = 'ops';
+try { var lk0 = localStorage.getItem('gm-look'); if (LOOKS[lk0]) st.look = lk0; } catch (e) {}
+function lookPal() { return LK[st.look] || LK.ops; }
+
+var twCtx = null, twCache = {};
+function tw(text, size, weight) {
+  var k = weight + '|' + text; if (twCache[k] == null) {
+    if (!twCtx) twCtx = document.createElement('canvas').getContext('2d');
+    twCtx.font = weight + ' 100px Geist, Inter, Arial, sans-serif';
+    twCache[k] = twCtx.measureText(text).width / 100;
+  }
+  return twCache[k] * size;
+}
+function glyphAt(kind, cx, cy, size, color, sw) {
+  var k = size / 24;
+  return '<path transform="translate(' + (cx - size / 2).toFixed(2) + ' ' + (cy - size / 2).toFixed(2) + ') scale(' + k.toFixed(4) + ')" d="' + (G[kind] || G.note) + '" fill="none" stroke="' + color + '" stroke-width="' + (sw || 2.6) + '" stroke-linecap="round" stroke-linejoin="round"/>';
+}
+if (!G.note) G.note = 'M6 6.5h12M6 11h12M6 15.5h7';
+
+function lookDefs(L) {
+  var s = '<defs><pattern id="gm-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="' + L.bg + '"/><line x1="0" y1="0" x2="0" y2="6" stroke="' + L.line + '" stroke-width="1.4"/></pattern>';
+  plan.teams.forEach(function (t, i) {
+    s += '<pattern id="gm-cl' + i + '" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="' + t.color + '" fill-opacity=".16"/><line x1="0" y1="0" x2="0" y2="5" stroke="' + t.color + '" stroke-opacity=".42" stroke-width="1.2"/></pattern>';
+  });
+  s += '<filter id="gm-sh" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="' + S(1.2) + '" stdDeviation="' + S(1.4) + '" flood-color="#000" flood-opacity=".55"/></filter>';
+  s += '<filter id="gm-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="' + S(2.4) + '"/></filter></defs>';
+  return s;
+}
+function teamIdx(id) { for (var i = 0; i < plan.teams.length; i++) if (plan.teams[i].id === id) return i; return -1; }
+
+function boardSVG(owners, nums) {
+  if (st.look === 'classic') return boardSVG_classic(owners, nums);
+  var L = lookPal(), cmd = st.look === 'cmd', NS = ' vector-effect="non-scaling-stroke"';
+  var s = lookDefs(L) + '<rect x="' + VB0.x + '" y="' + VB0.y + '" width="' + VB0.w + '" height="' + VB0.h + '" fill="' + L.bg + '"/><g class="terrs">';
+  MAP.r.forEach(function (r) {
+    var fill = L.tile, stroke = L.line, sw = 1;
+    if (r.t === 'spawn') fill = L.spawn;
+    else if (r.t === 'blocked') fill = 'url(#gm-hatch)';
+    else if (r.t === 'post') fill = L.key;
+    else if (r.t === 'vault') { fill = cmd ? '#141510' : '#1C1A13'; stroke = L.gold; sw = 1.4; }
+    s += '<path d="' + r.d + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + sw + '" stroke-linejoin="round"' + NS + '/>';
+  });
+  // claims and the chosen start on top, so their edges read cleanly
+  MAP.r.forEach(function (r) {
+    var cid = r.t === 'spawn' ? (plan.start === r.c ? r.c : null) : owners[r.id];
+    if (!cid || r.t === 'blocked') return;
+    var c = teamColor(cid), i = teamIdx(cid);
+    if (cmd && i >= 0) s += '<path d="' + r.d + '" fill="url(#gm-cl' + i + ')" stroke="' + c + '" stroke-opacity=".9" stroke-width="1.2" stroke-linejoin="round"' + NS + '/>';
+    else s += '<path d="' + r.d + '" fill="' + c + '" fill-opacity="' + (r.t === 'spawn' ? .26 : .2) + '" stroke="' + c + '" stroke-opacity=".85" stroke-width="1.6" stroke-linejoin="round"' + NS + '/>';
+  });
+  s += '</g><g pointer-events="none">';
+  // structure marks and labels keep the same size on screen at any zoom, like the markers
+  MAP.r.forEach(function (r) {
+    if (r.t === 'vault') {
+      var v = 7.5 * F;
+      if (cmd) s += '<rect x="' + (r.x - v) + '" y="' + (r.y - v) + '" width="' + 2 * v + '" height="' + 2 * v + '" rx="' + S(1) + '" transform="rotate(45 ' + r.x + ' ' + r.y + ')" fill="none" stroke="' + L.gold + '" stroke-width="' + S(1.8) + '"/><circle cx="' + r.x + '" cy="' + r.y + '" r="' + S(2.4) + '" fill="' + L.gold + '"/>';
+      else s += '<rect x="' + (r.x - v) + '" y="' + (r.y - v) + '" width="' + 2 * v + '" height="' + 2 * v + '" rx="' + S(2) + '" transform="rotate(45 ' + r.x + ' ' + r.y + ')" fill="' + L.gold + '"/>';
+      s += '<text x="' + r.x + '" y="' + (r.y + 22 * F) + '" text-anchor="middle" font-family="' + (cmd ? 'Geist Mono, monospace' : 'Geist, Arial, sans-serif') + '" font-weight="600" font-size="' + S(10) + '" letter-spacing="' + S(1.4) + '" fill="' + L.gold + '" fill-opacity=".85">VAULT</text>';
+    } else if (r.t === 'post') {
+      var q = 5.5 * F;
+      if (cmd) s += '<rect x="' + (r.x - q) + '" y="' + (r.y - q) + '" width="' + 2 * q + '" height="' + 2 * q + '" fill="none" stroke="' + L.post + '" stroke-width="' + S(1.6) + '"/>';
+      else s += '<rect x="' + (r.x - q) + '" y="' + (r.y - q) + '" width="' + 2 * q + '" height="' + 2 * q + '" rx="' + S(2.5) + '" fill="' + L.post + '"/>';
+    } else if (r.t === 'tower') {
+      if (nums) s += '<text x="' + r.x + '" y="' + r.y + '" text-anchor="middle" dominant-baseline="central" font-family="Geist Mono, monospace" font-weight="500" font-size="' + S(12) + '" fill="' + L.label + '">' + r.lb + '</text>';
+      else s += '<circle cx="' + r.x + '" cy="' + r.y + '" r="' + S(2.6) + '" fill="' + L.label + '"/>';
+    }
+  });
+  return s + '</g>';
+}
+
+/* label pill (Night Ops) and chip (Command) geometry, shared by drawing and hit testing */
+var PIN = { city: 1, reinforce: 1, attack: 1 };
+function tagShort(it) { var ps = taggedPlayers(it); return ps; }
+function opsPill(it) {
+  var tm = it.team && plan.roster ? rteam(it.team) : null, ps = tagShort(it);
+  var text = it.type === 'label' ? (it.label || 'Text') : (it.label || (tm ? tm.name : '') || (ps.length ? ps[0].name + (ps.length > 1 ? ' +' + (ps.length - 1) : '') : ''));
+  if (!text) return null;
+  var big = it.type === 'label', fs = (big ? 12 : 10.5) * (big ? (it.size || 1) : 1), h = fs * 1.75;
+  var count = (it.label || tm) && ps.length ? ps.length : 0, dot = (it.type === 'arrow' || it.type === 'line') ? it.color : null;
+  var w = tw(text, fs, 600) + fs * 1.5 + (dot ? fs * .9 : 0) + (count ? h * .95 : 0) + (big ? fs * .4 : 0);
+  var x, y;
+  if (PIN[it.type]) { x = it.x + 17 * F; y = it.y - h * F / 2; }
+  else if (big) { x = it.x - w * F / 2; y = it.y - h * F / 2; }
+  else if (it.type === 'arrow' || it.type === 'line') { var m = arrowMid(it); x = m.x + 8 * F; y = m.y - h * F - 2 * F; }
+  else if (it.type === 'circle') { x = it.x - it.r * .72; y = it.y - it.r * .72 - h * F - 3 * F; }
+  else { x = it.x; y = it.y - h * F - 4 * F; }
+  return { x: x, y: y, w: w * F, h: h * F, fs: fs * F, text: text, count: count, dot: dot, big: big };
+}
+function cmdChip(it) {
+  var tm = it.team && plan.roster ? rteam(it.team) : null, ps = tagShort(it);
+  var text = it.type === 'label' ? (it.label || 'Text') : (it.label || (tm ? tm.name : '') || '');
+  var big = it.type === 'label', icon = PIN[it.type] || big;
+  if (!text && !ps.length && !icon) return null;
+  var fs = 10 * (big ? (it.size || 1) : 1), h = fs * 1.8, iw = icon ? h : 0, ini = Math.min(ps.length, 3);
+  var w = iw + (text ? tw(text, fs, 600) + fs * 1.2 : fs * .4) + (ini ? ini * h * .5 + h * .45 + (ps.length > 3 ? fs * 1.4 : 0) : 0);
+  var x, y;
+  if (PIN[it.type]) { x = it.x + 9 * F; y = it.y - 12 * F - h * F; }
+  else if (big) { x = it.x - w * F / 2; y = it.y - h * F / 2; }
+  else if (it.type === 'arrow' || it.type === 'line') { var c = ctrl(it); var m = it.cx != null ? c : arrowMid(it); x = m.x + 10 * F; y = m.y - h * F - 2 * F; }
+  else if (it.type === 'circle') { x = it.x - w * F / 2; y = it.y - it.r * .78 - h * F - 6 * F; }
+  else { x = it.x; y = it.y - h * F - 6 * F; }
+  return { x: x, y: y, w: w * F, h: h * F, fs: fs * F, iw: iw * F, text: text, ps: ps, icon: icon, big: big };
+}
+function drawOpsPill(g, sel) {
+  var r = g.h / 2, s = '<rect x="' + g.x + '" y="' + g.y + '" width="' + g.w + '" height="' + g.h + '" rx="' + r + '" fill="' + lookPal().pill + '" stroke="' + (sel ? lookPal().sel : 'rgba(255,255,255,.12)') + '" stroke-width="' + S(sel ? 1.4 : 1) + '"/>';
+  var tx = g.x + g.fs * .75;
+  if (g.dot) { s += '<circle cx="' + (g.x + g.fs * .8) + '" cy="' + (g.y + r) + '" r="' + (g.fs * .3) + '" fill="' + g.dot + '"/>'; tx = g.x + g.fs * 1.55; }
+  if (g.big) s += '<rect x="' + g.x + '" y="' + g.y + '" width="' + (g.fs * .26) + '" height="' + g.h + '" rx="' + (g.fs * .13) + '" fill="#E8EAEE" fill-opacity=".55"/>', tx = g.x + g.fs * .95;
+  s += '<text x="' + tx + '" y="' + (g.y + r + g.fs * .36) + '" font-family="Geist, Inter, Arial, sans-serif" font-size="' + g.fs + '" font-weight="600" fill="#E8EAEE">' + esc(g.text) + '</text>';
+  if (g.count) { var cx = g.x + g.w - r; s += '<circle cx="' + cx + '" cy="' + (g.y + r) + '" r="' + (r * .74) + '" fill="#2E3542"/><text x="' + cx + '" y="' + (g.y + r + g.fs * .3) + '" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-size="' + (g.fs * .8) + '" font-weight="700" fill="#E8EAEE">' + g.count + '</text>'; }
+  return s;
+}
+function drawCmdChip(g, kind, col, sel) {
+  var L = lookPal(), rr = 4 * F, s = '<rect x="' + g.x + '" y="' + g.y + '" width="' + g.w + '" height="' + g.h + '" rx="' + rr + '" fill="' + L.pill + '" stroke="' + (sel ? L.sel : col) + '" stroke-opacity=".95" stroke-width="' + S(sel ? 1.6 : 1) + '"/>';
+  var tx = g.x + g.fs * .6;
+  if (g.icon) {
+    var ic = kind === 'label' ? '#8B93A1' : col;
+    s += '<path d="M' + (g.x + rr) + ' ' + g.y + 'H' + (g.x + g.iw) + 'V' + (g.y + g.h) + 'H' + (g.x + rr) + 'A' + rr + ' ' + rr + ' 0 0 1 ' + g.x + ' ' + (g.y + g.h - rr) + 'V' + (g.y + rr) + 'A' + rr + ' ' + rr + ' 0 0 1 ' + (g.x + rr) + ' ' + g.y + 'Z" fill="' + ic + '"/>';
+    s += glyphAt(kind === 'label' ? 'note' : kind, g.x + g.iw / 2, g.y + g.h / 2, g.h * .62, kind === 'label' || isLight(ic) ? L.ink : '#FFFFFF', 2.8);
+    tx = g.x + g.iw + g.fs * .55;
+  }
+  if (g.text) s += '<text x="' + tx + '" y="' + (g.y + g.h / 2 + g.fs * .36) + '" font-family="Geist, Inter, Arial, sans-serif" font-size="' + g.fs + '" font-weight="600" fill="#E8EAEE">' + esc(g.text) + '</text>';
+  var n = Math.min(g.ps.length, 3);
+  if (n) {
+    var rad = g.h * .3, step = g.h * .5, extra = g.ps.length > 3 ? g.fs * 1.4 : 0, x0 = g.x + g.w - extra - g.h * .35 - (n - 1) * step;
+    for (var i = 0; i < n; i++) {
+      var cx = x0 + i * step;
+      s += '<circle cx="' + cx + '" cy="' + (g.y + g.h / 2) + '" r="' + rad + '" fill="#2E3542" stroke="' + L.ink + '" stroke-width="' + S(1.3) + '"/><text x="' + cx + '" y="' + (g.y + g.h / 2 + rad * .42) + '" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-size="' + (rad * 1.15) + '" font-weight="700" fill="#E8EAEE">' + esc((g.ps[i].name || '?').charAt(0).toUpperCase()) + '</text>';
+    }
+    if (extra) s += '<text x="' + (g.x + g.w - extra * .55) + '" y="' + (g.y + g.h / 2 + g.fs * .32) + '" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-size="' + (g.fs * .85) + '" font-weight="600" fill="#8B93A1">+' + (g.ps.length - 3) + '</text>';
+  }
+  return s;
+}
+
+function itemSVG(it, selected, ghost) {
+  if (st.look === 'classic') return itemSVG_classic(it, selected, ghost);
+  var cmd = st.look === 'cmd', L = lookPal(), col = it.color || '#ffffff', s = '';
+  var dash;
+  if (it.type === 'arrow' || it.type === 'line') {
+    var isLine = it.type === 'line', c = ctrl(it), tx = it.x2 - c.x, ty = it.y2 - c.y, tl = Math.hypot(tx, ty);
+    if (tl < .01) { tx = it.x2 - it.x; ty = it.y2 - it.y; tl = Math.hypot(tx, ty) || 1; }
+    tx /= tl; ty /= tl;
+    var hl = isLine ? 0 : (cmd ? 9 : 10) * F, hw = (cmd ? 11 : 8) * F;
+    var bx = it.x2 - tx * hl * (cmd ? .5 : .65), by = it.y2 - ty * hl * (cmd ? .5 : .65);
+    var d = 'M' + it.x + ' ' + it.y + ' Q' + c.x + ' ' + c.y + ' ' + bx + ' ' + by;
+    if (cmd) {
+      dash = it.dash ? ' stroke-dasharray="' + S(3) + ' ' + S(4) + '"' : '';
+      s += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-opacity=".32" stroke-width="' + S(5) + '" stroke-linecap="round"/>';
+      s += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + S(1.7) + '" stroke-linecap="round"' + dash + '/>';
+      if (!isLine && !ghost) {   // chevrons along the route show direction
+        var len = 0, prev = { x: it.x, y: it.y }, pts = [];
+        for (var i = 1; i <= 40; i++) { var t = i / 40, u = 1 - t, q = { x: u * u * it.x + 2 * u * t * c.x + t * t * it.x2, y: u * u * it.y + 2 * u * t * c.y + t * t * it.y2 }; len += Math.hypot(q.x - prev.x, q.y - prev.y); pts.push({ p: q, l: len, a: Math.atan2(q.y - prev.y, q.x - prev.x) }); prev = q; }
+        var gap = 28 * F;
+        for (var k = gap; k < len - hl * 1.6; k += gap) {
+          var pp = pts.filter(function (z) { return z.l >= k; })[0]; if (!pp) break;
+          s += '<path d="M' + (-3.2 * F) + ' ' + (-3.4 * F) + ' L' + (1.6 * F) + ' 0 L' + (-3.2 * F) + ' ' + (3.4 * F) + '" transform="translate(' + pp.p.x.toFixed(1) + ' ' + pp.p.y.toFixed(1) + ') rotate(' + (pp.a * 180 / Math.PI).toFixed(1) + ')" fill="none" stroke="#E8EAEE" stroke-opacity=".85" stroke-width="' + S(1.5) + '" stroke-linecap="round" stroke-linejoin="round"/>';
+        }
+      }
+      if (!isLine) s += '<path d="M' + it.x2 + ' ' + it.y2 + 'L' + (it.x2 - tx * hl - ty * hw / 2) + ' ' + (it.y2 - ty * hl + tx * hw / 2) + 'L' + (it.x2 - tx * hl + ty * hw / 2) + ' ' + (it.y2 - ty * hl - tx * hw / 2) + 'Z" fill="' + col + '"/>';
+    } else {
+      dash = it.dash ? ' stroke-dasharray="' + S(6) + ' ' + S(5) + '"' : '';
+      s += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-opacity=".45" stroke-width="' + S(7) + '" stroke-linecap="round" filter="url(#gm-glow)"' + dash + '/>';
+      s += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + S(2.6) + '" stroke-linecap="round"' + dash + '/>';
+      if (!isLine) {
+        var hx = it.x2, hy = it.y2;
+        s += '<path d="M' + hx + ' ' + hy + 'L' + (hx - tx * hl - ty * hw / 2) + ' ' + (hy - ty * hl + tx * hw / 2) + 'L' + (hx - tx * hl * .6) + ' ' + (hy - ty * hl * .6) + 'L' + (hx - tx * hl + ty * hw / 2) + ' ' + (hy - ty * hl - tx * hw / 2) + 'Z" fill="' + col + '" stroke="' + col + '" stroke-width="' + S(1) + '" stroke-linejoin="round"/>';
+      }
+    }
+    if (selected) s += '<path d="' + d + '" fill="none" stroke="' + L.sel + '" stroke-opacity=".55" stroke-width="' + S(cmd ? 7 : 9) + '" stroke-linecap="round"/>';
+  } else if (PIN[it.type]) {
+    if (cmd) {
+      s += '<line x1="' + it.x + '" y1="' + it.y + '" x2="' + (it.x + 9 * F) + '" y2="' + (it.y - 12 * F) + '" stroke="#E8EAEE" stroke-opacity=".7" stroke-width="' + S(1) + '"/>';
+      s += '<circle cx="' + it.x + '" cy="' + it.y + '" r="' + S(3) + '" fill="' + col + '" stroke="#E8EAEE" stroke-width="' + S(1.2) + '"/>';
+    } else {
+      var rb = 11.5 * F;
+      if (selected) s += '<circle cx="' + it.x + '" cy="' + it.y + '" r="' + (rb + 4.5 * F) + '" fill="none" stroke="' + L.sel + '" stroke-width="' + S(1.8) + '"/>';
+      s += '<circle cx="' + it.x + '" cy="' + it.y + '" r="' + rb + '" fill="' + col + '" stroke="' + L.ink + '" stroke-width="' + S(2) + '" filter="url(#gm-sh)"/>';
+      s += glyphAt(it.type, it.x, it.y, 14 * F, isLight(col) ? '#14181E' : '#FFFFFF', 2.6);
+    }
+  } else if (it.type === 'circle' || it.type === 'rect' || it.type === 'square') {
+    var x0, y0, x1, y1, isC = it.type === 'circle';
+    if (isC) { x0 = it.x - it.r; y0 = it.y - it.r; x1 = it.x + it.r; y1 = it.y + it.r; } else { x0 = it.x; y0 = it.y; x1 = it.x + it.w; y1 = it.y + it.h; }
+    if (cmd) {
+      var inset = isC ? it.r * (1 - .78) : 0, bl = Math.max(10 * F, Math.min(x1 - x0, y1 - y0) * .22), bcol = selected ? L.sel : col;
+      if (isC) s += '<circle cx="' + it.x + '" cy="' + it.y + '" r="' + it.r + '" fill="' + col + '" fill-opacity=".05"' + (it.dash ? ' stroke="' + col + '" stroke-opacity=".35" stroke-width="' + S(1) + '" stroke-dasharray="' + S(2) + ' ' + S(4) + '"' : '') + '/>';
+      else s += '<rect x="' + x0 + '" y="' + y0 + '" width="' + (x1 - x0) + '" height="' + (y1 - y0) + '" fill="' + col + '" fill-opacity=".05"' + (it.dash ? ' stroke="' + col + '" stroke-opacity=".35" stroke-width="' + S(1) + '" stroke-dasharray="' + S(2) + ' ' + S(4) + '"' : '') + '/>';
+      [[x0 + inset, y0 + inset, 1, 1], [x1 - inset, y0 + inset, -1, 1], [x0 + inset, y1 - inset, 1, -1], [x1 - inset, y1 - inset, -1, -1]].forEach(function (q) {
+        s += '<path d="M' + q[0] + ' ' + (q[1] + q[3] * bl) + ' L' + q[0] + ' ' + q[1] + ' L' + (q[0] + q[2] * bl) + ' ' + q[1] + '" fill="none" stroke="' + bcol + '" stroke-width="' + S(2) + '" stroke-linecap="round" stroke-linejoin="round"/>';
+      });
+    } else {
+      var da = it.dash ? ' stroke-dasharray="' + S(5) + ' ' + S(4) + '"' : '';
+      var sc = selected ? L.sel : col;
+      if (isC) s += '<circle cx="' + it.x + '" cy="' + it.y + '" r="' + it.r + '" fill="' + col + '" fill-opacity=".07" stroke="' + sc + '" stroke-opacity=".85" stroke-width="' + S(1.6) + '"' + da + '/>';
+      else s += '<rect x="' + x0 + '" y="' + y0 + '" width="' + (x1 - x0) + '" height="' + (y1 - y0) + '" rx="' + S(6) + '" fill="' + col + '" fill-opacity=".07" stroke="' + sc + '" stroke-opacity=".85" stroke-width="' + S(1.6) + '"' + da + '/>';
+    }
+  }
+  if (!ghost) {
+    if (cmd) { var gc = cmdChip(it); if (gc) s += drawCmdChip(gc, it.type, col, selected && (PIN[it.type] || it.type === 'label')); }
+    else { var gp = opsPill(it); if (gp) s += drawOpsPill(gp, selected && it.type === 'label'); }
+  }
+  return s;
+}
+function lookDist(it, p) {
+  if (st.look === 'classic') return null;
+  var g = st.look === 'cmd' ? cmdChip(it) : opsPill(it), dBox = Infinity;
+  if (g) dBox = Math.hypot(Math.max(0, g.x - p.x, p.x - (g.x + g.w)), Math.max(0, g.y - p.y, p.y - (g.y + g.h)));
+  if (PIN[it.type]) {
+    var core = Math.max(0, Math.hypot(p.x - it.x, p.y - it.y) - (st.look === 'cmd' ? 4 : 11.5) * F);
+    return Math.min(core, dBox);
+  }
+  if (it.type === 'label') return g ? dBox : Infinity;
+  return null;
+}
+function keyIcon(kind, color) {
+  if (st.look === 'classic') return keyIcon_classic(kind, color);
+  var c = color || '#3E8CD7', cmd = st.look === 'cmd', o = '<svg viewBox="0 0 22 22">', e = '</svg>';
+  function g(k, cx, cy, sz, ink) { return '<path transform="translate(' + (cx - sz / 2) + ' ' + (cy - sz / 2) + ') scale(' + (sz / 24) + ')" d="' + (G[k] || G.note) + '" fill="none" stroke="' + ink + '" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>'; }
+  if (PIN[kind]) return cmd ? o + '<rect x="2.5" y="5" width="17" height="12" rx="2.5" fill="' + c + '"/>' + g(kind, 11, 11, 9, '#fff') + e
+    : o + '<circle cx="11" cy="11" r="8" fill="' + c + '" stroke="#0E1116" stroke-width="1.5"/>' + g(kind, 11, 11, 10, '#fff') + e;
+  if (kind === 'arrow' || kind === 'dash') {
+    var da = kind === 'dash' ? (cmd ? ' stroke-dasharray="2 2.5"' : ' stroke-dasharray="3.5 2.5"') : '';
+    return cmd ? o + '<path d="M3 17 L15 7" stroke="' + c + '" stroke-width="1.6"' + da + '/><path d="M19.5 3.5 L12.6 5.4 L16.6 9.5Z" fill="' + c + '"/>' + (kind === 'arrow' ? '<path d="M-2 -2.2 L1 0 L-2 2.2" transform="translate(9 12) rotate(-40)" fill="none" stroke="#E8EAEE" stroke-width="1.2"/>' : '') + e
+      : o + '<path d="M3 17 Q8 6 15 7" fill="none" stroke="' + c + '" stroke-width="2.2" stroke-linecap="round"' + da + '/><path d="M20 7 L13.5 4 L15.3 7.2 L13.6 10.4Z" fill="' + c + '"/>' + e;
+  }
+  if (kind === 'line') return o + '<path d="M3.5 17 18.5 5" stroke="' + c + '" stroke-width="' + (cmd ? 1.6 : 2.2) + '" stroke-linecap="round"/>' + e;
+  if (kind === 'area') return cmd ? o + '<path d="M4 8V4h4M14 4h4v4M18 14v4h-4M8 18H4v-4" fill="none" stroke="' + c + '" stroke-width="1.6" stroke-linecap="round"/>' + e
+    : o + '<circle cx="11" cy="11" r="7.5" fill="' + c + '" fill-opacity=".1" stroke="' + c + '" stroke-width="1.4" stroke-dasharray="3 2.4"/>' + e;
+  if (kind === 'claimed') return cmd ? o + '<defs><pattern id="kcl" width="3.5" height="3.5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3.5" stroke="' + c + '" stroke-opacity=".6" stroke-width="1"/></pattern></defs><rect x="2" y="4" width="18" height="14" rx="2" fill="url(#kcl)" stroke="' + c + '"/>' + e
+    : o + '<rect x="2" y="4" width="18" height="14" rx="2.5" fill="' + c + '" fill-opacity=".22" stroke="' + c + '" stroke-width="1.4"/>' + e;
+  if (kind === 'text') return cmd ? o + '<rect x="2" y="5" width="18" height="12" rx="2.5" fill="#0B1220" stroke="#8B93A1"/><rect x="2" y="5" width="7" height="12" rx="2.5" fill="#8B93A1"/>' + e
+    : o + '<rect x="2" y="6" width="18" height="10" rx="5" fill="#0E1116" stroke="rgba(255,255,255,.25)"/><rect x="2" y="6" width="2" height="10" rx="1" fill="#E8EAEE" fill-opacity=".6"/><path d="M7 11h9" stroke="#E8EAEE" stroke-width="1.4" stroke-linecap="round"/>' + e;
+  if (kind === 'vault') return cmd ? o + '<rect x="6.5" y="6.5" width="9" height="9" transform="rotate(45 11 11)" fill="none" stroke="#F4BF41" stroke-width="1.6"/><circle cx="11" cy="11" r="1.8" fill="#F4BF41"/>' + e
+    : o + '<rect x="6" y="6" width="10" height="10" rx="1.5" transform="rotate(45 11 11)" fill="#F4BF41"/>' + e;
+  if (kind === 'post') return cmd ? o + '<rect x="6" y="6" width="10" height="10" fill="none" stroke="#D49A45" stroke-width="1.6"/>' + e
+    : o + '<rect x="5.5" y="5.5" width="11" height="11" rx="2.5" fill="#D49A45"/>' + e;
+  if (kind === 'tower') { var L = lookPal(); return o + '<rect x="1.5" y="3.5" width="19" height="15" rx="2" fill="' + L.tile + '" stroke="' + L.line + '"/><text x="11" y="14.6" text-anchor="middle" font-family="Geist Mono, monospace" font-size="8.5" fill="' + L.label + '">2A</text>' + e; }
+  return keyIcon_classic(kind, color);
+}
+
+/* ---------- render ---------- */
+var draft = null;
+function renderMap() {
+  readTokens(); F = liveF();
+  if (!st.cam) fitView();
+  var rs = rectSz(), c = st.cam, vw = rs.w / c.s, vh = rs.h / c.s;
+  var v = st.view = { x: c.cx - vw / 2, y: c.cy - vh / 2, w: vw, h: vh }; $svg.setAttribute('viewBox', v.x + ' ' + v.y + ' ' + v.w + ' ' + v.h);
+  var prev = st.ghost && st.phase > 0 ? plan.phases[st.phase - 1] : null;
+  var s = boardSVG(ph().owners, st.nums) + itemsSVG(ph(), prev, st.sel);
+  if (draft) s += '<g opacity=".85" pointer-events="none">' + itemSVG(draft, false, false) + '</g>';
+  if (st.tool === 'claim' && st.hoverRid && REG[st.hoverRid] && REG[st.hoverRid].t !== 'spawn' && REG[st.hoverRid].t !== 'blocked') s += '<path d="' + REG[st.hoverRid].d + '" fill="none" stroke="' + P.fg + '" stroke-width="' + S(2.4) + '" stroke-linejoin="round"/>';
+  $svg.innerHTML = s;
+  $svg.setAttribute('class', st.tool === 'select' ? 'selecting' : st.tool === 'claim' ? 'claiming' : 'drawing');
+  $wrap.classList.toggle('drawing', st.tool !== 'select' && st.tool !== 'claim'); $wrap.classList.toggle('claiming', st.tool === 'claim');
+}
+function phaseMeta(p) {
+  var n = Object.keys(p.owners).length, m = p.items.length;
+  return m + ' marking' + (m === 1 ? '' : 's') + ' · ' + n + ' claimed';
+}
+function renderPhases() {
+  $('gm-phases').innerHTML = plan.phases.map(function (p, i) {
+    var on = i === st.phase;
+    return '<button class="goal' + (on ? ' sel' : '') + '" data-phase="' + i + '"><span class="ch">Ph.' + (i + 1) + '</span><span><div class="tt">' + esc(p.name) + '</div><div class="meta">' + phaseMeta(p) + '</div></span>' + (on ? '<span class="pill p-live">On map</span>' : '<span></span>') + '</button>';
+  }).join('');
+  var p = ph(), h = '';
+  h += '<div class="field"><label for="gm-ph-name">Phase name</label><input class="input" id="gm-ph-name" maxlength="40" value="' + esc(p.name) + '"></div>';
+  h += '<div class="field"><label for="gm-ph-notes">Orders</label><textarea id="gm-ph-notes" placeholder="Timing, who goes where, rally leaders…">' + esc(p.notes) + '</textarea></div>';
+  if (st.confirm === 'delete') h += '<div class="confirm">Delete “' + esc(p.name) + '”? <button class="btn danger" data-act="phase-del-yes">Delete</button><button class="btn ghost" data-act="confirm-no">Cancel</button></div>';
+  else if (st.confirm === 'clear') h += '<div class="confirm">Remove every marking and claim in this phase? <button class="btn danger" data-act="phase-clear-yes">Clear</button><button class="btn ghost" data-act="confirm-no">Cancel</button></div>';
+  else h += '<div class="row"><button class="btn" data-act="phase-left" ' + (st.phase === 0 ? 'disabled' : '') + ' aria-label="Move earlier">↑</button><button class="btn" data-act="phase-right" ' + (st.phase === plan.phases.length - 1 ? 'disabled' : '') + ' aria-label="Move later">↓</button><button class="btn ghost" data-act="phase-clear">Clear phase</button><button class="btn ghost danger" data-act="phase-del" ' + (plan.phases.length < 2 ? 'disabled' : '') + '>Delete</button></div>';
+  $('gm-phdetail').innerHTML = h;
+}
+function renderTeams() {
+  var counts = {}, o = ph().owners; Object.keys(o).forEach(function (k) { counts[o[k]] = (counts[o[k]] || 0) + 1; });
+  var max = Math.max(1, Math.max.apply(null, plan.teams.map(function (t) { return counts[t.id] || 0; })));
+  var h = '';
+  plan.teams.forEach(function (t, i) {
+    var n = counts[t.id] || 0, posts = Object.keys(o).filter(function (k) { return o[k] === t.id && REG[k] && REG[k].t !== 'tower'; }).length;
+    h += '<div class="al' + (i === st.team ? ' on' : '') + '" data-team-row="' + i + '"><button class="dot" style="background:' + t.color + '" data-team-dot="' + i + '" aria-label="Change ' + esc(t.name) + ' color"></button>' +
+      '<input data-team="' + i + '" value="' + esc(t.name) + '" maxlength="20" aria-label="Team name">' +
+      '<div class="pts">' + n + '<small>' + posts + ' key site' + (posts === 1 ? '' : 's') + '</small></div>' +
+      '<div class="bar"><i style="width:' + (n / max * 100) + '%;background:' + t.color + '"></i></div></div>';
+    if (st.picker === i) h += '<div class="swatches">' + PALETTE.map(function (c) { return '<button style="background:' + c + '" data-team-color="' + c + '" aria-pressed="' + (c.toLowerCase() === t.color.toLowerCase()) + '" aria-label="' + c + '"></button>'; }).join('') + '</div>';
+  });
+  $('gm-teams').innerHTML = h;
+  var CORNER = { red: 'Top left', teal: 'Top right', yellow: 'Bottom left', blue: 'Bottom right' };
+  $('gm-start').innerHTML = '<span class="note">Starting position</span><div class="spbtns">' +
+    ['red', 'teal', 'yellow', 'blue'].map(function (c) { var t = teamById(c), on = plan.start === c; return '<button data-start="' + c + '" aria-pressed="' + on + '" title="' + CORNER[c] + '"><i style="background:' + (t ? t.color : '#888') + '"></i>' + CORNER[c] + '</button>'; }).join('') +
+    '<button data-start="" aria-pressed="' + !plan.start + '">None</button></div>';
+}
+function keyIcon_classic(kind, color) {
+  var c = color || '#3E8CD7';
+  if (kind === 'city' || kind === 'reinforce' || kind === 'attack') {
+    return '<svg viewBox="0 0 22 22"><path d="M11 20.5 L6.8 12.6 A6.6 6.6 0 1 1 15.2 12.6Z" fill="' + c + '" stroke="rgba(0,0,0,.6)" stroke-width="1"/><path transform="translate(6.2 3.6) scale(.4)" d="' + G[kind] + '" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+  if (kind === 'line') return '<svg viewBox="0 0 22 22"><path d="M3.5 17 18.5 5" fill="none" stroke="' + c + '" stroke-width="2.4" stroke-linecap="round"/></svg>';
+  if (kind === 'arrow' || kind === 'dash') return '<svg viewBox="0 0 22 22"><path d="M3 15 Q9 6 15.5 9" fill="none" stroke="' + c + '" stroke-width="2.4" stroke-linecap="round"' + (kind === 'dash' ? ' stroke-dasharray="3.4 2.6"' : '') + '/><path d="M19.5 10.5 13.6 12.4 15.4 6.6Z" fill="' + c + '"/></svg>';
+  if (kind === 'text') return '<svg viewBox="0 0 22 22"><text x="11" y="15.5" text-anchor="middle" font-family="Geist, Arial" font-weight="700" font-size="13" fill="var(--fg)">Aa</text></svg>';
+  if (kind === 'area') return '<svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="7.5" fill="' + c + '" fill-opacity=".15" stroke="' + c + '" stroke-width="1.8" stroke-dasharray="3 2"/></svg>';
+  if (kind === 'vault') return '<svg viewBox="0 0 22 22"><rect x="6" y="6" width="10" height="10" rx="1" transform="rotate(45 11 11)" fill="var(--gold)" stroke="rgba(0,0,0,.65)" stroke-width="1"/></svg>';
+  if (kind === 'post') return '<svg viewBox="0 0 22 22"><rect x="5.5" y="5.5" width="11" height="11" rx="1.5" fill="var(--amber)" stroke="rgba(0,0,0,.65)" stroke-width="1"/></svg>';
+  if (kind === 'tower') return '<svg viewBox="0 0 22 22"><rect x="1.5" y="3.5" width="19" height="15" rx="2" fill="var(--tile)" stroke="var(--tile-line)"/><text x="11" y="14.6" text-anchor="middle" font-family="Geist Mono, monospace" font-size="8.5" fill="var(--label)">2A</text></svg>';
+  if (kind === 'start') return '<svg viewBox="0 0 22 22"><rect x="2" y="4" width="18" height="14" rx="2" fill="' + c + '" fill-opacity=".35" stroke="var(--tile-line)"/></svg>';
+  if (kind === 'blocked') return '<svg viewBox="0 0 22 22"><defs><pattern id="gm-kh" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" stroke="var(--tile-line)" stroke-width="1.3"/></pattern></defs><rect x="2" y="4" width="18" height="14" rx="2" fill="url(#gm-kh)" stroke="var(--tile-line)"/></svg>';
+  if (kind === 'claimed') return '<svg viewBox="0 0 22 22"><rect x="2" y="4" width="18" height="14" rx="2" fill="' + c + '" fill-opacity=".62" stroke="rgba(0,0,0,.55)"/></svg>';
+  return '';
+}
+var KEY_ROWS = [['city','Move city'],['reinforce','Reinforce'],['attack','Attack'],['arrow','March'],['dash','Flank'],['line','Line'],['area','Area'],['vault','Vault'],['post','Post'],['tower','Tower'],['claimed','Claimed']];
+function keyName(k, def) { var l = plan.key.labels[k]; return (l != null && l !== '') ? l : def; }
+function renderKey() {
+  var c = st.color || '#3E8CD7', h = '';
+  var edit = st.keyEdit;
+  h += '<div class="khead"><span>Key</span>' + (edit
+    ? '<span class="row" style="gap:4px"><button class="kbtn" data-act="key-reset">Reset</button><button class="kbtn on" data-act="key-done">Done</button></span>'
+    : '<button class="kbtn" data-act="key-edit">Edit</button>') + '</div>';
+  h += '<div class="key' + (edit ? ' editing' : '') + '">';
+  KEY_ROWS.forEach(function (r) {
+    var hid = !!plan.key.hidden[r[0]];
+    if (!edit) { if (!hid) h += '<span>' + keyIcon(r[0], c) + esc(keyName(r[0], r[1])) + '</span>'; return; }
+    h += '<div class="krow' + (hid ? ' off' : '') + '">' + keyIcon(r[0], c) +
+      '<input class="kin" data-key="' + r[0] + '" value="' + esc(keyName(r[0], r[1])) + '" placeholder="' + esc(r[1]) + '" maxlength="24" aria-label="Key name for ' + esc(r[1]) + '">' +
+      '<button class="kvis" data-keyvis="' + r[0] + '" aria-pressed="' + !hid + '" title="' + (hid ? 'Show in key' : 'Hide from key') + '">' + (hid ? 'Show' : 'Hide') + '</button></div>';
+  });
+  h += '</div>';
+  $('gm-key').innerHTML = h;
+}
+function renderTools() {
+  $('gm-tools').innerHTML = TOOLS.map(function (t) {
+    if (t === 'sep') return '<span class="sep"></span>';
+    return '<button data-tool="' + t[0] + '" aria-pressed="' + (st.tool === t[0]) + '" title="' + t[1] + ' (' + t[2] + ')">' + ico(t[0]) + '<span>' + t[1] + '</span></button>';
+  }).join('');
+  var cols = []; plan.teams.forEach(function (t) { cols.push(t.color); }); DCOLS.forEach(function (c) { if (cols.map(function (x) { return x.toLowerCase(); }).indexOf(c.toLowerCase()) < 0) cols.push(c); });
+  $('gm-colors').hidden = st.tool === 'select';
+  $('gm-colors').innerHTML = st.tool === 'claim'
+    ? plan.teams.map(function (t, i) { return '<button class="sw" style="background:' + t.color + '" data-claimteam="' + i + '" aria-pressed="' + (i === st.team) + '" title="Claim for ' + esc(t.name) + '" aria-label="Claim for ' + esc(t.name) + '"></button>'; }).join('')
+    : cols.map(function (c) { return '<button class="sw" style="background:' + c + '" data-pick="' + c + '" aria-pressed="' + (c.toLowerCase() === (st.color || '').toLowerCase()) + '" aria-label="Color ' + c + '"></button>'; }).join('');
+  var tn = plan.teams[st.team] ? plan.teams[st.team].name : '';
+  var hint = { select: 'Tap a marking to edit it. Drag the map to pan.', claim: 'Tap a territory to claim it for ' + tn + '. Tap again to clear.', arrow: 'Drag from start to end.', line: 'Drag from one end to the other.', city: 'Tap where the city should move.', reinforce: 'Tap the spot to reinforce.', attack: 'Tap the target.', label: 'Tap to place text.', circle: 'Drag out from the centre.', rect: 'Drag corner to corner.', square: 'Drag corner to corner.' }[st.tool];
+  $('gm-hint').innerHTML = '<span>' + esc(hint) + (st.tool !== 'select' && st.tool !== 'claim' ? ' Two fingers or the scroll wheel move the map.' : '') + '</span>';
+}
+function renderSelBar(it) {
+  var bar = $('gm-selbar'); if (!bar) return;
+  if (!it || !PHONE.matches) { bar.hidden = true; bar.innerHTML = ''; return; }
+  var tl = tagLine(it), sub = it.label || tl;
+  bar.innerHTML = '<span class="nm">' + esc(TYPE_NAME[it.type]) + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</span>' +
+    '<button data-act="sel-edit">Edit</button><button class="danger" data-act="del-item">Delete</button><button data-act="desel" aria-label="Done">Done</button>';
+  bar.hidden = false;
+}
+function renderSel() {
+  var it = st.sel && findItem(st.sel), el = $('gm-sel');
+  renderSelBar(it);
+  $('gm-keywrap').hidden = !!it || !st.keyOn;
+  if (!it) { el.innerHTML = ''; return; }
+  var cols = []; plan.teams.forEach(function (t) { cols.push(t.color); }); DCOLS.forEach(function (c) { if (cols.map(function (x) { return x.toLowerCase(); }).indexOf(c.toLowerCase()) < 0) cols.push(c); });
+  var h = '<div class="selcard"><div class="head"><b>' + esc(TYPE_NAME[it.type]) + '</b><button class="x" data-act="desel" aria-label="Close">×</button></div>';
+  h += '<input class="input" id="gm-item-label" maxlength="48" placeholder="' + (it.type === 'label' ? 'Text' : 'Label (optional), e.g. Squad 2 · 20:00') + '" value="' + esc(it.label || '') + '" aria-label="Label">';
+  h += '<div class="cols">' + cols.map(function (c) { return '<button style="background:' + c + '" data-icolor="' + c + '" aria-pressed="' + (c.toLowerCase() === (it.color || '').toLowerCase()) + '" aria-label="Color ' + c + '"></button>'; }).join('') + '</div>';
+  var opts = '';
+  if (it.type === 'arrow' || it.type === 'line' || it.type === 'circle' || it.type === 'rect' || it.type === 'square')
+    opts += '<div class="seg"><button data-dash="0" aria-pressed="' + !it.dash + '">Solid</button><button data-dash="1" aria-pressed="' + !!it.dash + '">Dashed</button></div>';
+  if (it.type === 'label')
+    opts += '<div class="seg">' + [[0.8, 'S'], [1, 'M'], [1.4, 'L'], [2, 'XL']].map(function (z) { return '<button data-size="' + z[0] + '" aria-pressed="' + ((it.size || 1) === z[0]) + '">' + z[1] + '</button>'; }).join('') + '</div>';
+  if ((it.type === 'arrow' || it.type === 'line') && it.cx != null) opts += '<button class="btn ghost" data-act="straighten">Straighten</button>';
+  if (R().teams.length) h += '<div class="row"><label class="note" for="gm-iteam">Team</label><select class="input" id="gm-iteam" style="flex:1;width:auto"><option value="">None</option>' + R().teams.map(function (t) { return '<option value="' + t.id + '"' + (it.team === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') + '</select></div>';
+  if (R().players.length) {
+    var tagged = taggedPlayers(it), tmS = it.team && rteam(it.team);
+    h += '<div class="ptags"><span class="note">Players</span>' + (tagged.length ? tagged.map(function (p) { return '<span class="chip">' + esc(p.name) + '<button data-untag="' + p.id + '" aria-label="Untag ' + esc(p.name) + '">×</button></span>'; }).join('') : '<span class="note">None tagged</span>') + '</div>';
+    h += '<div class="ptagadd"><input class="input" id="gm-ptag" placeholder="Tag a player…" autocomplete="off" aria-label="Tag a player"><div class="ptaglist" id="gm-ptaglist" hidden></div></div>';
+    if (tmS && R().players.some(function (p) { return p.team === tmS.id && (it.players || []).indexOf(p.id) < 0; })) h += '<div class="row"><button class="btn ghost" data-act="tag-team">+ Tag everyone in ' + esc(tmS.name) + '</button></div>';
+  }
+  h += '<div class="row">' + opts + '<span style="flex:1"></span><button class="btn" data-act="dup-item">Duplicate</button><button class="btn danger" data-act="del-item">Delete</button></div></div>';
+  el.innerHTML = h;
+}
+function renderShare() {
+  var view = st.canSave === false;
+  var h = '';
+  if (st.standalone) h += '<p class="sub">Your plan stays in this browser. To share it, copy a link: whoever opens it sees the whole plan, every phase.</p><div class="row"><button class="btn primary" data-act="copy-link">Copy share link</button><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
+  else if (!view) h += '<p class="sub">Save writes every phase into this page, so anyone you share the link with sees the latest plan.</p><div class="row"><button class="btn primary" data-act="save-page" ' + (st.dirty ? '' : 'disabled') + '>' + (st.dirty ? 'Save plan' : 'Plan saved') + '</button><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
+  else if (view) h += '<p class="sub">This view can’t save to the page. Copy the plan and send it to whoever owns the planner.</p><div class="row"><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
+  if (R().players.some(function (p) { return rteam(p.team); })) h += '<label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="gm-pngteams"' + (st.pngTeams !== false ? ' checked' : '') + '> Include team lists in phase images</label>';
+  if (R().players.some(function (p) { return rteam(p.team) && p.power != null; })) h += '<label class="note" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="gm-pngpower"' + (st.pngPower !== false ? ' checked' : '') + '> Show power in images</label>';
+  h += '<div class="row"><button class="btn" data-act="copy-code">Copy full plan</button><button class="btn ghost" data-act="toggle-imp">Paste plan…</button></div>';
+  if (st.showImp) h += '<textarea class="code" id="gm-imp" placeholder="Paste a copied plan here"></textarea><div class="row"><button class="btn primary" data-act="load-code">Load</button><span class="note" id="gm-impmsg"></span></div>';
+  h += '<span class="ok" id="gm-cpmsg" hidden></span>';
+  $('gm-share').innerHTML = h;
+}
+function renderStatus() {
+  var el = $('gm-status');
+  if (st.standalone) { el.textContent = '· Kept in this browser.'; el.className = 'status'; }
+  else if (st.canSave === false) { el.textContent = st.dirty ? '· Local changes, view only.' : '· View only.'; el.className = 'status'; }
+  else { el.textContent = st.dirty ? '· Unsaved changes' : (EMBED.savedAt ? '· Saved ' + ago(EMBED.savedAt) + '.' : ''); el.className = 'status' + (st.dirty ? ' dirty' : ''); }
+  $('gm-undo').disabled = !hist.length; $('gm-redo').disabled = !fut.length;
+  var sp = document.querySelector('[data-act="save-page"]');
+  if (sp) { sp.disabled = !st.dirty; sp.textContent = st.dirty ? 'Save plan' : 'Plan saved'; }
+}
+function ago(iso) {
+  var d = new Date(iso); if (isNaN(d)) return '';
+  var m = Math.round((Date.now() - d) / 60000);
+  if (m < 1) return 'just now'; if (m < 60) return m + ' min ago'; if (m < 1440) return Math.round(m / 60) + ' h ago';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+function renderBanner() {
+  var el = $('gm-banner');
+  if (!restoredBanner) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  el.innerHTML = '<p class="sub" style="color:var(--fg)">The plan was saved again since your last edits on this device. Your older unsaved version is still here.</p><div class="row"><button class="btn primary" data-act="draft-restore">Open my version</button><button class="btn ghost" data-act="draft-discard">Discard it</button></div>';
+}
+function renderAll() {
+  $('gm-name').value = plan.name;
+  $('gm-nums').checked = st.nums; $('gm-keychk').checked = st.keyOn; $('gm-ghost').checked = st.ghost; $('gm-ghost').disabled = st.phase === 0;
+  renderPhases(); renderTeams(); renderKey(); renderTools(); renderMap(); renderSel(); renderShare(); renderStatus(); renderBanner(); renderRoster();
+}
+
+/* ---------- pointer ---------- */
+// All input lands on the map wrapper (never redrawn); what is under the finger is worked out from map coordinates.
+function pt(e) { var r = rectSz(), c = st.cam || (fitView(), st.cam); return { x: c.cx + (e.clientX - r.l - r.w / 2) / c.s, y: c.cy + (e.clientY - r.t - r.h / 2) / c.s }; }
+var ptrs = {}, gest = null;
+function clampView() {
+  var c = st.cam, f = fitScale(), r = rectSz();
+  c.s = Math.min(Math.max(f * 0.7, Math.min(c.s, Math.max(f * 14, r.w / 60))), Math.max(f * 14, r.w / 60));
+  c.cx = Math.max(VB0.x, Math.min(VB0.x + VB0.w, c.cx)); c.cy = Math.max(VB0.y, Math.min(VB0.y + VB0.h, c.cy));
+}
+function zoomAt(f, mx, my) {
+  var c = st.cam || (fitView(), st.cam), s0 = c.s; c.s = s0 * f; clampView();
+  var k = s0 / c.s; c.cx = mx - (mx - c.cx) * k; c.cy = my - (my - c.cy) * k; clampView(); st.camTouched = true; renderMap();
+}
+/* hit testing */
+function polyOf(r) { if (!r._p) { var n = r.d.match(/-?[\d.]+/g).map(Number), p = []; for (var i = 0; i + 1 < n.length; i += 2) p.push([n[i], n[i + 1]]); r._p = p; } return r._p; }
+function inPoly(x, y, p) { var c = false; for (var i = 0, j = p.length - 1; i < p.length; j = i++) { var xi = p[i][0], yi = p[i][1], xj = p[j][0], yj = p[j][1]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+function regionAt(p) { for (var i = MAP.r.length - 1; i >= 0; i--) if (inPoly(p.x, p.y, polyOf(MAP.r[i]))) return MAP.r[i].id; return null; }
+function curveDist(it, p) {
+  var c = ctrl(it), best = Infinity;
+  for (var i = 0; i <= 32; i++) { var t = i / 32, u = 1 - t, x = u * u * it.x + 2 * u * t * c.x + t * t * it.x2, y = u * u * it.y + 2 * u * t * c.y + t * t * it.y2; best = Math.min(best, Math.hypot(p.x - x, p.y - y)); }
+  return best;
+}
+// distance from p to the item (0 when on/inside it); areas count their inside only when insideOk
+function itemDist(it, p, insideOk) {
+  var ld = lookDist(it, p); if (ld != null) return ld;
+  if (it.type === 'arrow' || it.type === 'line') return curveDist(it, p);
+  if (it.type === 'city' || it.type === 'reinforce' || it.type === 'attack') {
+    var r = 9 * F, cy = it.y - r * 1.55; return Math.max(0, Math.min(Math.hypot(p.x - it.x, p.y - cy) - r, Math.hypot(p.x - it.x, p.y - it.y)));
+  }
+  if (it.type === 'label') {
+    var fs = 14 * (it.size || 1) * F, hw = Math.max(24 * F, (it.label || 'Text').length * fs * .55) / 2, hh = fs * .75;
+    return Math.hypot(Math.max(0, Math.abs(p.x - it.x) - hw), Math.max(0, Math.abs(p.y - it.y) - hh));
+  }
+  if (it.type === 'circle') { var d = Math.hypot(p.x - it.x, p.y - it.y) - it.r; return d < 0 && insideOk ? 0 : Math.abs(d); }
+  if (it.type === 'rect' || it.type === 'square') {
+    var ox = Math.max(it.x - p.x, 0, p.x - (it.x + it.w)), oy = Math.max(it.y - p.y, 0, p.y - (it.y + it.h));
+    if (ox || oy) return Math.hypot(ox, oy);
+    if (insideOk) return 0;
+    return Math.min(p.x - it.x, it.x + it.w - p.x, p.y - it.y, it.y + it.h - p.y);
+  }
+  return Infinity;
+}
+function itemAt(p, tol, insideOk) {
+  var its = ph().items, best = null, bd = Infinity, area = null;
+  for (var i = its.length - 1; i >= 0; i--) {
+    var it = its[i], isArea = it.type === 'circle' || it.type === 'rect' || it.type === 'square', d = itemDist(it, p, insideOk);
+    if (d > tol) continue;
+    if (isArea) { if (!area && (d > 0 || insideOk)) area = it; continue; }
+    if (d < bd) { bd = d; best = it; }
+  }
+  return (best || area || {}).id || null;
+}
+function handlePos(it) {
+  if (it.type === 'arrow' || it.type === 'line') { var m = arrowMid(it); return [['start', it.x, it.y], ['end', it.x2, it.y2], ['bend', m.x, m.y]]; }
+  if (it.type === 'circle') return [['radius', it.x + it.r, it.y]];
+  if (it.type === 'rect' || it.type === 'square') return [['corner', it.x + it.w, it.y + it.h]];
+  return [];
+}
+function handleAt(p, tol) {
+  var it = st.sel && findItem(st.sel); if (!it) return null;
+  var hs = handlePos(it), best = null, bd = tol;
+  hs.forEach(function (h) { var d = Math.hypot(p.x - h[1], p.y - h[2]); if (d <= bd) { bd = d; best = h[0]; } });
+  return best;
+}
+var DRAW = { arrow: 1, line: 1, circle: 1, rect: 1, square: 1 };
+$wrap.addEventListener('pointerdown', function (e) {
+  if (e.button > 0) return;
+  e.preventDefault();
+  if (e.isPrimary) { ptrs = {}; if (gest) { gest = null; draft = null; $wrap.classList.remove('drag'); } }
+  var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) ae.blur();
+  ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+  try { $wrap.setPointerCapture(e.pointerId); } catch (er) {}
+  var ids = Object.keys(ptrs);
+  hideTip();
+  if (ids.length === 2) {
+    if (gest && gest.kind === 'draw') { draft = null; }
+    if (gest && gest.committed) changed();
+    var a = ptrs[ids[0]], b = ptrs[ids[1]];
+    gest = { kind: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    renderMap(); return;
+  }
+  if (ids.length > 2) return;
+  F = liveF();
+  var p = pt(e), touch = e.pointerType !== 'mouse', tol = (touch ? 22 : 9) / ppu();
+  var down = { sx: e.clientX, sy: e.clientY, p: p, moved: false, rid: regionAt(p), cam0: { cx: st.cam.cx, cy: st.cam.cy } };
+  if (st.tool !== 'claim') {
+    var h = handleAt(p, (touch ? 26 : 12) / ppu());
+    if (h) { gest = Object.assign(down, { kind: 'handle', h: h }); return; }
+    var hit = itemAt(p, tol, st.tool === 'select');
+    if (hit) {
+      if (st.sel !== hit) { st.sel = hit; renderMap(); renderSel(); }
+      gest = Object.assign(down, { kind: 'move', orig: clone(findItem(hit)) });
+      return;
+    }
+  }
+  if (st.tool === 'select') { gest = Object.assign(down, { kind: 'pan' }); return; }
+  if (DRAW[st.tool]) { gest = Object.assign(down, { kind: 'draw' }); return; }
+  gest = Object.assign(down, { kind: 'tap' });
+});
+$wrap.addEventListener('pointermove', function (e) {
+  if (ptrs[e.pointerId]) ptrs[e.pointerId] = { x: e.clientX, y: e.clientY };
+  if (!gest) { hover(e); return; }
+  if (!ptrs[e.pointerId]) return;
+  if (gest.kind === 'pinch') {
+    var ids = Object.keys(ptrs); if (ids.length < 2) return;
+    var a = ptrs[ids[0]], b = ptrs[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y) || 1, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    var r = rectSz(), c = st.cam;
+    // the map point under the previous midpoint stays under the fingers
+    var ax = c.cx + (gest.mx - r.l - r.w / 2) / c.s, ay = c.cy + (gest.my - r.t - r.h / 2) / c.s;
+    c.s = c.s * (d / gest.d); clampView();
+    c.cx = ax - (mx - r.l - r.w / 2) / c.s; c.cy = ay - (my - r.t - r.h / 2) / c.s; clampView();
+    gest.d = d; gest.mx = mx; gest.my = my; st.camTouched = true;
+    renderMap(); return;
+  }
+  var dx = e.clientX - gest.sx, dy = e.clientY - gest.sy;
+  if (!gest.moved && Math.hypot(dx, dy) > 6) { gest.moved = true; if (gest.kind !== 'pan' && gest.kind !== 'tap') $('gm-stage').classList.add('busy'); }
+  if (!gest.moved) return;
+  var p = pt(e);
+  if (gest.kind === 'pan' || gest.kind === 'tap') {
+    $wrap.classList.add('drag');
+    st.cam.cx = gest.cam0.cx - dx / st.cam.s; st.cam.cy = gest.cam0.cy - dy / st.cam.s; clampView(); st.camTouched = true; renderMap();
+  } else if (gest.kind === 'move') {
+    var it = findItem(st.sel); if (!it) return;
+    if (!gest.committed) { commit(); gest.committed = true; }
+    var ox = p.x - gest.p.x, oy = p.y - gest.p.y, o = gest.orig;
+    it.x = o.x + ox; it.y = o.y + oy;
+    if (o.x2 != null) { it.x2 = o.x2 + ox; it.y2 = o.y2 + oy; }
+    if (o.cx != null) { it.cx = o.cx + ox; it.cy = o.cy + oy; }
+    renderMap();
+  } else if (gest.kind === 'handle') {
+    var h = findItem(st.sel); if (!h) return;
+    if (!gest.committed) { commit(); gest.committed = true; }
+    if (gest.h === 'start') { h.x = p.x; h.y = p.y; }
+    else if (gest.h === 'end') { h.x2 = p.x; h.y2 = p.y; }
+    else if (gest.h === 'bend') { h.cx = 2 * p.x - (h.x + h.x2) / 2; h.cy = 2 * p.y - (h.y + h.y2) / 2; }
+    else if (gest.h === 'radius') h.r = Math.max(6, Math.hypot(p.x - h.x, p.y - h.y));
+    else if (gest.h === 'corner') { var w = p.x - h.x, hh = p.y - h.y; if (h.type === 'square') { var m = Math.max(Math.abs(w), Math.abs(hh)); w = m; hh = m; } h.w = Math.max(8, w); h.h = Math.max(8, hh); }
+    renderMap();
+  } else if (gest.kind === 'draw') { draft = shapeFrom(st.tool, gest.p, p); renderMap(); }
+});
+function shapeFrom(tool, a, b) {
+  var col = st.color;
+  if (tool === 'arrow' || tool === 'line') return { type: tool, x: a.x, y: a.y, x2: b.x, y2: b.y, color: col };
+  if (tool === 'circle') return { type: 'circle', x: a.x, y: a.y, r: Math.max(4, Math.hypot(b.x - a.x, b.y - a.y)), color: col };
+  var w = b.x - a.x, h = b.y - a.y;
+  if (tool === 'square') { var m = Math.max(Math.abs(w), Math.abs(h)); w = w < 0 ? -m : m; h = h < 0 ? -m : m; }
+  return { type: tool, x: Math.min(a.x, a.x + w), y: Math.min(a.y, a.y + h), w: Math.max(4, Math.abs(w)), h: Math.max(4, Math.abs(h)), color: col };
+}
+function endPointer(e) {
+  if (!ptrs[e.pointerId]) return;
+  delete ptrs[e.pointerId]; $wrap.classList.remove('drag'); $('gm-stage').classList.remove('busy');
+  try { $wrap.releasePointerCapture(e.pointerId); } catch (er) {}
+  if (!gest) return;
+  if (gest.kind === 'pinch') { if (Object.keys(ptrs).length < 2) gest = null; return; }   // the finger still down does nothing until lifted
+  var g = gest; gest = null;
+  var up = e.type === 'pointerup';
+  if (g.kind === 'move' || g.kind === 'handle') { if (g.committed) { changed(); renderPhases(); renderSel(); } return; }
+  if (g.kind === 'pan') { if (!g.moved && up) { if (st.sel) { st.sel = null; renderMap(); renderSel(); } hover(e); } return; }
+  if (g.kind === 'draw') {
+    var d = draft; draft = null;
+    var big = up && d && g.moved && (d.type === 'arrow' || d.type === 'line' ? Math.hypot(d.x2 - d.x, d.y2 - d.y) * ppu() > 14 : d.type === 'circle' ? d.r * ppu() > 8 : (d.w * ppu() > 8 && d.h * ppu() > 8));
+    if (!big) { renderMap(); return; }
+    addItem(d); return;
+  }
+  if (g.kind === 'tap' && !g.moved && up) {
+    if (st.tool === 'claim') { claim(g.rid, e); return; }
+    var it = { type: st.tool, x: g.p.x, y: g.p.y, color: st.color };
+    if (st.tool === 'label') { it.label = 'Text'; it.size = 1; }
+    addItem(it, st.tool === 'label');
+  }
+}
+$wrap.addEventListener('pointerup', endPointer);
+$wrap.addEventListener('pointercancel', endPointer);
+$wrap.addEventListener('lostpointercapture', function (e) { if (ptrs[e.pointerId]) endPointer({ pointerId: e.pointerId, type: 'pointercancel', clientX: 0, clientY: 0 }); });
+$wrap.addEventListener('pointerleave', function (e) { if (!gest) { hideTip(); $wrap.classList.remove('over-item', 'over-handle'); if (st.hoverRid) { st.hoverRid = null; if (st.tool === 'claim') renderMap(); } } });
+$wrap.addEventListener('wheel', function (e) { e.preventDefault(); var p = pt(e); zoomAt(Math.exp(-e.deltaY * 0.0015), p.x, p.y); }, { passive: false });
+$wrap.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+function resetPointers() { if (!Object.keys(ptrs).length && !gest) return; ptrs = {}; gest = null; draft = null; $wrap.classList.remove('drag'); $('gm-stage').classList.remove('busy'); renderMap(); }
+$wrap.addEventListener('touchend', function (e) { if (!e.touches.length) setTimeout(function () { if (Object.keys(ptrs).length) resetPointers(); }, 60); });
+document.addEventListener('visibilitychange', function () { if (document.hidden) resetPointers(); });
+window.addEventListener('blur', resetPointers);
+// stop the browser's own page zoom/scroll from taking over the map on phones (iOS ignores touch-action for pinch)
+['touchstart', 'touchmove'].forEach(function (t) { $wrap.addEventListener(t, function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false }); });
+['gesturestart', 'gesturechange'].forEach(function (t) { $wrap.addEventListener(t, function (e) { e.preventDefault(); }); });
+
+function hideTip() { $('gm-tip').hidden = true; }
+function hover(e) {
+  var mp = pt(e), rid = regionAt(mp), tip = $('gm-tip');
+  if (e.pointerType === 'mouse' && e.type === 'pointermove') {
+    F = liveF();
+    var oh = st.tool !== 'claim' && !!handleAt(mp, 12 / ppu()), oi = !oh && st.tool !== 'claim' && !!itemAt(mp, 9 / ppu(), st.tool === 'select');
+    $wrap.classList.toggle('over-handle', oh); $wrap.classList.toggle('over-item', oi);
+  }
+  if (st.tool === 'claim' && st.hoverRid !== rid && e.pointerType === 'mouse') { st.hoverRid = rid; renderMap(); }
+  if (!rid || !REG[rid] || (e.pointerType === 'touch' && st.tool !== 'select' && st.tool !== 'claim')) { tip.hidden = true; return; }
+  var r = REG[rid], ow = ph().owners[rid], t = ow && teamById(ow), html;
+  if (r.t === 'spawn') { var ct = teamById(r.c); html = '<b>' + (plan.start === r.c ? 'Our starting position' : 'Starting area') + '</b><br><span class="k">' + esc(ct ? ct.name : '') + ' side</span>'; }
+  else if (r.t === 'blocked') html = '<b>Blocked area</b><br><span class="k">Can’t be occupied</span>';
+  else {
+    var title = r.n, zone = r.t === 'tower' ? (r.q === 'center' ? 'Between the posts' : 'Quadrant ' + r.q + ' · ' + esc((teamById(Q_CORNER[r.q]) || {}).name || '') + ' side') : r.t === 'vault' ? 'Center objective' : 'Guards the vault';
+    html = '<b>' + esc(title) + '</b><br><span class="k">' + zone + '</span><br>' + (t ? '<span style="color:' + t.color + '">●</span> ' + esc(t.name) : '<span class="k">Unclaimed</span>');
+  }
+  tip.innerHTML = html; tip.hidden = false;
+  clearTimeout(hover.t); if (e.pointerType && e.pointerType !== 'mouse') hover.t = setTimeout(hideTip, 2200);
+  var rect = $('gm-stage').getBoundingClientRect(), x = e.clientX - rect.left + 14, y = e.clientY - rect.top + 14, w = tip.offsetWidth, hh = tip.offsetHeight;
+  if (x + w > rect.width - 6) x = e.clientX - rect.left - w - 14; if (y + hh > rect.height - 6) y = e.clientY - rect.top - hh - 14;
+  tip.style.left = Math.max(4, x) + 'px'; tip.style.top = Math.max(4, y) + 'px';
+}
+function claim(rid, e) {
+  if (rid && REG[rid] && REG[rid].t === 'spawn') { commit(); plan.start = plan.start === REG[rid].c ? '' : REG[rid].c; changed(); renderMap(); renderTeams(); if (e) hover(e); return; }
+  if (!rid || !REG[rid] || REG[rid].t === 'blocked') return;
+  var team = plan.teams[st.team].id, ow = ph().owners;
+  commit(); if (ow[rid] === team) delete ow[rid]; else ow[rid] = team;
+  changed(); renderMap(); renderTeams(); renderPhases(); if (e) hover(e);
+}
+function addItem(it, focus) {
+  commit(); it.id = uid(); it.label = it.label || '';
+  ph().items.push(it); st.sel = it.id;
+  changed(); renderMap(); renderSel(); renderPhases();
+  if (focus) { var inp = $('gm-item-label'); if (inp) { inp.focus(); inp.select(); } }
+}
+
+/* ---------- controls ---------- */
+$('gm-zin').onclick = function () { ppu(); zoomAt(1.4, st.cam.cx, st.cam.cy); };
+$('gm-zout').onclick = function () { ppu(); zoomAt(1 / 1.4, st.cam.cx, st.cam.cy); };
+$('gm-fit').onclick = function () { fitView(); st.camTouched = false; renderMap(); };
+$('gm-undo').onclick = undo; $('gm-redo').onclick = redo;
+$('gm-nums').onchange = function (e) { st.nums = e.target.checked; renderMap(); };
+$('gm-ghost').onchange = function (e) { st.ghost = e.target.checked; renderMap(); };
+$('gm-look').value = st.look;
+$('gm-look').onchange = function (e) { st.look = e.target.value; try { localStorage.setItem('gm-look', st.look); } catch (er) {} renderMap(); renderKey(); };
+$('gm-keychk').onchange = function (e) { st.keyOn = e.target.checked; try { localStorage.setItem('gm-key-on', st.keyOn ? '1' : '0'); } catch (er) {} renderSel(); };
+var nameTyping = false;
+$('gm-name').addEventListener('input', function () { if (!nameTyping) { commit(); nameTyping = true; } plan.name = this.value; changed(); });
+$('gm-name').addEventListener('blur', function () { nameTyping = false; });
+['gm-dtools', 'gm-legend', 'gm-sel', 'gm-keywrap'].forEach(function (i) { $(i).addEventListener('pointerdown', function (e) { e.stopPropagation(); }); });
+
+function setTool(t) {
+  st.tool = t; if (t !== 'select') st.sel = null;
+  if (t === 'claim') st.color = plan.teams[st.team].color;
+  renderTools(); renderMap(); renderSel(); renderKey();
+}
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('button, [data-team-row]'); if (!b) return;
+  var ds = b.dataset;
+  if (ds.tool) { setTool(ds.tool); return; }
+  if (ds.keyvis) { e.preventDefault(); commit(); if (plan.key.hidden[ds.keyvis]) delete plan.key.hidden[ds.keyvis]; else plan.key.hidden[ds.keyvis] = true; changed(); renderKey(); return; }
+  if (ds.pick) { st.color = ds.pick; for (var i = 0; i < 4; i++) if (plan.teams[i].color.toLowerCase() === ds.pick.toLowerCase()) st.team = i; renderTools(); renderTeams(); renderKey(); return; }
+  if (ds.claimteam != null) { st.team = +ds.claimteam; st.color = plan.teams[st.team].color; renderTools(); renderTeams(); return; }
+  if (ds.phase != null) { st.phase = +ds.phase; st.sel = null; st.confirm = null; if (st.phase === 0) st.ghost = false; renderAll(); return; }
+  if (ds.teamDot != null) { var ti = +ds.teamDot; st.picker = st.picker === ti ? null : ti; st.team = ti; renderTeams(); return; }
+  if (ds.teamColor) { commit(); plan.teams[st.picker].color = ds.teamColor; if (st.team === st.picker) st.color = ds.teamColor; st.picker = null; changed(); renderAll(); return; }
+  if (ds.start != null) { if (plan.start !== ds.start) { commit(); plan.start = ds.start; changed(); renderTeams(); renderMap(); } return; }
+  if (ds.teamRow != null) { if (e.target.tagName === 'INPUT') return; st.team = +ds.teamRow; if (st.tool === 'claim') st.color = plan.teams[st.team].color; renderTeams(); renderTools(); return; }
+  if (ds.untag) { var iu = findItem(st.sel); if (iu && iu.players) { commit(); iu.players = iu.players.filter(function (x) { return x !== ds.untag; }); changed(); renderMap(); renderSel(); } return; }
+  if (ds.tag) { tagPlayer(ds.tag); return; }
+  if (ds.icolor) { var it = findItem(st.sel); if (it) { commit(); it.color = ds.icolor; changed(); renderMap(); renderSel(); } return; }
+  if (ds.dash != null) { var i2 = findItem(st.sel); if (i2) { commit(); i2.dash = ds.dash === '1'; changed(); renderMap(); renderSel(); } return; }
+  if (ds.size) { var i3 = findItem(st.sel); if (i3) { commit(); i3.size = +ds.size; changed(); renderMap(); renderSel(); } return; }
+  var a = ds.act; if (!a || !ACTS[a]) return;
+  ACTS[a](b);
+});
+function tagPlayer(id) {
+  var it = findItem(st.sel); if (!it) return;
+  it.players = it.players || []; if (it.players.indexOf(id) >= 0) return;
+  commit(); it.players.push(id); changed(); renderMap(); renderSel();
+  var inp = $('gm-ptag'); if (inp) inp.focus();
+}
+function renderTagList() {
+  var inp = $('gm-ptag'), box = $('gm-ptaglist'), it = findItem(st.sel); if (!inp || !box || !it) return;
+  var q = inp.value.trim().toLowerCase(), have = it.players || [];
+  var list = R().players.filter(function (p) { return have.indexOf(p.id) < 0 && (!q || p.name.toLowerCase().indexOf(q) >= 0); });
+  list.sort(function (a, b) { var as = a.name.toLowerCase().indexOf(q) === 0 ? 0 : 1, bs = b.name.toLowerCase().indexOf(q) === 0 ? 0 : 1; return as - bs || a.name.localeCompare(b.name); });
+  list = list.slice(0, 8);
+  if (!list.length) { box.innerHTML = '<button disabled>' + (q ? 'No player matches' : 'Everyone is tagged') + '</button>'; box.hidden = false; return; }
+  box.innerHTML = list.map(function (p, i) { var t = rteam(p.team); return '<button data-tag="' + p.id + '"' + (i === 0 ? ' class="on"' : '') + '><span>' + esc(p.name) + '</span><small>' + (t ? esc(t.name) : '') + (p.power != null ? (t ? ' · ' : '') + fmtPower(p.power) : '') + '</small></button>'; }).join('');
+  box.hidden = false;
+}
+var ACTS = {
+  'sel-edit': function () { var c = document.querySelector('#gm-sel .selcard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); },
+  'tag-team': function () {
+    var it = findItem(st.sel), t = it && it.team && rteam(it.team); if (!t) return;
+    commit(); it.players = it.players || [];
+    R().players.forEach(function (p) { if (p.team === t.id && it.players.indexOf(p.id) < 0) it.players.push(p.id); });
+    changed(); renderMap(); renderSel();
+  },
+  'key-edit': function () { st.keyEdit = true; renderKey(); },
+  'key-done': function () { st.keyEdit = false; renderKey(); },
+  'key-reset': function () { commit(); plan.key = { labels: {}, hidden: {} }; changed(); renderKey(); },
+  'desel': function () { st.sel = null; renderMap(); renderSel(); },
+  'dup-item': function () { var it = findItem(st.sel); if (!it) return; var n = clone(it), o = 14; n.x += o; n.y += o; if (n.x2 != null) { n.x2 += o; n.y2 += o; } if (n.cx != null) { n.cx += o; n.cy += o; } delete n.id; addItem(n); },
+  'del-item': deleteSel,
+  'straighten': function () { var it = findItem(st.sel); if (!it) return; commit(); delete it.cx; delete it.cy; changed(); renderMap(); renderSel(); },
+  'phase-dup': function () { commit(); var n = clone(ph()); n.id = uid(); n.name = 'Phase ' + (plan.phases.length + 1); n.notes = ''; n.items.forEach(function (i) { i.id = uid(); }); plan.phases.splice(st.phase + 1, 0, n); st.phase++; st.sel = null; changed(); renderAll(); toast('New phase copied from the last one'); },
+  'phase-new': function () { commit(); plan.phases.splice(st.phase + 1, 0, { id: uid(), name: 'Phase ' + (plan.phases.length + 1), notes: '', owners: {}, items: [] }); st.phase++; st.sel = null; changed(); renderAll(); },
+  'phase-left': function () { movePhase(-1); }, 'phase-right': function () { movePhase(1); },
+  'phase-del': function () { st.confirm = 'delete'; renderPhases(); }, 'phase-clear': function () { st.confirm = 'clear'; renderPhases(); },
+  'confirm-no': function () { st.confirm = null; renderPhases(); },
+  'phase-del-yes': function () { commit(); plan.phases.splice(st.phase, 1); st.phase = Math.max(0, st.phase - 1); st.confirm = null; changed(); renderAll(); },
+  'phase-clear-yes': function () { commit(); ph().items = []; ph().owners = {}; st.sel = null; st.confirm = null; changed(); renderAll(); },
+  'draft-restore': function () { commit(); plan = normalize(restoredBanner.plan); restoredBanner = null; st.phase = 0; changed(); renderAll(); },
+  'draft-discard': function () { restoredBanner = null; try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} renderBanner(); },
+  'toggle-imp': function () { st.showImp = !st.showImp; renderShare(); },
+  'copy-link': function () { encodePlan(plan).then(function (c) { copyText(location.href.split('#')[0] + '#p=' + c, 'Share link copied'); }); },
+  'copy-code': function () { encodePlan(plan).then(function (c) { copyText(c); }); },
+  'load-code': function () {
+    var v = ($('gm-imp').value || '').trim();
+    decodePlan(v).then(function (p) { commit(); plan = normalize(p); st.phase = 0; st.sel = null; st.showImp = false; changed(); renderAll(); toast('Plan loaded · ' + plan.phases.length + ' phases'); })
+      .catch(function () { $('gm-impmsg').textContent = 'That text isn’t a copied plan. Paste the whole thing.'; });
+  },
+  'save-page': function (b) { savePage(b); },
+  'save-png': function () { exportImage('phase'); },
+  'save-plan-png': function () { exportImage('plan'); }
+};
+function movePhase(d) { var i = st.phase, j = i + d; if (j < 0 || j >= plan.phases.length) return; commit(); var t = plan.phases[i]; plan.phases[i] = plan.phases[j]; plan.phases[j] = t; st.phase = j; changed(); renderAll(); }
+function deleteSel() { if (!findItem(st.sel)) return; commit(); var id = st.sel; ph().items = ph().items.filter(function (i) { return i.id !== id; }); st.sel = null; changed(); renderMap(); renderSel(); renderPhases(); }
+
+document.addEventListener('focusin', function (e) {
+  var t = e.target; if (!PHONE.matches || !t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.type === 'checkbox') return;
+  setTimeout(function () { try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (er) {} }, 350);
+});
+var typing = null;
+document.addEventListener('input', function (e) {
+  var t = e.target, key;
+  if (t.id === 'gm-item-label') key = 'lbl' + st.sel;
+  else if (t.id === 'gm-ph-name' || t.id === 'gm-ph-notes') key = t.id + st.phase;
+  else if (t.dataset && t.dataset.team != null) key = 'team' + t.dataset.team;
+  else if (t.dataset && t.dataset.key) key = 'key' + t.dataset.key;
+  else if (t.dataset && t.dataset.pname) key = 'pn' + t.dataset.pname;
+  else if (t.dataset && t.dataset.rtname) key = 'rt' + t.dataset.rtname;
+  else return;
+  if (typing !== key) { commit(); typing = key; }
+  if (t.id === 'gm-item-label') { var it = findItem(st.sel); if (it) { it.label = t.value; renderMap(); } }
+  else if (t.id === 'gm-ph-name') { ph().name = t.value; var tt = document.querySelector('.goal.sel .tt'); if (tt) tt.textContent = t.value; }
+  else if (t.id === 'gm-ph-notes') ph().notes = t.value;
+  else if (t.dataset.key) { if (t.value.trim()) plan.key.labels[t.dataset.key] = t.value; else delete plan.key.labels[t.dataset.key]; }
+  else if (t.dataset.pname) { var pl = R().players.filter(function (x) { return x.id === t.dataset.pname; })[0]; if (pl && t.value.trim()) pl.name = t.value.trim(); }
+  else if (t.dataset.rtname) { var rt = rteam(t.dataset.rtname); if (rt) { rt.name = t.value; renderRosterList(); var tf = $('gm-rteamf'); if (tf) { var o = tf.querySelector('option[value="' + rt.id + '"]'); if (o) o.textContent = t.value; } renderMap(); } }
+  else { plan.teams[+t.dataset.team].name = t.value; }
+  changed();
+});
+document.addEventListener('focusout', function () { typing = null; });
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && $('gm-imgmodal')) { closeImage(); return; }
+  var tag = (e.target.tagName || '').toLowerCase(), inField = tag === 'input' || tag === 'textarea' || tag === 'select';
+  if ((e.ctrlKey || e.metaKey) && !inField && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if ((e.ctrlKey || e.metaKey) && !inField && e.key.toLowerCase() === 'y') { e.preventDefault(); redo(); return; }
+  if (inField) { if (e.key === 'Escape' || (e.key === 'Enter' && e.target.id === 'gm-item-label')) e.target.blur(); return; }
+  if (e.key === 'Escape') { st.sel = null; renderMap(); renderSel(); return; }
+  if ((e.key === 'Delete' || e.key === 'Backspace') && st.sel) { e.preventDefault(); deleteSel(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  for (var i = 0; i < TOOLS.length; i++) if (TOOLS[i] !== 'sep' && TOOLS[i][2].toLowerCase() === e.key.toLowerCase()) { setTool(TOOLS[i][0]); return; }
+});
+if (window.matchMedia) { var mq = window.matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', function () { renderAll(); }); }
+new MutationObserver(function () { renderAll(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------- share ---------- */
+var caps = { artifact: null, downloads: null };
+(function () {
+  if (!(window.claude && window.claude.use)) { st.canSave = false; renderShare(); renderStatus(); return; }
+  window.claude.use('artifact').then(function (a) { caps.artifact = a; if (!a) { st.canSave = false; renderShare(); } renderStatus(); }).catch(function () { st.canSave = false; renderShare(); renderStatus(); });
+  window.claude.use('downloads').then(function (d) { caps.downloads = d; }).catch(function () {});
+})();
+function toast(msg) { var el = $('gm-toast'); el.innerHTML = '<div class="toast" role="status">' + esc(msg) + '</div>'; clearTimeout(toast.t); toast.t = setTimeout(function () { el.innerHTML = ''; }, 2600); }
+function copyText(txt, okMsg) {
+  var show = function (m) { var el = $('gm-cpmsg'); if (!el) return; el.hidden = false; el.textContent = m; clearTimeout(show.t); show.t = setTimeout(function () { el.hidden = true; }, 2500); };
+  var fallback = function () { st.showImp = true; renderShare(); var ta = $('gm-imp'); ta.value = txt; ta.select(); show('Copy is blocked here. It\u2019s selected below, copy it from there.'); };
+  try { navigator.clipboard.writeText(txt).then(function () { show(okMsg || 'Plan copied'); }, fallback); } catch (e) { fallback(); }
+}
+function b64u(bytes) { var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function unb64u(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var b = atob(s), u = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+function encodePlan(p) {
+  var raw = new TextEncoder().encode(JSON.stringify({ v: 1, name: p.name, teams: p.teams, phases: p.phases, key: p.key, roster: p.roster, start: p.start }));
+  if (typeof CompressionStream === 'undefined') return Promise.resolve('GM1.r.' + b64u(raw));
+  return new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer().then(function (buf) { return 'GM1.z.' + b64u(new Uint8Array(buf)); });
+}
+function decodePlan(code) {
+  var m = /^GM1\.([rz])\.([A-Za-z0-9_-]+)$/.exec(String(code).replace(/\s+/g, ''));
+  if (!m) return Promise.reject(new Error('bad'));
+  var bytes; try { bytes = unb64u(m[2]); } catch (e) { return Promise.reject(e); }
+  var pr = m[1] === 'r' ? Promise.resolve(bytes) : new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+  return pr.then(function (u) { var p = JSON.parse(new TextDecoder().decode(u)); if (!p || !Array.isArray(p.phases)) throw new Error('bad'); return p; });
+}
+var SKEL_CSS = ':root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}';
+var HEAD_SRC = '<title>Murong\'s Grand Melee<\/title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">\n';
+function buildDocument(p) {
+  var hs = document.head && document.head.querySelector('style');
+  var reset = (hs && hs.textContent.trim()) || SKEL_CSS;
+  var data = JSON.stringify(p).replace(/</g, '\\u003c');
+  return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>' + reset + '<\/style><\/head><body>' + HEAD_SRC +
+    '<style id="gm-css">' + $('gm-css').textContent + '<\/style>\n<div id="app"><\/div>\n' +
+    '<script type="application/json" id="gm-plan">' + data + '<\/script>\n' +
+    '<script type="application/json" id="gm-map">' + $('gm-map').textContent + '<\/script>\n' +
+    '<script id="gm-app">' + $('gm-app').textContent + '<\/script><\/body><\/html>';
+}
+function savePage(btn) {
+  if (!caps.artifact) { st.canSave = false; renderShare(); renderStatus(); return; }
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var out = clone(plan); out.savedAt = new Date().toISOString();
+  var html = buildDocument(out), old = null;
+  try { old = localStorage.getItem(DRAFT_KEY); localStorage.removeItem(DRAFT_KEY); sessionStorage.setItem('gm-ui', JSON.stringify({ phase: st.phase, nums: st.nums })); } catch (e) {}
+  var restore = function () { try { if (old) localStorage.setItem(DRAFT_KEY, old); } catch (e) {} };
+  caps.artifact.publish(html).then(function () { st.dirty = false; EMBED.savedAt = out.savedAt; renderStatus(); toast('Saved. The page will refresh.'); })
+    .catch(function (err) {
+      var code = err && err.code; restore();
+      if (code === 'conflict') { toast('Someone saved a newer version. Loading it; your edits stay on this device.'); return; }
+      if (['not_writer', 'not_granted', 'capability_disabled', 'capability_removed', 'consent_required', 'not_declared'].indexOf(code) >= 0) { st.canSave = false; renderShare(); renderStatus(); toast('This view is read-only. Use Copy full plan to share your version.'); return; }
+      btn.disabled = false; btn.textContent = 'Save plan';
+      toast(code === 'rate_limited' ? 'Saving too often. Wait a moment and try again.' : code === 'too_large' ? 'The plan is too large to save. Remove some phases.' : 'Saving failed. Try again in a moment.');
+    });
+}
+function wrapText(t, max) {
+  var out = []; String(t || '').split(/\n/).forEach(function (para) {
+    var line = ''; para.split(/\s+/).forEach(function (w) { if ((line + ' ' + w).trim().length > max) { if (line) out.push(line); line = w; } else line = (line + ' ' + w).trim(); }); out.push(line);
+  }); return out.filter(function (l) { return l; });
+}
+/* ---------- images: one phase, or the whole plan ---------- */
+var IMG_FONT = 'Geist, Helvetica, Arial, sans-serif';
+function imgText(x, y, txt, size, fill, weight, extra) { return '<text x="' + x + '" y="' + y + '" font-family="' + IMG_FONT + '" font-size="' + size + '" font-weight="' + (weight || 400) + '" fill="' + fill + '"' + (extra || '') + '>' + esc(txt) + '</text>'; }
+function imgColors() {
+  if (st.look === 'cmd') { readTokens(); return { bg: '#070C16', panel: '#0B1220', line: '#1F2B40', fg: '#E8EAEE', mu: '#7F8CA6' }; } var cs = getComputedStyle(document.documentElement); readTokens(); return { bg: cs.getPropertyValue('--bg').trim() || '#0E1116', panel: cs.getPropertyValue('--panel').trim() || '#161A21', line: cs.getPropertyValue('--line').trim() || '#232934', fg: cs.getPropertyValue('--fg').trim() || '#E8EAEE', mu: cs.getPropertyValue('--muted').trim() || '#8B93A1' }; }
+function imgKeyIcon(kind, c, x, y, sz) {
+  var s = keyIcon(kind, c).replace(/var\(--([a-z-]+)\)/g, function (m, n) { return P[n] || '#888'; });
+  return s.replace('<svg viewBox', '<svg x="' + x + '" y="' + y + '" width="' + sz + '" height="' + sz + '" viewBox');
+}
+function sidesLegend(W, y, C) {
+  var s = '', x = 24;
+  plan.teams.forEach(function (t) { s += '<rect x="' + x + '" y="' + (y - 12) + '" width="14" height="14" rx="7" fill="' + t.color + '"/>' + imgText(x + 22, y, t.name, 16, C.fg, 600); x += 34 + t.name.length * 9 + 20; });
+  return s;
+}
+function keyImageBlock(W, y0, C) {
+  var rows = KEY_ROWS.filter(function (r) { return !plan.key.hidden[r[0]]; });
+  if (!rows.length) return { svg: '', h: 0 };
+  var cols = W >= 1100 ? 4 : W >= 560 ? 3 : 2, colW = (W - 48) / cols, s = imgText(24, y0 + 30, 'MAP KEY', 13, C.mu, 600, ' letter-spacing="1.8"');
+  rows.forEach(function (r, i) {
+    var x = 24 + (i % cols) * colW, y = y0 + 48 + Math.floor(i / cols) * 34;
+    s += imgKeyIcon(r[0], '#3E8CD7', x, y, 24) + imgText(x + 34, y + 18, keyName(r[0], r[1]), 16, C.fg, 500);
+  });
+  return { svg: s, h: 48 + Math.ceil(rows.length / cols) * 34 + 8 };
+}
+function itemListLines(phase) {
+  var out = [];
+  phase.items.forEach(function (it) {
+    var tl = taggedPlayers(it).map(function (p) { return p.name; }), tm = it.team && rteam(it.team);
+    if (!it.label && !tl.length && !tm) return;
+    var where = REG[regionAt({ x: it.x, y: it.y }) || ''], wn = where && where.t !== 'spawn' && where.t !== 'blocked' ? (where.t === 'tower' ? where.lb : where.n) : '';
+    var line = keyName(it.type === 'arrow' && it.dash ? 'dash' : it.type === 'circle' || it.type === 'rect' || it.type === 'square' ? 'area' : it.type, TYPE_NAME[it.type]);
+    if (it.type === 'label') line = 'Note';
+    line += (wn ? ' at ' + wn : '') + (it.label ? ': ' + it.label : '') + (tm ? ' · ' + tm.name : '') + (tl.length ? ' · ' + tl.join(', ') : '');
+    out.push({ color: it.color || '#fff', text: line });
+  });
+  return out;
+}
+function phaseImageBlock(idx, W, y0, C, withHead) {
+  var phase = plan.phases[idx], mapH = Math.round(VB0.h * (W / VB0.w)), s = '', y = y0, maxCh = Math.floor((W - 48) / 9.2);
+  if (withHead) {
+    s += imgText(24, y + 30, 'PHASE ' + (idx + 1) + ' OF ' + plan.phases.length, 13, C.mu, 600, ' letter-spacing="1.8"');
+    s += imgText(24, y + 64, phase.name, 28, C.fg, 700);
+    y += 84;
+  }
+  var savedF = F; F = st.look === 'classic' ? 0.85 * (VB0.w / W) * 1.9 : Math.max(0.75, 0.95 * VB0.w / W);
+  s += '<svg x="0" y="' + y + '" width="' + W + '" height="' + mapH + '" viewBox="' + VB0.x + ' ' + VB0.y + ' ' + VB0.w + ' ' + VB0.h + '">' + boardSVG(phase.owners, st.nums) + itemsSVG(phase, null, null) + '</svg>';
+  F = savedF; y += mapH;
+  var notes = wrapText(phase.notes, maxCh);
+  if (notes.length) {
+    s += imgText(24, y + 36, 'ORDERS', 13, C.mu, 600, ' letter-spacing="1.8"'); y += 46;
+    notes.forEach(function (l) { s += imgText(24, y + 20, l, 18, C.fg); y += 26; });
+  }
+  var items = itemListLines(phase);
+  if (items.length) {
+    s += imgText(24, y + 36, 'MARKUPS', 13, C.mu, 600, ' letter-spacing="1.8"'); y += 46;
+    items.forEach(function (it) {
+      wrapText(it.text, maxCh - 3).forEach(function (l, k) {
+        if (!k) s += '<rect x="24" y="' + (y + 7) + '" width="10" height="10" rx="5" fill="' + it.color + '" stroke="rgba(0,0,0,.5)"/>';
+        s += imgText(44, y + 17, l, 16, C.fg); y += 24;
+      });
+    });
+  }
+  return { svg: s, h: y - y0 + 16 };
+}
+function buildPhaseSVG() {
+  var C = imgColors(), W = 1600, y = 0, s = '';
+  s += imgText(24, 38, 'MURONG’S GRAND MELEE · PHASE ' + (st.phase + 1) + ' OF ' + plan.phases.length, 14, C.mu, 600, ' letter-spacing="1.8"');
+  s += imgText(24, 74, ph().name, 30, C.fg, 700) + imgText(24, 98, plan.name, 15, C.mu);
+  s += sidesLegend(W, 130, C); y = 146;
+  var pb = phaseImageBlock(st.phase, W, y, C, false); s += pb.svg; y += pb.h;
+  if (st.pngTeams !== false) { var tb = teamsImageBlock(W, y, C.fg, C.mu); s += tb.svg; y += tb.h; }
+  var kb = keyImageBlock(W, y, C); s += kb.svg; y += kb.h + 12;
+  return { svg: '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + y + '" viewBox="0 0 ' + W + ' ' + y + '"><rect width="100%" height="100%" fill="' + C.bg + '"/>' + s + '</svg>', w: W, h: y,
+    name: ('grand-melee-phase-' + (st.phase + 1) + '-' + ph().name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '') + '.png' };
+}
+function buildPlanSVG() {
+  // header across the top (title, sides, key beside teams), then the phases as a grid of cards
+  var C = imgColors(), n = plan.phases.length;
+  var cols = n <= 3 ? n : n === 4 ? 2 : n <= 9 ? 3 : 4;
+  var pad = 24, gap = 20, cellW = 760, W = pad * 2 + cols * cellW + (cols - 1) * gap, y = 0, s = '';
+  s += imgText(pad, 38, 'MURONG’S GRAND MELEE · BATTLE PLAN', 14, C.mu, 600, ' letter-spacing="1.8"');
+  s += imgText(pad, 76, plan.name, 32, C.fg, 700);
+  s += imgText(pad, 102, n + ' phase' + (n === 1 ? '' : 's') + ' · ' + plan.phases.map(function (p, i) { return (i + 1) + '. ' + p.name; }).join('   '), 15, C.mu);
+  s += sidesLegend(W, 136, C); y = 150;
+  var hasTeams = R().players.some(function (p) { return rteam(p.team); });
+  if (hasTeams && W >= 1400) {
+    var keyW = Math.round(Math.min(620, W * 0.3)), kb = keyImageBlock(keyW, 0, C), tb = teamsImageBlock(W - keyW, 0, C.fg, C.mu);
+    s += '<g transform="translate(0 ' + y + ')">' + kb.svg + '</g><g transform="translate(' + keyW + ' ' + y + ')">' + tb.svg + '</g>';
+    y += Math.max(kb.h, tb.h);
+  } else {
+    var kb2 = keyImageBlock(W, y, C); s += kb2.svg; y += kb2.h;
+    if (hasTeams) { var tb2 = teamsImageBlock(W, y, C.fg, C.mu); s += tb2.svg; y += tb2.h; }
+  }
+  y += 20;
+  for (var r = 0; r < n; r += cols) {
+    var blocks = [], rowH = 0;
+    for (var j = 0; j < cols && r + j < n; j++) { var pb = phaseImageBlock(r + j, cellW, 0, C, true); blocks.push(pb); rowH = Math.max(rowH, pb.h); }
+    blocks.forEach(function (pb, j) {
+      var x = pad + j * (cellW + gap), cid = 'gmcell' + r + '_' + j;
+      s += '<clipPath id="' + cid + '"><rect x="' + x + '" y="' + y + '" width="' + cellW + '" height="' + rowH + '" rx="12"/></clipPath>';
+      s += '<rect x="' + x + '" y="' + y + '" width="' + cellW + '" height="' + rowH + '" rx="12" fill="' + C.panel + '"/>';
+      s += '<g clip-path="url(#' + cid + ')"><g transform="translate(' + x + ' ' + y + ')">' + pb.svg + '</g></g>';
+      s += '<rect x="' + (x + .5) + '" y="' + (y + .5) + '" width="' + (cellW - 1) + '" height="' + (rowH - 1) + '" rx="12" fill="none" stroke="' + C.line + '"/>';
+    });
+    y += rowH + gap;
+  }
+  y += 4;
+  return { svg: '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + y + '" viewBox="0 0 ' + W + ' ' + y + '"><rect width="100%" height="100%" fill="' + C.bg + '"/>' + s + '</svg>', w: W, h: y,
+    name: (function () { var nm = (plan.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''); return (nm.indexOf('grand-melee') === 0 ? nm : 'grand-melee-' + (nm || 'plan')) + '.png'; })() };
+}
+function svgToPng(o) {
+  return new Promise(function (resolve, reject) {
+    // phones cap canvas size; shrink very tall plans to fit
+    var k = Math.min(1, Math.sqrt(16000000 / (o.w * o.h)), 16000 / o.h), cw = Math.round(o.w * k), ch = Math.round(o.h * k);
+    var img = new Image();
+    img.onload = function () {
+      var cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+      var cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, cw, ch);
+      cv.toBlob(function (b) { b ? resolve(b) : reject(new Error('blob')); }, 'image/png');
+    };
+    img.onerror = function () { reject(new Error('draw')); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(o.svg);
+  });
+}
+var imgPrev = null;
+function closeImage() { var m = $('gm-imgmodal'); if (m) m.remove(); if (imgPrev) { URL.revokeObjectURL(imgPrev.url); imgPrev = null; } document.documentElement.style.overflow = ''; }
+function canShareFile(file) { try { return !!(navigator.canShare && navigator.share && navigator.canShare({ files: [file] })); } catch (e) { return false; } }
+function exportImage(kind) {
+  toast('Drawing the image…');
+  var o;
+  try { o = kind === 'plan' ? buildPlanSVG() : buildPhaseSVG(); } catch (e) { toast('Couldn’t draw the image.'); return; }
+  svgToPng(o).then(function (blob) {
+    closeImage();
+    var file = null; try { file = new File([blob], o.name, { type: 'image/png' }); } catch (e) {}
+    imgPrev = { blob: blob, name: o.name, url: URL.createObjectURL(blob), file: file };
+    var share = file && canShareFile(file);
+    var m = document.createElement('div'); m.id = 'gm-imgmodal'; m.className = 'imgmodal'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-label', 'Image preview');
+    m.innerHTML = '<div class="imgbar"><b>' + (kind === 'plan' ? 'Whole plan' : 'Phase ' + (st.phase + 1) + ': ' + esc(ph().name)) + '</b><span class="imgbtns">' +
+      (share ? '<button class="btn primary" data-img="share">Save to Photos / Share</button><button class="btn" data-img="dl">Download</button>' : '<button class="btn primary" data-img="dl">Download</button>') +
+      '<button class="btn ghost" data-img="close">Close</button></span></div>' +
+      '<div class="imgscroll"><img src="' + imgPrev.url + '" alt="Preview of the saved image"></div>' +
+      (share ? '' : '<p class="imgnote">On a phone you can also press and hold the image to save it.</p>');
+    document.body.appendChild(m); document.documentElement.style.overflow = 'hidden';
+    m.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-img]'); if (!b) { if (e.target === m) closeImage(); return; }
+      var a = b.dataset.img;
+      if (a === 'close') closeImage();
+      else if (a === 'share') navigator.share({ files: [imgPrev.file], title: plan.name }).catch(function (err) { if (err && err.name !== 'AbortError') toast('Sharing didn’t work here. Use Download, or press and hold the image.'); });
+      else if (a === 'dl') saveFile(imgPrev.name, imgPrev.blob, 'Image saved', { description: 'PNG image', accept: { 'image/png': ['.png'] } });
+    });
+  }, function () { toast('Couldn’t draw the image.'); });
+}
+function savePNG() { exportImage('phase'); }
+
+
+/* ---------- roster ---------- */
+function R() { return plan.roster; }
+function rteam(id) { var t = R().teams; for (var i = 0; i < t.length; i++) if (t[i].id === id) return t[i]; return null; }
+function parsePower(v) {
+  v = String(v == null ? '' : v).trim().replace(/[,\s]/g, '').toUpperCase();
+  if (!v) return null;
+  var m = /^(\d+(?:\.\d+)?)([KMB])?$/.exec(v); if (!m) return null;
+  return parseFloat(m[1]) * ({ K: 1e3, M: 1e6, B: 1e9 }[m[2]] || 1);
+}
+function fmtPower(n) {
+  if (n == null || isNaN(n)) return '';
+  var a = Math.abs(n);
+  if (a >= 1e9) return +(n / 1e9).toFixed(2) + 'B';
+  if (a >= 1e6) return +(n / 1e6).toFixed(1) + 'M';
+  if (a >= 1e3) return +(n / 1e3).toFixed(1) + 'K';
+  return String(+n.toFixed(2));
+}
+function nextTeamColor() { var used = R().teams.map(function (t) { return t.color.toLowerCase(); }); for (var i = 0; i < RCOLS.length; i++) if (used.indexOf(RCOLS[i].toLowerCase()) < 0) return RCOLS[i]; return RCOLS[R().teams.length % RCOLS.length]; }
+function teamStats() {
+  var s = { '': { n: 0, p: 0 } }; R().teams.forEach(function (t) { s[t.id] = { n: 0, p: 0 }; });
+  R().players.forEach(function (p) { var k = rteam(p.team) ? p.team : ''; s[k].n++; if (p.power != null) s[k].p += p.power; });
+  return s;
+}
+
+/* CSV / pasted text -> rows */
+function parseRows(text) {
+  text = String(text || '').replace(/^﻿/, '');
+  var d = text.indexOf('\t') >= 0 ? '\t' : text.indexOf(',') >= 0 ? ',' : text.indexOf(';') >= 0 ? ';' : ',';
+  var rows = [], row = [], f = '', q = false;
+  for (var i = 0; i < text.length; i++) {
+    var c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; continue; }
+    if (c === '"' && f.trim() === '') { q = true; f = ''; continue; }
+    if (c === d) { row.push(f); f = ''; continue; }
+    if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; continue; }
+    f += c;
+  }
+  if (f !== '' || row.length) { row.push(f); rows.push(row); }
+  return rows.map(function (r) { return r.map(function (x) { return x.trim(); }); }).filter(function (r) { return r.some(function (x) { return x; }); });
+}
+function rowsToPlayers(rows) {
+  if (!rows.length) return [];
+  var head = rows[0].map(function (x) { return x.toLowerCase(); }), ni = -1, pi = -1, ti = -1;
+  head.forEach(function (h, i) {
+    if (ni < 0 && /^(name|player|players|ign|player name|governor|member)$/.test(h)) ni = i;
+    else if (pi < 0 && /^(power|might|cp|total power)$/.test(h)) pi = i;
+    else if (ti < 0 && /^(team|squad|group|team name)$/.test(h)) ti = i;
+  });
+  var out = [];
+  if (ni >= 0) {
+    rows.slice(1).forEach(function (r) {
+      var name = (r[ni] || '').trim(); if (!name) return;
+      out.push({ name: name, power: pi >= 0 ? parsePower(r[pi]) : null, teamName: ti >= 0 ? (r[ti] || '').trim() : '' });
+    });
+    return out;
+  }
+  rows.forEach(function (r) {
+    var name = (r[0] || '').trim(); if (!name) return;
+    var power = null, teamName = '';
+    r.slice(1).forEach(function (x) { if (!x) return; var pw = parsePower(x); if (pw != null && power == null) power = pw; else if (!teamName) teamName = x; });
+    out.push({ name: name, power: power, teamName: teamName });
+  });
+  return out;
+}
+function teamByName(name, create) {
+  var n = String(name || '').trim(); if (!n) return null;
+  var t = R().teams.filter(function (x) { return x.name.toLowerCase() === n.toLowerCase(); })[0];
+  if (!t && create) { t = { id: uid(), name: n.slice(0, 24), color: nextTeamColor() }; R().teams.push(t); }
+  return t || null;
+}
+function applyPlayers(list, mode) {
+  commit();
+  if (mode === 'replace') {
+    var hasTeams = list.some(function (p) { return p.teamName; });
+    R().players = [];
+    if (hasTeams) R().teams = [];
+  }
+  var byName = {}; R().players.forEach(function (p) { byName[p.name.toLowerCase()] = p; });
+  var added = 0, updated = 0;
+  list.forEach(function (x) {
+    var t = x.teamName ? teamByName(x.teamName, true) : null, ex = byName[x.name.toLowerCase()];
+    if (ex) { if (x.power != null) ex.power = x.power; if (t) ex.team = t.id; if (x.src) ex.src = x.src; updated++; }
+    else { var p = { id: uid(), name: x.name.slice(0, 32), power: x.power, team: t ? t.id : '' }; if (x.src) p.src = x.src; R().players.push(p); byName[x.name.toLowerCase()] = p; added++; }
+  });
+  changed(); renderRoster(); renderSel(); renderMap();
+  return { added: added, updated: updated };
+}
+function rosterCSV() {
+  var q = function (v) { v = v == null ? '' : String(v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  var order = {}; R().teams.forEach(function (t, i) { order[t.id] = i; });
+  var ps = R().players.slice().sort(function (a, b) { var oa = order[a.team] != null ? order[a.team] : 999, ob = order[b.team] != null ? order[b.team] : 999; return oa - ob; });
+  var lines = ['Name,Power,Team'];
+  ps.forEach(function (p) { var t = rteam(p.team); lines.push([q(p.name), p.power == null ? '' : q(p.power), q(t ? t.name : '')].join(',')); });
+  R().teams.forEach(function (t) { if (!ps.some(function (p) { return p.team === t.id; })) lines.push(',,' + q(t.name)); });
+  return lines.join('\r\n') + '\r\n';
+}
+function saveFile(name, blob, okMsg, accept) {
+  var download = function () {
+    var url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000); toast(okMsg);
+  };
+  if (st.standalone) {
+    var pk = null;
+    if (window.showSaveFilePicker) { try { pk = window.showSaveFilePicker({ suggestedName: name, types: [accept] }); } catch (e) { pk = null; } }
+    if (pk) { pk.then(function (h) { return h.createWritable().then(function (w) { return w.write(blob).then(function () { return w.close(); }); }); }).then(function () { toast(okMsg); }, function (err) { if (!err || err.name !== 'AbortError') download(); }); return; }
+    download(); return;
+  }
+  if (!caps.downloads) { toast('Saving files isn’t available here.'); return; }
+  caps.downloads.save({ filename: name, data: blob }).then(function () { toast(okMsg); }, function (err) { if (!err || err.code !== 'declined') toast('The file wasn’t saved.'); });
+}
+function autoSplit(onlyUnassigned) {
+  var teams = R().teams; if (!teams.length) return;
+  commit();
+  var tot = {}; teams.forEach(function (t) { tot[t.id] = { n: 0, p: 0 }; });
+  var pool = [];
+  R().players.forEach(function (p) {
+    if (onlyUnassigned && rteam(p.team)) { tot[p.team].n++; tot[p.team].p += p.power || 0; }
+    else pool.push(p);
+  });
+  pool.sort(function (a, b) { return (b.power || 0) - (a.power || 0) || a.name.localeCompare(b.name); });
+  var mv = {}; teams.forEach(function (t) { mv[t.id] = []; });
+  pool.forEach(function (p) {
+    var best = null;
+    teams.forEach(function (t) { var s = tot[t.id]; if (!best || s.n < tot[best].n || (s.n === tot[best].n && s.p < tot[best].p)) best = t.id; });
+    p.team = best; tot[best].n++; tot[best].p += p.power || 0; mv[best].push(p);
+  });
+  // trade players between teams (sizes stay equal) until power totals are as close as possible
+  var G = teams.map(function (t) { return { id: t.id, p: tot[t.id].p, ps: mv[t.id] }; }), pw = function (p) { return p.power || 0; };
+  var avg = G.reduce(function (a, g) { return a + g.p; }, 0) / G.length;
+  for (var it = 0; it < 500; it++) {
+    var gain = 0, bi = -1, bj = -1, ba = -1, bb = -1;
+    for (var i = 0; i < G.length; i++) for (var j = i + 1; j < G.length; j++) {
+      var A = G[i], B = G[j], before = Math.pow(A.p - avg, 2) + Math.pow(B.p - avg, 2);
+      for (var x = 0; x < A.ps.length; x++) for (var y = 0; y < B.ps.length; y++) {
+        var d = pw(A.ps[x]) - pw(B.ps[y]); if (!d) continue;
+        var g = before - (Math.pow(A.p - d - avg, 2) + Math.pow(B.p + d - avg, 2));
+        if (g > gain + 1e-6) { gain = g; bi = i; bj = j; ba = x; bb = y; }
+      }
+    }
+    if (bi < 0) break;
+    var A2 = G[bi], B2 = G[bj], pa = A2.ps[ba], pb = B2.ps[bb], dd = pw(pa) - pw(pb);
+    A2.ps[ba] = pb; B2.ps[bb] = pa; pa.team = B2.id; pb.team = A2.id; A2.p -= dd; B2.p += dd;
+  }
+  changed(); renderRoster(); toast('Split ' + pool.length + ' player' + (pool.length === 1 ? '' : 's') + ' across ' + teams.length + ' teams');
+}
+
+function renderRoster() {
+  var r = R(), s = teamStats(), h = '';
+  var rtot = r.players.reduce(function (a, p) { return a + (p.power || 0); }, 0);
+  $('gm-rsum').textContent = r.players.length + ' player' + (r.players.length === 1 ? '' : 's') + (rtot ? ' \u00b7 ' + fmtPower(rtot) : '');
+  h += '<div class="alli">';
+  r.teams.forEach(function (t) {
+    var on = st.rfilter === t.id;
+    h += '<div class="al rteam' + (on ? ' on' : '') + '" data-rfilter="' + t.id + '"><button class="dot" style="background:' + t.color + '" data-rtcolor="' + t.id + '" aria-label="Change ' + esc(t.name) + ' color"></button>' +
+      '<input data-rtname="' + t.id + '" value="' + esc(t.name) + '" maxlength="24" aria-label="Team name">' +
+      '<div class="pts">' + s[t.id].n + '<small>' + (s[t.id].p ? fmtPower(s[t.id].p) : '—') + '</small></div>' +
+      '<button class="rx" data-rtdel="' + t.id + '" title="Delete team" aria-label="Delete ' + esc(t.name) + '">×</button></div>';
+    if (st.rpicker === t.id) h += '<div class="swatches">' + PALETTE.map(function (c) { return '<button style="background:' + c + '" data-rtc="' + c + '" aria-pressed="' + (c.toLowerCase() === t.color.toLowerCase()) + '" aria-label="' + c + '"></button>'; }).join('') + '</div>';
+  });
+  if (!r.teams.length) h += '<div class="empty">No teams yet. Add one, or upload a CSV with a Team column.</div>';
+  h += '</div>';
+  if (s[''].n && r.teams.length) h += '<p class="note">' + s[''].n + ' unassigned</p>';
+  h += '<div class="row"><button class="btn" data-act="r-addteam">+ Team</button><button class="btn" data-act="r-split" ' + (r.players.length && r.teams.length ? '' : 'disabled') + '>Auto-split</button><button class="btn ghost" data-act="r-toggleadd">' + (st.radd ? 'Hide add' : '+ Add players') + '</button>' + (dg.open ? '' : '<button class="btn ghost" data-act="r-deng">+ From Deng\u2019s Den</button>') + '</div>';
+  if (st.rconfirm === 'split') h += '<div class="confirm">Split into ' + r.teams.length + ' equal-size teams with power as even as possible. <button class="btn primary" data-act="r-split-all">Split everyone</button>' + (s[''].n && s[''].n < r.players.length ? '<button class="btn" data-act="r-split-un">Only unassigned (' + s[''].n + ')</button>' : '') + '<button class="btn ghost" data-act="r-cancel">Cancel</button></div>';
+  if (st.rconfirm === 'clear') h += '<div class="confirm">Remove all ' + r.players.length + ' players and every team? <button class="btn danger" data-act="r-clear-yes">Clear roster</button><button class="btn ghost" data-act="r-cancel">Cancel</button></div>';
+  if (st.rimport) {
+    var im = st.rimport, tn = {}; im.list.forEach(function (p) { if (p.teamName) tn[p.teamName.toLowerCase()] = 1; });
+    var nt = Object.keys(tn).length;
+    h += '<div class="confirm">Found ' + im.list.length + ' player' + (im.list.length === 1 ? '' : 's') + (nt ? ' in ' + nt + ' team' + (nt === 1 ? '' : 's') : '') + ' in ' + esc(im.file) + '. <button class="btn primary" data-act="r-imp-replace">Replace roster</button><button class="btn" data-act="r-imp-merge">Add to roster</button><button class="btn ghost" data-act="r-cancel">Cancel</button></div>';
+  }
+  if (st.radd) h += '<div class="field"><label for="gm-radd">Paste players, one per line. Power and team are optional.</label><textarea id="gm-radd" placeholder="Zuko, 85M, Team 1&#10;Azula, 120M&#10;Mai"></textarea><div class="row"><button class="btn primary" data-act="r-add">Add players</button><span class="note">Columns copied from a spreadsheet work too.</span></div></div>';
+  $('gm-rhead').innerHTML = h;
+  if (!$('gm-rfilters').dataset.built) {
+    $('gm-rfilters').dataset.built = '1';
+    $('gm-rfilters').innerHTML = '<input class="input" id="gm-rsearch" placeholder="Search players" aria-label="Search players"><select class="input" id="gm-rteamf" aria-label="Show team"></select>';
+  }
+  var sel = $('gm-rteamf');
+  sel.innerHTML = '<option value="">All teams</option><option value="-">Unassigned</option>' + r.teams.map(function (t) { return '<option value="' + t.id + '">' + esc(t.name) + '</option>'; }).join('');
+  sel.value = st.rfilter || '';
+  $('gm-rfilters').hidden = !r.players.length;
+  renderRosterList();
+  var fromDeng = r.players.filter(function (p) { return p.src; }).length;
+  $('gm-rfoot').innerHTML = (fromDeng ? '<button class="btn" data-act="r-refresh" title="Update the power of the ' + fromDeng + ' players added from Deng\u2019s Den">Refresh power</button>' : '') + '<button class="btn" data-act="r-upload">Upload CSV</button><button class="btn" data-act="r-download" ' + (r.players.length || r.teams.length ? '' : 'disabled') + '>Download CSV</button>' +
+    (r.players.length ? '<button class="btn ghost danger" data-act="r-clear">Clear</button>' : '');
+}
+function renderRosterList() {
+  var r = R(), q = (st.rsearch || '').toLowerCase(), f = st.rfilter || '';
+  var opts = function (cur) { return '<option value="">No team</option>' + r.teams.map(function (t) { return '<option value="' + t.id + '"' + (t.id === cur ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join(''); };
+  var list = r.players.filter(function (p) {
+    if (q && p.name.toLowerCase().indexOf(q) < 0) return false;
+    if (f === '-') return !rteam(p.team);
+    if (f) return p.team === f;
+    return true;
+  });
+  var h = '';
+  if (!r.players.length) h = '<div class="empty">No players yet. Paste a list with <b>+ Add players</b>, or upload a CSV with columns Name, Power, Team.</div>';
+  else if (!list.length) h = '<p class="note">No players match.</p>';
+  else list.forEach(function (p) {
+    var t = rteam(p.team);
+    h += '<div class="prow" style="--tc:' + (t ? t.color : 'transparent') + '"><input class="pin" data-pname="' + p.id + '" value="' + esc(p.name) + '" maxlength="32" aria-label="Player name">' +
+      '<input class="pin pw" data-ppow="' + p.id + '" value="' + esc(fmtPower(p.power)) + '" placeholder="Power" aria-label="Power" inputmode="decimal">' +
+      '<select class="pin" data-pteam="' + p.id + '" aria-label="Team">' + opts(t ? t.id : '') + '</select>' +
+      '<button class="rx" data-pdel="' + p.id + '" aria-label="Remove ' + esc(p.name) + '">×</button></div>';
+  });
+  $('gm-rlist').innerHTML = h;
+}
+$('gm-roster').addEventListener('click', function (e) {
+  var b = e.target.closest('button'), ds = b ? b.dataset : {};
+  if (ds.rtcolor) { st.rpicker = st.rpicker === ds.rtcolor ? null : ds.rtcolor; renderRoster(); return; }
+  if (ds.rtc) { var t = rteam(st.rpicker); if (t) { commit(); t.color = ds.rtc; changed(); } st.rpicker = null; renderRoster(); renderMap(); renderSel(); return; }
+  if (ds.rtdel) {
+    commit(); var id = ds.rtdel;
+    R().teams = R().teams.filter(function (t) { return t.id !== id; });
+    R().players.forEach(function (p) { if (p.team === id) p.team = ''; });
+    if (st.rfilter === id) st.rfilter = '';
+    changed(); renderRoster(); renderMap(); renderSel(); return;
+  }
+  if (ds.pdel) { commit(); R().players = R().players.filter(function (p) { return p.id !== ds.pdel; }); changed(); renderRoster(); return; }
+  if (b) return;
+  var row = e.target.closest('[data-rfilter]');
+  if (row && e.target.tagName !== 'INPUT') { st.rfilter = st.rfilter === row.dataset.rfilter ? '' : row.dataset.rfilter; renderRoster(); }
+});
+$('gm-roster').addEventListener('change', function (e) {
+  var t = e.target, ds = t.dataset;
+  if (t.id === 'gm-rteamf') { st.rfilter = t.value; renderRoster(); return; }
+  if (ds.pteam) { var p = R().players.filter(function (x) { return x.id === ds.pteam; })[0]; if (!p) return; commit(); p.team = t.value; changed(); renderRoster(); return; }
+  if (ds.ppow) {
+    var p2 = R().players.filter(function (x) { return x.id === ds.ppow; })[0]; if (!p2) return;
+    var v = t.value.trim(), n = parsePower(v);
+    if (v && n == null) { t.value = fmtPower(p2.power); toast('Power should be a number like 85M, 1.2B or 850000'); return; }
+    commit(); p2.power = v ? n : null; changed(); renderRoster(); return;
+  }
+});
+$('gm-roster').addEventListener('input', function (e) {
+  if (e.target.id === 'gm-rsearch') { st.rsearch = e.target.value; renderRosterList(); }
+});
+var rfile = document.createElement('input'); rfile.type = 'file'; rfile.accept = '.csv,.tsv,.txt,text/csv,text/plain'; rfile.hidden = true; document.body.appendChild(rfile);
+rfile.addEventListener('change', function () {
+  var f = rfile.files && rfile.files[0]; if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function () {
+    var list = rowsToPlayers(parseRows(rd.result));
+    rfile.value = '';
+    if (!list.length) { toast('No players found. The file needs a name in the first column, or a Name header.'); return; }
+    if (!R().players.length) { var res = applyPlayers(list, 'replace'); toast('Loaded ' + res.added + ' players'); return; }
+    st.rimport = { list: list, file: f.name }; st.rconfirm = null; renderRoster();
+  };
+  rd.onerror = function () { toast('That file couldn’t be read.'); };
+  rd.readAsText(f);
+});
+Object.assign(ACTS, {
+  'r-addteam': function () { commit(); var t = { id: uid(), name: 'Team ' + (R().teams.length + 1), color: nextTeamColor() }; R().teams.push(t); changed(); renderRoster(); var i = document.querySelector('[data-rtname="' + t.id + '"]'); if (i) { i.focus(); i.select(); } },
+  'r-split': function () { st.rconfirm = 'split'; st.rimport = null; renderRoster(); },
+  'r-split-all': function () { st.rconfirm = null; autoSplit(false); },
+  'r-split-un': function () { st.rconfirm = null; autoSplit(true); },
+  'r-cancel': function () { st.rconfirm = null; st.rimport = null; renderRoster(); },
+  'r-toggleadd': function () { st.radd = !st.radd; renderRoster(); if (st.radd) { var ta = $('gm-radd'); if (ta) ta.focus(); } },
+  'r-add': function () {
+    var list = rowsToPlayers(parseRows($('gm-radd').value));
+    if (!list.length) { toast('Type or paste at least one player name.'); return; }
+    var res = applyPlayers(list, 'merge'); st.radd = false; renderRoster();
+    toast('Added ' + res.added + ' player' + (res.added === 1 ? '' : 's') + (res.updated ? ', updated ' + res.updated : ''));
+  },
+  'r-upload': function () { rfile.click(); },
+  'r-download': function () {
+    var nm = (plan.name || 'grand-melee').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-roster.csv';
+    saveFile(nm, new Blob(['﻿' + rosterCSV()], { type: 'text/csv' }), 'Roster downloaded', { description: 'CSV spreadsheet', accept: { 'text/csv': ['.csv'] } });
+  },
+  'r-imp-replace': function () { var im = st.rimport; st.rimport = null; var res = applyPlayers(im.list, 'replace'); toast('Loaded ' + res.added + ' players'); },
+  'r-imp-merge': function () { var im = st.rimport; st.rimport = null; var res = applyPlayers(im.list, 'merge'); toast('Added ' + res.added + ', updated ' + res.updated); },
+  'r-clear': function () { st.rconfirm = 'clear'; st.rimport = null; renderRoster(); },
+  'r-clear-yes': function () { commit(); R().players = []; R().teams = []; st.rconfirm = null; st.rfilter = ''; changed(); renderRoster(); renderMap(); renderSel(); }
+});
+
+/* teams section for the saved image */
+function teamsImageBlock(W, y0, fg, mu) {
+  var teams = R().teams.map(function (t) { return { t: t, ps: R().players.filter(function (p) { return p.team === t.id; }) }; }).filter(function (x) { return x.ps.length; });
+  if (!teams.length) return { svg: '', h: 0 };
+  var cols = Math.min(4, teams.length), colW = (W - 48) / cols, maxRows = 24, svg = '', y = y0 + 38;
+  svg += '<text x="24" y="' + y + '" font-family="Geist, Arial, sans-serif" font-size="13" font-weight="600" letter-spacing="1.8" fill="' + mu + '">TEAMS</text>';
+  y += 18;
+  for (var i = 0; i < teams.length; i += cols) {
+    var chunk = teams.slice(i, i + cols), rowsH = 0;
+    chunk.forEach(function (x, j) {
+      var cx = 24 + j * colW, yy = y + 22, pw = x.ps.reduce(function (a, p) { return a + (p.power || 0); }, 0);
+      svg += '<rect x="' + cx + '" y="' + (yy - 13) + '" width="14" height="14" rx="7" fill="' + x.t.color + '"/>';
+      svg += '<text x="' + (cx + 22) + '" y="' + yy + '" font-family="Geist, Arial, sans-serif" font-size="18" font-weight="700" fill="' + fg + '">' + esc(x.t.name) + '</text>';
+      svg += '<text x="' + (cx + 22) + '" y="' + (yy + 20) + '" font-family="Geist, Arial, sans-serif" font-size="13" fill="' + mu + '">' + x.ps.length + (x.ps.length === 1 ? ' player' : ' players') + (pw && st.pngPower !== false ? ' · ' + fmtPower(pw) : '') + '</text>';
+      var shown = x.ps.slice(0, maxRows);
+      shown.forEach(function (p, k) {
+        svg += '<text x="' + (cx + 22) + '" y="' + (yy + 46 + k * 22) + '" font-family="Geist, Arial, sans-serif" font-size="16" fill="' + fg + '">' + esc(p.name) + (p.power != null && st.pngPower !== false ? '<tspan fill="' + mu + '">  ' + fmtPower(p.power) + '</tspan>' : '') + '</text>';
+      });
+      var extra = x.ps.length - shown.length;
+      if (extra > 0) svg += '<text x="' + (cx + 22) + '" y="' + (yy + 46 + shown.length * 22) + '" font-family="Geist, Arial, sans-serif" font-size="15" fill="' + mu + '">+' + extra + ' more</text>';
+      rowsH = Math.max(rowsH, 46 + (shown.length + (extra > 0 ? 1 : 0)) * 22 + 10);
+    });
+    y += rowsH + 10;
+  }
+  return { svg: svg, h: y - y0 };
+}
+
+$('gm-sel').addEventListener('input', function (e) { if (e.target.id === 'gm-ptag') renderTagList(); });
+$('gm-sel').addEventListener('focusin', function (e) { if (e.target.id === 'gm-ptag') renderTagList(); });
+$('gm-sel').addEventListener('focusout', function (e) { if (e.target.id === 'gm-ptag') setTimeout(function () { var b = $('gm-ptaglist'); if (b && !$('gm-sel').contains(document.activeElement)) b.hidden = true; }, 150); });
+$('gm-sel').addEventListener('pointerdown', function (e) { if (e.target.closest('#gm-ptaglist')) e.preventDefault(); });
+$('gm-sel').addEventListener('keydown', function (e) {
+  if (e.target.id !== 'gm-ptag') return;
+  if (e.key === 'Enter') { e.preventDefault(); var first = $('gm-ptaglist') && $('gm-ptaglist').querySelector('[data-tag]'); if (first) tagPlayer(first.dataset.tag); }
+  if (e.key === 'Escape') { e.stopPropagation(); e.target.blur(); }
+});
+$('gm-sel').addEventListener('change', function (e) {
+  if (e.target.id !== 'gm-iteam') return;
+  var it = findItem(st.sel); if (!it) return;
+  commit(); it.team = e.target.value; var t = rteam(it.team); if (t) it.color = t.color; changed(); renderMap(); renderSel();
+});
+$('gm-share').addEventListener('change', function (e) {
+  if (e.target.id === 'gm-pngteams') st.pngTeams = e.target.checked;
+  if (e.target.id === 'gm-pngpower') { st.pngPower = e.target.checked; try { localStorage.setItem('gm-png-power', st.pngPower ? '1' : '0'); } catch (er) {} }
+});
+try { if (localStorage.getItem('gm-png-power') === '0') st.pngPower = false; } catch (e) {}
+
+/* ---------- import players from Deng's Den (top 8 alliances per server, refreshed daily) ---------- */
+var DENG_BASE = 'https://raw.githubusercontent.com/zephyrus44/zephyrus44.github.io/deng-alliances/';
+var dg = { open: false, index: null, loading: false, err: '', q: '', server: null, data: null, ally: -1, pq: '', sel: {}, team: '' };
+function dgFetch(path) { return fetch(DENG_BASE + path, { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); }
+function dgDate(iso) { var d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
+function dgOpen() {
+  dg.open = true; renderDeng();
+  if (!dg.index && !dg.loading) {
+    dg.loading = true; dg.err = ''; renderDeng();
+    dgFetch('index.json').then(function (j) { dg.index = j; dg.loading = false; renderDeng(); var i = $('gm-dq'); if (i) i.focus(); })
+      .catch(function () { dg.loading = false; dg.err = 'Couldn’t load the Deng’s Den data. Check your connection and try again.'; renderDeng(); });
+  }
+}
+function dgPickServer(n, allyName) {
+  dg.server = n; dg.data = null; dg.ally = -1; dg.sel = {}; dg.pq = ''; dg.err = ''; dg.loading = true; renderDeng();
+  dgFetch('servers/' + n + '.json').then(function (j) {
+    if (dg.server !== n) return;
+    dg.data = j; dg.loading = false;
+    if (allyName) j.alliances.forEach(function (a, i) { if (a.name === allyName) dgPickAlly(i, true); });
+    renderDeng();
+  }).catch(function () { dg.loading = false; dg.err = 'Couldn’t load server ' + n + '. Try again.'; renderDeng(); });
+}
+function dgPickAlly(i, quiet) {
+  dg.ally = i; dg.sel = {}; dg.pq = '';
+  var a = dg.data && dg.data.alliances[i]; dg.team = '';
+  if (!quiet) renderDeng();
+}
+function dgMatches() {
+  var q = dg.q.trim().toLowerCase(), out = [];
+  if (!dg.index) return out;
+  var servers = Object.keys(dg.index.servers).map(Number).sort(function (a, b) { return a - b; });
+  if (!q) return servers.slice(0, 0);
+  if (/^\d+$/.test(q)) servers.filter(function (s) { return String(s).indexOf(q) === 0; }).slice(0, 12).forEach(function (s) {
+    var al = dg.index.servers[s] || []; out.push({ server: s, label: 'Server ' + s, sub: al.slice(0, 3).map(function (a) { return a.name; }).join(', ') });
+  });
+  if (q.length >= 2) servers.forEach(function (s) {
+    (dg.index.servers[s] || []).forEach(function (a) {
+      if (out.length >= 30) return;
+      if ((a.name || '').toLowerCase().indexOf(q) >= 0 || (a.tag || '').toLowerCase().indexOf(q) >= 0) out.push({ server: s, ally: a.name, label: (a.tag ? '[' + a.tag + '] ' : '') + a.name, sub: 'Server ' + s + ' · ' + fmtPower(a.power) + ' · ' + a.n + ' players' });
+    });
+  });
+  return out;
+}
+function dgSelected() {
+  var a = dg.data && dg.data.alliances[dg.ally]; if (!a) return [];
+  return a.players.filter(function (p) { return dg.sel[p[0]]; });
+}
+function renderDengList() {
+  var a = dg.data && dg.data.alliances[dg.ally], box = $('gm-dlist'); if (!a || !box) return;
+  var q = dg.pq.trim().toLowerCase(), inRoster = {};
+  R().players.forEach(function (p) { inRoster[p.name.toLowerCase()] = 1; });
+  var rows = a.players.filter(function (p) { return !q || p[0].toLowerCase().indexOf(q) >= 0; });
+  box.innerHTML = rows.length ? rows.map(function (p) {
+    var id = 'dgp-' + encodeURIComponent(p[0]).replace(/[^a-zA-Z0-9]/g, '_');
+    return '<label class="dprow" for="' + id + '"><input type="checkbox" id="' + id + '" data-dgp="' + esc(p[0]) + '"' + (dg.sel[p[0]] ? ' checked' : '') + '><span class="dpn">' + esc(p[0]) + (inRoster[p[0].toLowerCase()] ? ' <small>in roster</small>' : '') + '</span><span class="dpp">' + fmtPower(p[1]) + '</span></label>';
+  }).join('') : '<p class="note">No player matches.</p>';
+  renderDengFoot();
+}
+function renderDengFoot() {
+  var f = $('gm-dfoot'); if (!f) return;
+  var sel = dgSelected(), tot = sel.reduce(function (s, p) { return s + p[1]; }, 0), a = dg.data && dg.data.alliances[dg.ally];
+  var opts = '<option value="">No team</option>' + R().teams.map(function (t) { return '<option value="' + t.id + '"' + (dg.team === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') +
+    (a ? '<option value="@new"' + (dg.team === '@new' ? ' selected' : '') + '>New team: ' + esc(a.name) + '</option>' : '');
+  f.innerHTML = '<div class="dtot"><b>' + sel.length + '</b> selected<span>' + (sel.length ? fmtPower(tot) + ' total power' : 'Tick players to add them') + '</span></div>' +
+    '<div class="row"><select class="input" id="gm-dteam" aria-label="Add to team" style="flex:1;width:auto">' + opts + '</select><button class="btn primary" data-act="dg-add"' + (sel.length ? '' : ' disabled') + '>Add to roster</button></div>';
+}
+function renderDeng() {
+  var el = $('gm-deng'); if (!el) return;
+  if (!dg.open) { el.innerHTML = ''; el.hidden = true; return; }
+  el.hidden = false;
+  var h = '<div class="dhead"><b>Import from Deng’s Den</b>' + (dg.index ? '<span class="note">Updated ' + dgDate(dg.index.taken_at) + '</span>' : '') + '<button class="rx" data-act="dg-close" aria-label="Close import">×</button></div>';
+  if (dg.err) h += '<p class="note" style="color:var(--danger)">' + esc(dg.err) + '</p>';
+  if (dg.server == null) {
+    h += '<div class="ptagadd"><input class="input" id="gm-dq" placeholder="Server number or alliance name" autocomplete="off" value="' + esc(dg.q) + '" aria-label="Find a server or alliance"' + (dg.index ? '' : ' disabled') + '><div class="ptaglist dlist-pop" id="gm-dqlist" hidden></div></div>';
+    h += '<p class="note">' + (dg.loading ? 'Loading…' : 'Covers the 8 strongest alliances on every server, with each member’s power. From <a href="https://dengsden.com/avatar/rankings/" target="_blank" rel="noopener">Deng’s Den</a>, refreshed daily.') + '</p>';
+    el.innerHTML = h; return;
+  }
+  h += '<div class="row"><span class="chip">Server ' + dg.server + '<button data-act="dg-unserver" aria-label="Change server">×</button></span></div>';
+  if (dg.loading || !dg.data) { el.innerHTML = h + '<p class="note">Loading server ' + dg.server + '…</p>'; return; }
+  h += '<div class="dallies">' + dg.data.alliances.map(function (a, i) {
+    return '<button data-dga="' + i + '" aria-pressed="' + (dg.ally === i) + '"' + (a.players.length ? '' : ' disabled') + '><span>' + (a.tag ? '<small>[' + esc(a.tag) + ']</small> ' : '') + esc(a.name) + '</span><small>' + fmtPower(a.power) + ' · ' + (a.players.length ? a.players.length + ' players' : 'no list') + '</small></button>';
+  }).join('') + '</div>';
+  var a = dg.data.alliances[dg.ally];
+  if (a) {
+    h += '<div class="dsearch"><input class="input" id="gm-dpq" placeholder="Search ' + esc(a.name) + '" autocomplete="off" value="' + esc(dg.pq) + '" aria-label="Search players"><button class="btn ghost" data-act="dg-all">All</button><button class="btn ghost" data-act="dg-none">None</button></div>';
+    h += '<div class="dplist" id="gm-dlist"></div><div class="dfoot" id="gm-dfoot"></div>';
+  } else h += '<p class="note">Pick an alliance to see its players.</p>';
+  el.innerHTML = h;
+  if (a) renderDengList();
+}
+$('gm-deng').addEventListener('input', function (e) {
+  if (e.target.id === 'gm-dq') {
+    dg.q = e.target.value; var m = dgMatches(), box = $('gm-dqlist');
+    box.innerHTML = m.length ? m.map(function (x, i) { return '<button data-dgs="' + x.server + '"' + (x.ally ? ' data-dgsa="' + esc(x.ally) + '"' : '') + (i === 0 ? ' class="on"' : '') + '><span>' + esc(x.label) + '</span><small>' + esc(x.sub) + '</small></button>'; }).join('') : (dg.q.trim() ? '<button disabled>No server or alliance matches</button>' : '');
+    box.hidden = !box.innerHTML;
+  } else if (e.target.id === 'gm-dpq') { dg.pq = e.target.value; renderDengList(); }
+});
+$('gm-deng').addEventListener('keydown', function (e) {
+  if (e.target.id === 'gm-dq' && e.key === 'Enter') { e.preventDefault(); var f = $('gm-dqlist') && $('gm-dqlist').querySelector('[data-dgs]'); if (f) dgPickServer(+f.dataset.dgs, f.dataset.dgsa); }
+});
+$('gm-deng').addEventListener('pointerdown', function (e) { if (e.target.closest('#gm-dqlist')) e.preventDefault(); });
+$('gm-deng').addEventListener('change', function (e) {
+  if (e.target.dataset.dgp != null) { var n = e.target.dataset.dgp; if (e.target.checked) dg.sel[n] = 1; else delete dg.sel[n]; renderDengFoot(); }
+  if (e.target.id === 'gm-dteam') dg.team = e.target.value;
+});
+$('gm-deng').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.dgs) { dgPickServer(+b.dataset.dgs, b.dataset.dgsa); return; }
+  if (b.dataset.dga != null) { dgPickAlly(+b.dataset.dga); return; }
+  var a = b.dataset.act;
+  if (a === 'dg-close') { dg.open = false; renderDeng(); renderRoster(); }
+  else if (a === 'dg-unserver') { dg.server = null; dg.data = null; dg.ally = -1; dg.sel = {}; renderDeng(); var i = $('gm-dq'); if (i) { i.focus(); i.select(); } }
+  else if (a === 'dg-all') { var al = dg.data.alliances[dg.ally], q = dg.pq.trim().toLowerCase(); al.players.forEach(function (p) { if (!q || p[0].toLowerCase().indexOf(q) >= 0) dg.sel[p[0]] = 1; }); renderDengList(); }
+  else if (a === 'dg-none') { dg.sel = {}; renderDengList(); }
+  else if (a === 'dg-add') {
+    var sel = dgSelected(), al2 = dg.data.alliances[dg.ally], tn = '';
+    if (!sel.length) return;
+    if (dg.team === '@new') tn = al2.name; else if (dg.team) { var t = rteam(dg.team); tn = t ? t.name : ''; }
+    var res = applyPlayers(sel.map(function (p) { return { name: p[0], power: p[1], teamName: tn, src: dg.server }; }), 'merge');
+    dg.sel = {}; renderDengList(); renderRoster();
+    toast('Added ' + res.added + (res.updated ? ', updated ' + res.updated : '') + ' from ' + al2.name);
+  }
+});
+
+function refreshPower(btn) {
+  var bySrv = {};
+  R().players.forEach(function (p) { if (p.src) (bySrv[p.src] = bySrv[p.src] || []).push(p); });
+  var srvs = Object.keys(bySrv); if (!srvs.length) return;
+  if (btn) { btn.disabled = true; btn.textContent = 'Refreshing\u2026'; }
+  Promise.all(srvs.map(function (n) { return dgFetch('servers/' + n + '.json').then(function (j) { return { n: n, j: j }; }, function () { return { n: n, j: null }; }); })).then(function (res) {
+    var upd = 0, same = 0, missing = [], failed = 0, when = '';
+    var changes = [];
+    res.forEach(function (x) {
+      if (!x.j) { failed += bySrv[x.n].length; return; }
+      when = x.j.taken_at || when;
+      var pw = {}; x.j.alliances.forEach(function (a) { a.players.forEach(function (p) { pw[p[0].toLowerCase()] = p[1]; }); });
+      bySrv[x.n].forEach(function (p) {
+        var v = pw[p.name.toLowerCase()];
+        if (v == null) missing.push(p.name);
+        else if (v !== p.power) changes.push([p, v]);
+        else same++;
+      });
+    });
+    if (changes.length) { commit(); changes.forEach(function (c) { c[0].power = c[1]; }); upd = changes.length; changed(); }
+    renderRoster();
+    var msg = upd ? 'Updated power for ' + upd + ' player' + (upd === 1 ? '' : 's') : 'Power is already up to date';
+    if (when) msg += ' (Deng\u2019s Den, ' + dgDate(when) + ')';
+    if (missing.length) msg += '. Not found: ' + missing.slice(0, 3).join(', ') + (missing.length > 3 ? ' +' + (missing.length - 3) : '');
+    if (failed) msg += '. Couldn\u2019t reach the data for ' + failed + ' player' + (failed === 1 ? '' : 's') + '.';
+    toast(msg);
+  });
+}
+Object.assign(ACTS, { 'r-deng': function () { dgOpen(); renderRoster(); }, 'r-refresh': function (b) { refreshPower(b); } });
+
+/* ---------- boot ---------- */
+renderAll();
+if (st.standalone && location.hash.indexOf('#p=') === 0) {
+  decodePlan(location.hash.slice(3)).then(function (p) {
+    commit(); plan = normalize(p); st.phase = 0; st.sel = null; changed(); renderAll(); toast('Shared plan loaded');
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  }).catch(function () { toast('That share link is incomplete. Ask for it again.'); });
+}
+// keep the same centre and zoom when the map area changes size (phone toolbars, rotation); only refit while untouched
+if (window.ResizeObserver) new ResizeObserver(function () { if (!st.camTouched) fitView(); renderMap(); }).observe($wrap);
+})();
+</script>
+
+</body>
+</html>
