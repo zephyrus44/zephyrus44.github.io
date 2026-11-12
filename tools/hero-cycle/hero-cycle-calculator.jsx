@@ -1,77 +1,84 @@
 import { useState, useMemo } from "react";
 
-/* ---------------- Server age data (all UTC) ----------------
-   Reference: 00:00 UTC July 13, 2026. KNOWN = in-game day counter
-   at that moment, read from migration-screen screenshots.        */
+/* ---------------- World ages (all UTC) ----------------
+   In-game "Day N" for every world as shown on the Migration screen
+   on Sun Nov 1, 2026 (UTC). Day 1 = the day the world opened.
+   Worlds after the newest listed open every Friday at 00:00 UTC.   */
 const DAY = 86400000;
-const REF = Date.UTC(2026, 6, 13);
+const REF = Date.UTC(2026, 10, 1);
 
-const KNOWN = {
-  1001: 817, 1002: 761, 1003: 705, 1004: 635, 1005: 586, 1006: 516,
-  1007: 495, 1008: 495, 1009: 483, 1010: 483, 1011: 483, 1012: 481,
-  1013: 480, 1014: 478, 1015: 477,
-  1042: 377, 1043: 370, 1044: 363, 1045: 358, 1046: 353, 1047: 347,
-  1048: 340, 1049: 333,
-  1064: 220, 1065: 213, 1066: 206, 1067: 199, 1068: 192, 1069: 185,
-  1070: 178, 1071: 171,
-  1074: 150, 1075: 143, 1076: 136, 1077: 129, 1078: 122, 1079: 115,
-  1080: 108, 1081: 101,
-  1088: 52, 1089: 45, 1090: 38, 1091: 31, 1092: 24, 1093: 17,
-  1094: 10, 1095: 3,
+const GAME_DAY = {
+  1001: 929, 1002: 873, 1003: 817, 1004: 747, 1005: 698, 1006: 628, 1007: 607, 1008: 607,
+  1009: 595, 1010: 595, 1011: 595, 1012: 593, 1013: 592, 1014: 590, 1015: 589, 1016: 587,
+  1017: 585, 1018: 583, 1019: 582, 1020: 581, 1021: 578, 1022: 576, 1023: 574, 1024: 571,
+  1025: 568, 1026: 565, 1027: 562, 1028: 559, 1029: 555, 1030: 552, 1031: 548, 1032: 544,
+  1033: 539, 1034: 534, 1035: 529, 1036: 526, 1037: 521, 1038: 515, 1039: 509, 1040: 503,
+  1041: 496, 1042: 489, 1043: 482, 1044: 475, 1045: 470, 1046: 465, 1047: 459, 1048: 452,
+  1049: 445, 1050: 438, 1051: 432, 1052: 425, 1053: 418, 1054: 411, 1055: 404, 1056: 397,
+  1057: 390, 1058: 383, 1059: 376, 1060: 362, 1061: 353, 1062: 346, 1063: 339, 1064: 332,
+  1065: 325, 1066: 318, 1067: 311, 1068: 304, 1069: 297, 1070: 290, 1071: 283, 1072: 276,
+  1073: 269, 1074: 262, 1075: 255, 1076: 248, 1077: 241, 1078: 234, 1079: 227, 1080: 220,
+  1081: 213, 1082: 206, 1083: 199, 1084: 192, 1085: 185, 1086: 178, 1087: 171, 1088: 164,
+  1089: 157, 1090: 150, 1091: 143, 1092: 136, 1093: 129, 1094: 122, 1095: 115, 1096: 108,
+  1097: 101, 1098: 94, 1099: 87, 1100: 80, 1101: 73, 1102: 66, 1103: 59, 1104: 52,
+  1105: 45, 1106: 38, 1107: 31, 1108: 24, 1109: 17, 1110: 10, 1111: 3,
 };
-const NEWEST_KNOWN = 1095; // Fri Jul 10 2026; weekly Fridays after
-
-// Fill gaps by linear interpolation between nearest known anchors.
-const { ELAPSED, APPROX } = (() => {
-  const elapsed = {}, approx = {};
-  const keys = Object.keys(KNOWN).map(Number).sort((a, b) => a - b);
-  for (const k of keys) elapsed[k] = KNOWN[k];
-  for (let i = 0; i < keys.length - 1; i++) {
-    const lo = keys[i], hi = keys[i + 1], steps = hi - lo;
-    if (steps <= 1) continue;
-    const delta = KNOWN[lo] - KNOWN[hi];
-    const uneven = delta % steps !== 0;
-    for (let s = lo + 1; s < hi; s++) {
-      elapsed[s] = Math.round(KNOWN[lo] - ((s - lo) * delta) / steps);
-      if (uneven) approx[s] = true;
-    }
-  }
-  return { ELAPSED: elapsed, APPROX: approx };
-})();
+const NEWEST_LISTED = 1111;
 
 const launchOf = (s) =>
-  s <= NEWEST_KNOWN
-    ? REF - ELAPSED[s] * DAY
-    : REF - ELAPSED[NEWEST_KNOWN] * DAY + (s - NEWEST_KNOWN) * 7 * DAY;
-const isApprox = (s) => !!APPROX[s];
-// In-game day counter (server 1001 reads day 817 at 00:00 Jul 13).
-// Launch is a Friday, so day 1 = Saturday, day 3 = Monday, day 5 = Wednesday.
-const dayNumberOn = (s, t) => Math.floor((t - launchOf(s)) / DAY);
+  s <= NEWEST_LISTED
+    ? REF - (GAME_DAY[s] - 1) * DAY
+    : REF - (GAME_DAY[NEWEST_LISTED] - 1) * DAY + (s - NEWEST_LISTED) * 7 * DAY;
+const isProjected = (s) => s > NEWEST_LISTED;
+// In-game day counter on date t (Day 1 = opening day)
+const gameDayOn = (s, t) => Math.floor((t - launchOf(s)) / DAY) + 1;
 
 /* ---------------- Hero pair schedule ----------------
-   14-day cycles, cycle 1 = server days 1–14. Each pair holds for
-   three cycles. Both events run 5 days inside each cycle.
-   Verified: server 1076 → cycle 10 = Roku / Lin Beifong.            */
+   Each cycle is 14 days, and each hero pair runs for three cycles.
+   Both events run 5 days, Monday–Friday. A world's first event opens on
+   the second Monday after it launches (10 days after opening day), and
+   every later event opens 14 days after the previous one.            */
 const CYCLE_LEN = 14;
 const EVENT_LEN = 5;
-const TOTAL_CYCLES = 36;
+const FIRST_EVENT_OFFSET = 10; // days after opening day
 
-const START_DAY = 3; // events open Monday (day 3 of each cycle)
+// Servers from 1061 on opened on Fridays, so their first event opens on
+// day 11 (the second Monday). Older servers opened on other weekdays and
+// are lined up with 1061's Mondays instead, a whole number of cycles ahead
+// based on how much older they are.
+const ANCHOR_SERVER = 1061;
+const CYCLE_MS = 14 * DAY;
+// When a server's cycle 1 event opens (may be a back-calculated date)
+const cycleOneStart = (server) => {
+  if (server >= ANCHOR_SERVER) return launchOf(server) + FIRST_EVENT_OFFSET * DAY;
+  const ahead = Math.round((launchOf(ANCHOR_SERVER) - launchOf(server)) / CYCLE_MS);
+  return launchOf(ANCHOR_SERVER) + FIRST_EVENT_OFFSET * DAY - ahead * CYCLE_MS;
+};
 
+// unlock = server day the pair's heroes unlock (game data, Deng's Den hero roster).
+// Pairs with split: false are confirmed as a pair, but which hero is on
+// which event isn't known yet.
 const PAIRS = [
-  { wheel: "Iroh",                          tgl: "Aang",           el: "fire"  },
-  { wheel: "King Bumi (KB)",                tgl: "Amon",           el: "earth" },
-  { wheel: "Painted Lady Katara (PLK)",     tgl: "Yangchen",       el: "water" },
-  { wheel: "Lin Beifong",                   tgl: "Roku",           el: "earth" },
-  { wheel: "Fire Nation Aang (FNA)",        tgl: "Kuruk",          el: "fire"  },
-  { wheel: "Avatar Hunter Zuko (AH Zuko)",  tgl: "Zaheer",         el: "fire"  },
-  { wheel: "Wolf Warrior Sokka (WW Sokka)", tgl: "Kuvira",         el: "water" },
-  { wheel: "Mako",                          tgl: "Jinora",         el: "fire"  },
-  { wheel: "Lady Beifong Toph (LB Toph)",   tgl: "Desna and Eska", el: "earth" },
-  { wheel: "Ozai",                          tgl: "Opal",           el: "fire"  },
-  { wheel: "Korra (variation)",             tgl: "Bolin",          el: "water" },
-  { wheel: "Jet Sun",                       tgl: "Ty Lee",         el: "air"   },
+  { wheel: "Iroh",                          tgl: "Aang",           el: "fire",  unlock: 1   },
+  { wheel: "King Bumi (KB)",                tgl: "Amon",           el: "earth", unlock: 46  },
+  { wheel: "Painted Lady Katara (PLK)",     tgl: "Yangchen",       el: "water", unlock: 82  },
+  { wheel: "Lin Beifong",                   tgl: "Roku",           el: "earth", unlock: 124 },
+  { wheel: "Fire Nation Aang (FNA)",        tgl: "Kuruk",          el: "air",   unlock: 166 },
+  { wheel: "Avatar Hunter Zuko (AH Zuko)",  tgl: "Zaheer",         el: "fire",  unlock: 208 },
+  { wheel: "Wolf Warrior Sokka (WW Sokka)", tgl: "Kuvira",         el: "water", unlock: 250 },
+  { wheel: "Mako",                          tgl: "Jinora",         el: "fire",  unlock: 292 },
+  { wheel: "Lady Beifong Toph (LB Toph)",   tgl: "Desna and Eska", el: "earth", unlock: 334 },
+  { wheel: "Ozai",                          tgl: "Opal",           el: "fire",  unlock: 376 },
+  { wheel: "Disguised Equalist Korra",      tgl: "Bolin",          el: "water", unlock: 418 },
+  { wheel: "Jet Sun",                       tgl: "Ty Lee",         el: "air",   unlock: 460 },
+  { heroes: ["Sapphire Fire Katara", "Mad King Bumi"], el: "water", unlock: 502, split: false },
+  { heroes: ["Kelsang", "Rangi"],                      el: "air",   unlock: 544, split: false },
+  { heroes: ["Yun", "Varrick"],                        el: "earth", unlock: 586, split: false },
 ];
+const TOTAL_CYCLES = PAIRS.length * 3;
+const wheelName = (p) => (p.split === false ? null : p.wheel);
+const pairLabel = (p) =>
+  p.split === false ? p.heroes.join(" & ") : `${p.wheel} / ${p.tgl}`;
 
 const EL = {
   fire:  { c: "#E0715A" },
@@ -90,27 +97,29 @@ const fmtShort = (t) =>
     timeZone: "UTC", weekday: "short", month: "short", day: "numeric",
   });
 
-// Moment day d begins = launch + d * DAY
-const cycleInfo = (server, totalCycle, startDay) => {
-  const launch = launchOf(server);
-  const base = (totalCycle - 1) * CYCLE_LEN;
-  const disp = ((totalCycle - 1) % TOTAL_CYCLES) + 1;
-  const loop = Math.floor((totalCycle - 1) / TOTAL_CYCLES) + 1;
+const cycleInfo = (server, totalCycle) => {
+  const disp = totalCycle;
+  const loop = 1;
   const pairIdx = Math.floor((disp - 1) / 3);
+  const evStart = cycleOneStart(server) + (totalCycle - 1) * CYCLE_MS;
   return {
     totalCycle, disp, loop, pairIdx,
-    pair: PAIRS[pairIdx],
+    pair: PAIRS[pairIdx] || null,
     occ: ((disp - 1) % 3) + 1,
-    cycleStart: launch + (base + 1) * DAY,
-    cycleEnd: launch + (base + CYCLE_LEN) * DAY,          // first moment of last day
-    evStart: launch + (base + startDay) * DAY,
-    evEnd: launch + (base + startDay + EVENT_LEN) * DAY,  // exclusive
+    evStart,
+    evEnd: evStart + EVENT_LEN * DAY, // exclusive
   };
+};
+
+// The cycle whose event most recently opened on or before t
+// (cycle 1 before a world's first event)
+const cycleOn = (server, t) => {
+  return Math.max(1, Math.floor((t - cycleOneStart(server)) / CYCLE_MS) + 1);
 };
 
 export default function HeroCycleCalculator() {
   const todayISO = new Date().toISOString().slice(0, 10);
-  const [serverStr, setServerStr] = useState("1076");
+  const [serverStr, setServerStr] = useState("");
   const [dateStr, setDateStr] = useState(todayISO);
 
   const server = parseInt(serverStr, 10);
@@ -121,10 +130,10 @@ export default function HeroCycleCalculator() {
   const result = useMemo(() => {
     if (!validServer || !validDate) return null;
     if (t < launchOf(server)) return { state: "unlaunched", launch: launchOf(server) };
-    const dayN = Math.max(1, dayNumberOn(server, t));
-    const totalCycle = Math.ceil(dayN / CYCLE_LEN);
-    const cur = cycleInfo(server, totalCycle, START_DAY);
-    const dayInCycle = dayN - (totalCycle - 1) * CYCLE_LEN;
+    const dayN = gameDayOn(server, t);
+    const totalCycle = cycleOn(server, t);
+    const cur = cycleInfo(server, totalCycle);
+    if (!cur.pair) return { state: "beyond", dayN };
 
     let status, statusText;
     if (t < cur.evStart) {
@@ -138,15 +147,16 @@ export default function HeroCycleCalculator() {
       status = "ended";
       statusText = "Ended this cycle";
     }
-    const next = status === "ended" ? cycleInfo(server, totalCycle + 1, START_DAY) : null;
+    const nx = status === "ended" ? cycleInfo(server, totalCycle + 1) : null;
+    const next = nx && nx.pair ? nx : null;
 
     const upcoming = [];
-    for (let c = totalCycle; c < totalCycle + 8; c++)
-      upcoming.push(cycleInfo(server, c, START_DAY));
+    for (let c = totalCycle; c < Math.min(totalCycle + 8, TOTAL_CYCLES + 1); c++)
+      upcoming.push(cycleInfo(server, c));
 
     return {
-      state: "ok", dayN, dayInCycle, cur, next, status, statusText, upcoming,
-      est: server <= NEWEST_KNOWN && isApprox(server),
+      state: "ok", dayN, cur, next, status, statusText, upcoming,
+      est: isProjected(server),
     };
   }, [server, validServer, t, validDate]);
 
@@ -230,7 +240,7 @@ export default function HeroCycleCalculator() {
             <div className="hc-field">
               <label htmlFor="hc-server">Server</label>
               <input id="hc-server" className="hc-input" inputMode="numeric"
-                value={serverStr} placeholder="e.g. 1076"
+                value={serverStr} placeholder="e.g. 1082"
                 onChange={(e) => setServerStr(e.target.value.replace(/\D/g, ""))}/>
             </div>
             <div className="hc-field">
@@ -242,11 +252,21 @@ export default function HeroCycleCalculator() {
         </div>
 
         {!validServer && (
-          <div className="hc-card hc-warn">Enter a server number (1001 or higher).</div>
+          <div className="hc-card" style={{ color: "var(--arc-mut, #8B93A1)" }}>
+            {serverStr ? "Server numbers start at 1001." : "Enter a server number to see its hero pair."}
+          </div>
         )}
         {validServer && r?.state === "unlaunched" && (
           <div className="hc-card hc-warn">
             Server {server} doesn't exist yet on that date — it launches {fmtDate(r.launch)}.
+          </div>
+        )}
+
+        {r?.state === "beyond" && (
+          <div className="hc-card" style={{ color: "var(--arc-mut, #8B93A1)" }}>
+            Server {server} is on day {r.dayN}, past the end of the known hero list (the last
+            pair unlocks on day {PAIRS[PAIRS.length - 1].unlock}). Its hero pair can't be worked
+            out from the schedule.
           </div>
         )}
 
@@ -255,18 +275,32 @@ export default function HeroCycleCalculator() {
             <div className="hc-card">
               <span className={"hc-status " + r.status}>{r.statusText}</span>
 
-              <div className="hc-pair">
-                <div className="hc-hero" style={{ borderLeftColor: EL[r.cur.pair.el].c }}>
-                  <div className="hc-k">Wheel of Fate</div>
-                  <div className="hc-name" style={{ color: EL[r.cur.pair.el].c }}>
-                    {r.cur.pair.wheel}
+              {r.cur.pair.split === false ? (
+                <div className="hc-pair" style={{ gridTemplateColumns: "1fr" }}>
+                  <div className="hc-hero" style={{ borderLeftColor: EL[r.cur.pair.el].c }}>
+                    <div className="hc-k">Wheel of Fate &amp; TGL heroes</div>
+                    <div className="hc-name" style={{ color: EL[r.cur.pair.el].c }}>
+                      {r.cur.pair.heroes.join(" & ")}
+                    </div>
+                    <div className="hc-next" style={{ marginTop: 6 }}>
+                      Which hero is on which event isn't confirmed yet.
+                    </div>
                   </div>
                 </div>
-                <div className="hc-hero" style={{ borderLeftColor: "var(--arc-line-2, #2E3542)" }}>
-                  <div className="hc-k">TGL rewards</div>
-                  <div className="hc-name">{r.cur.pair.tgl}</div>
+              ) : (
+                <div className="hc-pair">
+                  <div className="hc-hero" style={{ borderLeftColor: EL[r.cur.pair.el].c }}>
+                    <div className="hc-k">Wheel of Fate</div>
+                    <div className="hc-name" style={{ color: EL[r.cur.pair.el].c }}>
+                      {r.cur.pair.wheel}
+                    </div>
+                  </div>
+                  <div className="hc-hero" style={{ borderLeftColor: "var(--arc-line-2, #2E3542)" }}>
+                    <div className="hc-k">TGL rewards</div>
+                    <div className="hc-name">{r.cur.pair.tgl}</div>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="hc-stats">
                 <div className="hc-stat">
@@ -276,7 +310,7 @@ export default function HeroCycleCalculator() {
                 <div className="hc-stat">
                   <div className="hc-k">Cycle</div>
                   <div className="v hc-mono">
-                    {r.cur.disp}/36{r.cur.loop > 1 ? ` · L${r.cur.loop}` : ""}
+                    {r.cur.disp}/{TOTAL_CYCLES}
                   </div>
                 </div>
                 <div className="hc-stat">
@@ -293,17 +327,17 @@ export default function HeroCycleCalculator() {
 
               {r.next && (
                 <div className="hc-next">
-                  Next: <b>{r.next.pair.wheel}</b> / <b>{r.next.pair.tgl}</b> · {range(r.next)}
+                  Next: <b>{pairLabel(r.next.pair)}</b> · {range(r.next)}
                 </div>
               )}
 
               <div className="hc-band" aria-hidden="true">
                 {PAIRS.map((p, i) => (
                   <div key={i} className={"hc-seg" + (i === r.cur.pairIdx ? " cur" : "")}
-                    style={{ background: EL[p.el].c }} title={p.wheel + " / " + p.tgl}/>
+                    style={{ background: EL[p.el].c }} title={pairLabel(p)}/>
                 ))}
               </div>
-              <div className="hc-bandlbl"><span>Cycle 1</span><span>36</span></div>
+              <div className="hc-bandlbl"><span>Cycle 1</span><span>{TOTAL_CYCLES}</span></div>
             </div>
 
             <div className="hc-scroll">
@@ -314,10 +348,20 @@ export default function HeroCycleCalculator() {
                 <tbody>
                   {r.upcoming.map((c, i) => (
                     <tr key={c.totalCycle} className={i === 0 ? "you" : ""}>
-                      <td className="hc-mono">{c.disp}{c.loop > 1 ? ` L${c.loop}` : ""}</td>
+                      <td className="hc-mono">{c.disp}</td>
                       <td style={{ whiteSpace: "nowrap" }}>{r.est ? "~" : ""}{range(c)}</td>
-                      <td><span className="hc-dot" style={{ background: EL[c.pair.el].c }} />{c.pair.wheel}</td>
-                      <td>{c.pair.tgl}</td>
+                      {c.pair.split === false ? (
+                        <td colSpan={2}>
+                          <span className="hc-dot" style={{ background: EL[c.pair.el].c }} />
+                          {c.pair.heroes.join(" & ")}
+                          <span style={{ color: "var(--arc-mut, #8B93A1)" }}> · split not confirmed</span>
+                        </td>
+                      ) : (
+                        <>
+                          <td><span className="hc-dot" style={{ background: EL[c.pair.el].c }} />{c.pair.wheel}</td>
+                          <td>{c.pair.tgl}</td>
+                        </>
+                      )}
                       <td>{ORD[c.occ]}/3</td>
                     </tr>
                   ))}
@@ -328,11 +372,15 @@ export default function HeroCycleCalculator() {
         )}
 
         <div className="hc-note">
-          Cycles are 14 days starting at server day 1; each hero pair holds for three cycles.
-          Both events run 5 days, Monday–Friday (days 3–7 of each cycle). Calibrated against
-          server 1076 (cycle 10 = Roku / Lin Beifong). Servers 1016–1041 and 1050–1063 use
-          estimated ages, marked <span className="hc-est">~</span>; servers after 1095 assume
-          weekly Friday launches. After cycle 36 the schedule is assumed to loop.
+          Each hero pair runs for three 14-day cycles. Both events run 5 days, Monday–Friday.
+          A server's first event opens on its 11th day (the second Monday after a Friday
+          opening), and a new event opens every 14 days after that. Servers that didn't open on a
+          Friday follow the same Monday schedule as server 1061, a whole number of cycles ahead.
+          Events haven't always opened on Mondays, so dates before that change may be off by a
+          few days.
+          Server ages come from the in-game Migration screen, and hero unlock days come from the
+          game data on Deng's Den. Servers that haven't opened yet are assumed to open on Fridays,
+          one per week, and their dates are marked <span className="hc-est">~</span>.
         </div>
       </div>
     </div>
