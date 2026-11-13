@@ -406,16 +406,6 @@ export default function HeroCycleCalculator() {
           </>
         )}
 
-        <div className="hc-note">
-          Both events run 5 days. For a server's first 77 days, they open on its own schedule:
-          day 6 (the Wednesday after it opens), then every 14 days. From day 78, they open
-          Monday–Friday on the same dates as every other server, every 14 days. Each hero pair starts at the first event on or after the server day its heroes
-          unlock, and runs until the next pair unlocks, usually three times.
-          Server ages come from the in-game Migration screen, and hero unlock days come from the
-          game data on Deng's Den. Servers that haven't opened yet are assumed to open on Fridays,
-          one per week, so their dates are estimates and are marked <span className="hc-est">~</span>. Event
-          dates for servers in their first 77 days aren't confirmed yet and are marked the same way.
-        </div>
       </div>
     </div>
   );
