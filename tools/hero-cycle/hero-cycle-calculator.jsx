@@ -29,7 +29,9 @@ const launchOf = (s) =>
   s <= NEWEST_LISTED
     ? REF - (GAME_DAY[s] - 1) * DAY
     : REF - (GAME_DAY[NEWEST_LISTED] - 1) * DAY + (s - NEWEST_LISTED) * 7 * DAY;
-const isProjected = (s) => s > NEWEST_LISTED;
+// Only servers that haven't opened yet have an estimated opening date;
+// servers past the list that have already opened follow the weekly Friday rule.
+const isProjected = (s) => s > NEWEST_LISTED && launchOf(s) > Date.now();
 // In-game day counter on date t (Day 1 = opening day)
 const gameDayOn = (s, t) => Math.floor((t - launchOf(s)) / DAY) + 1;
 
@@ -401,7 +403,7 @@ export default function HeroCycleCalculator() {
           unlock, and runs until the next pair unlocks, usually three times.
           Server ages come from the in-game Migration screen, and hero unlock days come from the
           game data on Deng's Den. Servers that haven't opened yet are assumed to open on Fridays,
-          one per week, and their dates are marked <span className="hc-est">~</span>.
+          one per week, so their dates are estimates and are marked <span className="hc-est">~</span>.
         </div>
       </div>
     </div>
