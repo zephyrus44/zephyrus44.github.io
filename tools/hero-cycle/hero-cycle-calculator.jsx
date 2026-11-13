@@ -39,13 +39,39 @@ const gameDayOn = (s, t) => Math.floor((t - launchOf(s)) / DAY) + 1;
    the second Monday after it launches (10 days after opening day), and
    every later event opens 14 days after the previous one.            */
 const EVENT_LEN = 5;
-// Events run on the same Mondays on every server, every 14 days.
+// While a server is in its Chronicle, its events open on its own schedule:
+// day 6 (the Wednesday after a Friday opening), then every 14 days.
+// Once the Chronicle ends (the start of day 68), it joins the shared
+// schedule: the same Mondays on every server, every 14 days.
 const CYCLE_MS = 14 * DAY;
 const EVENT_ANCHOR = Date.UTC(2026, 10, 16); // Mon Nov 16, 2026
-const eventOnOrAfter = (t) =>
+const FIRST_EVENT_OFFSET = 5;  // days after opening day (day 6)
+const CHRONICLE_END_OFFSET = 67; // Chronicle ends at the start of day 68
+const sharedOnOrAfter = (t) =>
   EVENT_ANCHOR + Math.ceil((t - EVENT_ANCHOR) / CYCLE_MS) * CYCLE_MS;
-const eventOnOrBefore = (t) =>
-  EVENT_ANCHOR + Math.floor((t - EVENT_ANCHOR) / CYCLE_MS) * CYCLE_MS;
+
+// Start of the first event on this server opening at or after time t
+const eventOnOrAfter = (server, t) => {
+  const launch = launchOf(server);
+  const chronEnd = launch + CHRONICLE_END_OFFSET * DAY;
+  const first = launch + FIRST_EVENT_OFFSET * DAY;
+  if (t < chronEnd) {
+    const k = Math.max(0, Math.ceil((t - first) / CYCLE_MS));
+    const ev = first + k * CYCLE_MS;
+    if (ev < chronEnd) return ev;
+  }
+  return sharedOnOrAfter(Math.max(t, chronEnd));
+};
+
+// Number of events from the server's first event up to and including ev
+const eventNumber = (server, ev) => {
+  const launch = launchOf(server);
+  const chronEnd = launch + CHRONICLE_END_OFFSET * DAY;
+  const first = launch + FIRST_EVENT_OFFSET * DAY;
+  if (ev < chronEnd) return Math.round((ev - first) / CYCLE_MS) + 1;
+  const chronCount = Math.floor((chronEnd - 1 - first) / CYCLE_MS) + 1;
+  return chronCount + Math.round((ev - sharedOnOrAfter(chronEnd)) / CYCLE_MS) + 1;
+};
 
 // unlock = server day the pair's heroes unlock (game data, Deng's Den hero roster).
 // Pairs with split: false are confirmed as a pair, but which hero is on
@@ -90,7 +116,7 @@ const fmtShort = (t) =>
 // A hero pair starts at the first event on or after the day its heroes
 // unlock on that server, and runs until the next pair starts.
 const pairStarts = (server) =>
-  PAIRS.map((p) => eventOnOrAfter(launchOf(server) + (p.unlock - 1) * DAY));
+  PAIRS.map((p) => eventOnOrAfter(server, launchOf(server) + (p.unlock - 1) * DAY));
 
 // Details for the event that opens at evStart on this server
 const eventInfo = (server, evStart) => {
@@ -99,12 +125,14 @@ const eventInfo = (server, evStart) => {
   for (let i = 0; i < starts.length; i++) if (starts[i] <= evStart) pairIdx = i;
   if (pairIdx < 0) return null;
   const last = pairIdx === PAIRS.length - 1;
-  const run = Math.round((evStart - starts[pairIdx]) / CYCLE_MS) + 1;
-  const runs = last ? 3 : Math.round((starts[pairIdx + 1] - starts[pairIdx]) / CYCLE_MS);
+  const n = eventNumber(server, evStart);
+  const n0 = eventNumber(server, starts[pairIdx]);
+  const run = n - n0 + 1;
+  const runs = last ? 3 : eventNumber(server, starts[pairIdx + 1]) - n0;
   return {
     evStart,
     evEnd: evStart + EVENT_LEN * DAY, // exclusive
-    cycle: Math.round((evStart - starts[0]) / CYCLE_MS) + 1,
+    cycle: n,
     pairIdx,
     pair: last && run > runs ? null : PAIRS[pairIdx],
     run, runs,
@@ -112,11 +140,19 @@ const eventInfo = (server, evStart) => {
 };
 
 // The event live on date t, or the next one if none is live
-const currentEvent = (server, t) => {
-  let ev = eventOnOrBefore(t);
-  if (t >= ev + EVENT_LEN * DAY) ev += CYCLE_MS;
-  return Math.max(ev, pairStarts(server)[0]);
+const currentEvent = (server, t) =>
+  eventOnOrAfter(server, Math.max(t - (EVENT_LEN - 1) * DAY, launchOf(server)));
+
+// The n events starting with the one that opens at ev
+const eventsFrom = (server, ev, n) => {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    out.push(ev);
+    ev = eventOnOrAfter(server, ev + DAY);
+  }
+  return out;
 };
+
 
 
 export default function HeroCycleCalculator() {
@@ -148,8 +184,8 @@ export default function HeroCycleCalculator() {
     }
 
     const upcoming = [];
-    for (let i = 0; i < 8; i++) {
-      const e = eventInfo(server, firstEv + i * CYCLE_MS);
+    for (const ev of eventsFrom(server, firstEv, 8)) {
+      const e = eventInfo(server, ev);
       if (!e.pair) break;
       upcoming.push(e);
     }
@@ -366,10 +402,11 @@ export default function HeroCycleCalculator() {
         )}
 
         <div className="hc-note">
-          Both events run Monday–Friday on the same dates on every server, every 14 days. Each
-          hero pair starts at the first event on or after the server day its heroes unlock, and
-          runs until the next pair unlocks, usually three times. Events haven't always opened on
-          Mondays, so dates before that change may be off by a few days.
+          Both events run 5 days. While a server is in its Chronicle, they open on its own
+          schedule: day 6 (the Wednesday after it opens), then every 14 days. After the Chronicle
+          ends on day 68, they open Monday–Friday on the same dates as every other server, every
+          14 days. Each hero pair starts at the first event on or after the server day its heroes
+          unlock, and runs until the next pair unlocks, usually three times.
           Server ages come from the in-game Migration screen, and hero unlock days come from the
           game data on Deng's Den. Servers that haven't opened yet are assumed to open on Fridays,
           one per week, and their dates are marked <span className="hc-est">~</span>.
