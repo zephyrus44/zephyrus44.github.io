@@ -131,7 +131,9 @@ export default function HeroCycleCalculator() {
     if (!validServer || !validDate) return null;
     if (t < launchOf(server)) return { state: "unlaunched", launch: launchOf(server) };
     const dayN = gameDayOn(server, t);
-    const totalCycle = cycleOn(server, t);
+    // Between events, show the next cycle rather than the one that just ended
+    let totalCycle = cycleOn(server, t);
+    if (t >= cycleInfo(server, totalCycle).evEnd) totalCycle += 1;
     const cur = cycleInfo(server, totalCycle);
     if (!cur.pair) return { state: "beyond", dayN };
 
@@ -140,22 +142,17 @@ export default function HeroCycleCalculator() {
       status = "upcoming";
       const d = Math.round((cur.evStart - t) / DAY);
       statusText = `Starts in ${d} day${d === 1 ? "" : "s"}`;
-    } else if (t < cur.evEnd) {
+    } else {
       status = "live";
       statusText = `Live · day ${Math.floor((t - cur.evStart) / DAY) + 1} of ${EVENT_LEN}`;
-    } else {
-      status = "ended";
-      statusText = "Ended this cycle";
     }
-    const nx = status === "ended" ? cycleInfo(server, totalCycle + 1) : null;
-    const next = nx && nx.pair ? nx : null;
 
     const upcoming = [];
     for (let c = totalCycle; c < Math.min(totalCycle + 8, TOTAL_CYCLES + 1); c++)
       upcoming.push(cycleInfo(server, c));
 
     return {
-      state: "ok", dayN, cur, next, status, statusText, upcoming,
+      state: "ok", dayN, cur, status, statusText, upcoming,
       est: isProjected(server),
     };
   }, [server, validServer, t, validDate]);
@@ -324,12 +321,6 @@ export default function HeroCycleCalculator() {
                   </div>
                 </div>
               </div>
-
-              {r.next && (
-                <div className="hc-next">
-                  Next: <b>{pairLabel(r.next.pair)}</b> · {range(r.next)}
-                </div>
-              )}
 
               <div className="hc-band" aria-hidden="true">
                 {PAIRS.map((p, i) => (
