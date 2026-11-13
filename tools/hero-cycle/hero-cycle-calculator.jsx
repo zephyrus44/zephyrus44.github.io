@@ -195,6 +195,8 @@ export default function HeroCycleCalculator() {
     return {
       state: "ok", dayN, cur, status, statusText, upcoming,
       est: isProjected(server),
+      // Event dates for servers in their first 77 days aren't confirmed yet
+      newServer: t < launchOf(server) + CHRONICLE_END_OFFSET * DAY,
     };
   }, [server, validServer, t, validDate]);
 
@@ -313,6 +315,14 @@ export default function HeroCycleCalculator() {
             <div className="hc-card">
               <span className={"hc-status " + r.status}>{r.statusText}</span>
 
+              {r.newServer && (
+                <div className="hc-warn" style={{ marginTop: 12 }}>
+                  <b>Dates not confirmed.</b> Server {server} is on day {r.dayN}. Event dates for
+                  servers in their first 77 days don't follow a confirmed schedule yet, so the dates
+                  below are estimates (marked ~). Check the in-game event calendar to be sure.
+                </div>
+              )}
+
               {r.cur.pair.split === false ? (
                 <div className="hc-pair" style={{ gridTemplateColumns: "1fr" }}>
                   <div className="hc-hero" style={{ borderLeftColor: EL[r.cur.pair.el].c }}>
@@ -343,7 +353,7 @@ export default function HeroCycleCalculator() {
               <div className="hc-stats">
                 <div className="hc-stat">
                   <div className="hc-k">Event</div>
-                  <div className="v">{r.est && <span className="hc-est">~</span>}{range(r.cur)}</div>
+                  <div className="v">{(r.est || r.newServer) && <span className="hc-est">~</span>}{range(r.cur)}</div>
                 </div>
                 <div className="hc-stat">
                   <div className="hc-k">Run</div>
@@ -374,7 +384,7 @@ export default function HeroCycleCalculator() {
                 <tbody>
                   {r.upcoming.map((c, i) => (
                     <tr key={c.evStart} className={i === 0 ? "you" : ""}>
-                      <td style={{ whiteSpace: "nowrap" }}>{r.est ? "~" : ""}{range(c)}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>{r.est || r.newServer ? "~" : ""}{range(c)}</td>
                       {c.pair.split === false ? (
                         <td colSpan={2}>
                           <span className="hc-dot" style={{ background: EL[c.pair.el].c }} />
@@ -403,7 +413,8 @@ export default function HeroCycleCalculator() {
           unlock, and runs until the next pair unlocks, usually three times.
           Server ages come from the in-game Migration screen, and hero unlock days come from the
           game data on Deng's Den. Servers that haven't opened yet are assumed to open on Fridays,
-          one per week, so their dates are estimates and are marked <span className="hc-est">~</span>.
+          one per week, so their dates are estimates and are marked <span className="hc-est">~</span>. Event
+          dates for servers in their first 77 days aren't confirmed yet and are marked the same way.
         </div>
       </div>
     </div>
