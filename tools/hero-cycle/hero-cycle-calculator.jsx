@@ -39,14 +39,14 @@ const gameDayOn = (s, t) => Math.floor((t - launchOf(s)) / DAY) + 1;
    the second Monday after it launches (10 days after opening day), and
    every later event opens 14 days after the previous one.            */
 const EVENT_LEN = 5;
-// While a server is in its Chronicle, its events open on its own schedule:
+// For a server's first 77 days, its events open on its own schedule:
 // day 6 (the Wednesday after a Friday opening), then every 14 days.
-// Once the Chronicle ends (the start of day 68), it joins the shared
+// From day 78 (when migration opens up) it joins the shared
 // schedule: the same Mondays on every server, every 14 days.
 const CYCLE_MS = 14 * DAY;
 const EVENT_ANCHOR = Date.UTC(2026, 10, 16); // Mon Nov 16, 2026
 const FIRST_EVENT_OFFSET = 5;  // days after opening day (day 6)
-const CHRONICLE_END_OFFSET = 67; // Chronicle ends at the start of day 68
+const CHRONICLE_END_OFFSET = 77; // joins the shared schedule at the start of day 78
 const sharedOnOrAfter = (t) =>
   EVENT_ANCHOR + Math.ceil((t - EVENT_ANCHOR) / CYCLE_MS) * CYCLE_MS;
 
@@ -344,12 +344,6 @@ export default function HeroCycleCalculator() {
                   <div className="v">{r.est && <span className="hc-est">~</span>}{range(r.cur)}</div>
                 </div>
                 <div className="hc-stat">
-                  <div className="hc-k">Cycle</div>
-                  <div className="v hc-mono">
-                    {r.cur.cycle}
-                  </div>
-                </div>
-                <div className="hc-stat">
                   <div className="hc-k">Run</div>
                   <div className="v">{ord(r.cur.run)} of {r.cur.runs}</div>
                 </div>
@@ -373,12 +367,11 @@ export default function HeroCycleCalculator() {
             <div className="hc-scroll">
               <table className="hc-table">
                 <thead>
-                  <tr><th>Cycle</th><th>Event</th><th>Wheel of Fate</th><th>TGL rewards</th><th>Run</th></tr>
+                  <tr><th>Event</th><th>Wheel of Fate</th><th>TGL rewards</th><th>Run</th></tr>
                 </thead>
                 <tbody>
                   {r.upcoming.map((c, i) => (
                     <tr key={c.evStart} className={i === 0 ? "you" : ""}>
-                      <td className="hc-mono">{c.cycle}</td>
                       <td style={{ whiteSpace: "nowrap" }}>{r.est ? "~" : ""}{range(c)}</td>
                       {c.pair.split === false ? (
                         <td colSpan={2}>
@@ -402,10 +395,9 @@ export default function HeroCycleCalculator() {
         )}
 
         <div className="hc-note">
-          Both events run 5 days. While a server is in its Chronicle, they open on its own
-          schedule: day 6 (the Wednesday after it opens), then every 14 days. After the Chronicle
-          ends on day 68, they open Monday–Friday on the same dates as every other server, every
-          14 days. Each hero pair starts at the first event on or after the server day its heroes
+          Both events run 5 days. For a server's first 77 days, they open on its own schedule:
+          day 6 (the Wednesday after it opens), then every 14 days. From day 78, they open
+          Monday–Friday on the same dates as every other server, every 14 days. Each hero pair starts at the first event on or after the server day its heroes
           unlock, and runs until the next pair unlocks, usually three times.
           Server ages come from the in-game Migration screen, and hero unlock days come from the
           game data on Deng's Den. Servers that haven't opened yet are assumed to open on Fridays,
