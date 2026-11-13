@@ -38,22 +38,14 @@ const gameDayOn = (s, t) => Math.floor((t - launchOf(s)) / DAY) + 1;
    Both events run 5 days, Monday–Friday. A world's first event opens on
    the second Monday after it launches (10 days after opening day), and
    every later event opens 14 days after the previous one.            */
-const CYCLE_LEN = 14;
 const EVENT_LEN = 5;
-const FIRST_EVENT_OFFSET = 10; // days after opening day
-
-// Servers from 1061 on opened on Fridays, so their first event opens on
-// day 11 (the second Monday). Older servers opened on other weekdays and
-// are lined up with 1061's Mondays instead, a whole number of cycles ahead
-// based on how much older they are.
-const ANCHOR_SERVER = 1061;
+// Events run on the same Mondays on every server, every 14 days.
 const CYCLE_MS = 14 * DAY;
-// When a server's cycle 1 event opens (may be a back-calculated date)
-const cycleOneStart = (server) => {
-  if (server >= ANCHOR_SERVER) return launchOf(server) + FIRST_EVENT_OFFSET * DAY;
-  const ahead = Math.round((launchOf(ANCHOR_SERVER) - launchOf(server)) / CYCLE_MS);
-  return launchOf(ANCHOR_SERVER) + FIRST_EVENT_OFFSET * DAY - ahead * CYCLE_MS;
-};
+const EVENT_ANCHOR = Date.UTC(2026, 10, 16); // Mon Nov 16, 2026
+const eventOnOrAfter = (t) =>
+  EVENT_ANCHOR + Math.ceil((t - EVENT_ANCHOR) / CYCLE_MS) * CYCLE_MS;
+const eventOnOrBefore = (t) =>
+  EVENT_ANCHOR + Math.floor((t - EVENT_ANCHOR) / CYCLE_MS) * CYCLE_MS;
 
 // unlock = server day the pair's heroes unlock (game data, Deng's Den hero roster).
 // Pairs with split: false are confirmed as a pair, but which hero is on
@@ -75,8 +67,6 @@ const PAIRS = [
   { heroes: ["Kelsang", "Rangi"],                      el: "air",   unlock: 544, split: false },
   { heroes: ["Yun", "Varrick"],                        el: "earth", unlock: 586, split: false },
 ];
-const TOTAL_CYCLES = PAIRS.length * 3;
-const wheelName = (p) => (p.split === false ? null : p.wheel);
 const pairLabel = (p) =>
   p.split === false ? p.heroes.join(" & ") : `${p.wheel} / ${p.tgl}`;
 
@@ -87,7 +77,7 @@ const EL = {
   air:   { c: "#E8C468" },
 };
 
-const ORD = ["", "1st", "2nd", "3rd"];
+const ord = (n) => n + (["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || "th");
 const fmtDate = (t) =>
   new Date(t).toLocaleDateString("en-US", {
     timeZone: "UTC", month: "short", day: "numeric", year: "numeric",
@@ -97,25 +87,37 @@ const fmtShort = (t) =>
     timeZone: "UTC", weekday: "short", month: "short", day: "numeric",
   });
 
-const cycleInfo = (server, totalCycle) => {
-  const disp = totalCycle;
-  const loop = 1;
-  const pairIdx = Math.floor((disp - 1) / 3);
-  const evStart = cycleOneStart(server) + (totalCycle - 1) * CYCLE_MS;
+// A hero pair starts at the first event on or after the day its heroes
+// unlock on that server, and runs until the next pair starts.
+const pairStarts = (server) =>
+  PAIRS.map((p) => eventOnOrAfter(launchOf(server) + (p.unlock - 1) * DAY));
+
+// Details for the event that opens at evStart on this server
+const eventInfo = (server, evStart) => {
+  const starts = pairStarts(server);
+  let pairIdx = -1;
+  for (let i = 0; i < starts.length; i++) if (starts[i] <= evStart) pairIdx = i;
+  if (pairIdx < 0) return null;
+  const last = pairIdx === PAIRS.length - 1;
+  const run = Math.round((evStart - starts[pairIdx]) / CYCLE_MS) + 1;
+  const runs = last ? 3 : Math.round((starts[pairIdx + 1] - starts[pairIdx]) / CYCLE_MS);
   return {
-    totalCycle, disp, loop, pairIdx,
-    pair: PAIRS[pairIdx] || null,
-    occ: ((disp - 1) % 3) + 1,
     evStart,
     evEnd: evStart + EVENT_LEN * DAY, // exclusive
+    cycle: Math.round((evStart - starts[0]) / CYCLE_MS) + 1,
+    pairIdx,
+    pair: last && run > runs ? null : PAIRS[pairIdx],
+    run, runs,
   };
 };
 
-// The cycle whose event most recently opened on or before t
-// (cycle 1 before a world's first event)
-const cycleOn = (server, t) => {
-  return Math.max(1, Math.floor((t - cycleOneStart(server)) / CYCLE_MS) + 1);
+// The event live on date t, or the next one if none is live
+const currentEvent = (server, t) => {
+  let ev = eventOnOrBefore(t);
+  if (t >= ev + EVENT_LEN * DAY) ev += CYCLE_MS;
+  return Math.max(ev, pairStarts(server)[0]);
 };
+
 
 export default function HeroCycleCalculator() {
   const todayISO = new Date().toISOString().slice(0, 10);
@@ -131,10 +133,8 @@ export default function HeroCycleCalculator() {
     if (!validServer || !validDate) return null;
     if (t < launchOf(server)) return { state: "unlaunched", launch: launchOf(server) };
     const dayN = gameDayOn(server, t);
-    // Between events, show the next cycle rather than the one that just ended
-    let totalCycle = cycleOn(server, t);
-    if (t >= cycleInfo(server, totalCycle).evEnd) totalCycle += 1;
-    const cur = cycleInfo(server, totalCycle);
+    const firstEv = currentEvent(server, t);
+    const cur = eventInfo(server, firstEv);
     if (!cur.pair) return { state: "beyond", dayN };
 
     let status, statusText;
@@ -148,8 +148,11 @@ export default function HeroCycleCalculator() {
     }
 
     const upcoming = [];
-    for (let c = totalCycle; c < Math.min(totalCycle + 8, TOTAL_CYCLES + 1); c++)
-      upcoming.push(cycleInfo(server, c));
+    for (let i = 0; i < 8; i++) {
+      const e = eventInfo(server, firstEv + i * CYCLE_MS);
+      if (!e.pair) break;
+      upcoming.push(e);
+    }
 
     return {
       state: "ok", dayN, cur, status, statusText, upcoming,
@@ -307,12 +310,12 @@ export default function HeroCycleCalculator() {
                 <div className="hc-stat">
                   <div className="hc-k">Cycle</div>
                   <div className="v hc-mono">
-                    {r.cur.disp}/{TOTAL_CYCLES}
+                    {r.cur.cycle}
                   </div>
                 </div>
                 <div className="hc-stat">
                   <div className="hc-k">Run</div>
-                  <div className="v">{ORD[r.cur.occ]} of 3</div>
+                  <div className="v">{ord(r.cur.run)} of {r.cur.runs}</div>
                 </div>
                 <div className="hc-stat">
                   <div className="hc-k">Server day</div>
@@ -328,7 +331,7 @@ export default function HeroCycleCalculator() {
                     style={{ background: EL[p.el].c }} title={pairLabel(p)}/>
                 ))}
               </div>
-              <div className="hc-bandlbl"><span>Cycle 1</span><span>{TOTAL_CYCLES}</span></div>
+              <div className="hc-bandlbl"><span>First pair</span><span>Last known pair</span></div>
             </div>
 
             <div className="hc-scroll">
@@ -338,8 +341,8 @@ export default function HeroCycleCalculator() {
                 </thead>
                 <tbody>
                   {r.upcoming.map((c, i) => (
-                    <tr key={c.totalCycle} className={i === 0 ? "you" : ""}>
-                      <td className="hc-mono">{c.disp}</td>
+                    <tr key={c.evStart} className={i === 0 ? "you" : ""}>
+                      <td className="hc-mono">{c.cycle}</td>
                       <td style={{ whiteSpace: "nowrap" }}>{r.est ? "~" : ""}{range(c)}</td>
                       {c.pair.split === false ? (
                         <td colSpan={2}>
@@ -353,7 +356,7 @@ export default function HeroCycleCalculator() {
                           <td>{c.pair.tgl}</td>
                         </>
                       )}
-                      <td>{ORD[c.occ]}/3</td>
+                      <td>{c.run}/{c.runs}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -363,12 +366,10 @@ export default function HeroCycleCalculator() {
         )}
 
         <div className="hc-note">
-          Each hero pair runs for three 14-day cycles. Both events run 5 days, Monday–Friday.
-          A server's first event opens on its 11th day (the second Monday after a Friday
-          opening), and a new event opens every 14 days after that. Servers that didn't open on a
-          Friday follow the same Monday schedule as server 1061, a whole number of cycles ahead.
-          Events haven't always opened on Mondays, so dates before that change may be off by a
-          few days.
+          Both events run Monday–Friday on the same dates on every server, every 14 days. Each
+          hero pair starts at the first event on or after the server day its heroes unlock, and
+          runs until the next pair unlocks, usually three times. Events haven't always opened on
+          Mondays, so dates before that change may be off by a few days.
           Server ages come from the in-game Migration screen, and hero unlock days come from the
           game data on Deng's Den. Servers that haven't opened yet are assumed to open on Fridays,
           one per week, and their dates are marked <span className="hc-est">~</span>.
