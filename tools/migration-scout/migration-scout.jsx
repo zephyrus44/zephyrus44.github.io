@@ -85,6 +85,9 @@ const fmtDate = (t) =>
     year: "numeric",
   });
 
+// Deng's Den world pages drop the leading "10": world 1097 → /servers/97/
+const dengsdenUrl = (s) => `https://dengsden.com/avatar/servers/${s - 1000}/`;
+
 const ORD = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th" };
 const ELEMENT = {
   1: { name: "Water", color: "#4FA3D1" },
@@ -215,7 +218,13 @@ export default function MigrationScout() {
     .ms-table tr.you td { background: var(--arc-accent-soft, #1D2640); }
     .ms-mono { font-variant-numeric: tabular-nums; }
     .ms-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+    .ms-link { color: var(--arc-accent, #7EA0FF); text-decoration: none; font-weight: 500; }
+    .ms-link:hover { text-decoration: underline; }
+    .ms-link:focus-visible { outline: 2px solid var(--arc-accent, #7EA0FF); outline-offset: 2px; border-radius: 3px; }
+    .ms-more { font-size: 13.5px; color: var(--arc-mut, #8B93A1); margin-top: 18px;
+      padding-top: 16px; border-top: 1px solid var(--arc-line, #232934); }
     .ms-note { color: var(--arc-mut, #8B93A1); font-size: 13px; line-height: 1.65; max-width: 72ch; margin-top: 28px; }
+    .ms-note a { color: var(--arc-accent, #7EA0FF); }
     .ms-warn { color: var(--arc-warn, #F0B35A); font-size: 14px; line-height: 1.6; }
     .ms-warn b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
     .ms-est { color: var(--arc-warn, #F0B35A); }
@@ -392,6 +401,17 @@ export default function MigrationScout() {
               First eligible event: <b>#{result.firstN}</b> (
               {fmtDate(eventStart(result.firstN, offset))})
             </div>
+            <div className="ms-more">
+              For more info on world {server}, check{" "}
+              <a
+                className="ms-link"
+                href={dengsdenUrl(server)}
+                target="_blank"
+                rel="noopener"
+              >
+                Deng's Den ↗
+              </a>
+            </div>
           </div>
         )}
 
@@ -441,6 +461,17 @@ export default function MigrationScout() {
                   </div>
                 </div>
               </div>
+              <div className="ms-more">
+                For more info on world {server}, check{" "}
+                <a
+                  className="ms-link"
+                  href={dengsdenUrl(server)}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Deng's Den ↗
+                </a>
+              </div>
             </div>
 
             {/* Compatible servers */}
@@ -484,7 +515,15 @@ export default function MigrationScout() {
                     {filtered.map((r) => (
                       <tr key={r.s} className={r.s === server ? "you" : ""}>
                         <td className="ms-mono">
-                          {r.s}
+                          <a
+                            className="ms-link"
+                            href={dengsdenUrl(r.s)}
+                            target="_blank"
+                            rel="noopener"
+                            title={`World ${r.s} on Deng's Den`}
+                          >
+                            {r.s}
+                          </a>
                           {r.s === server ? "  ← you" : ""}
                         </td>
                         <td className="ms-mono">
@@ -515,14 +554,17 @@ export default function MigrationScout() {
           Server ages use exact values read from the in-game migration screen
           (as of Jul 12, 2026 UTC). Early servers launched irregularly — 1007/1008
           share a launch day, as do 1009/1010/1011 — so a lookup table is used
-          instead of a weekly formula. Servers 1016–1041 and 1050–1063 weren't in
-          the screenshots; their ages are linear estimates marked with{" "}
+          instead of a weekly formula. Ages for servers 1016–1041 and 1050–1063 are
+          not yet confirmed; they're linear estimates marked with{" "}
           <span className="ms-est">~</span>. Servers after 1095 assume the current
           weekly Friday cadence. Event 1 ran Jul 6–10 and event 2 runs Aug 24–28;
           events 3+ assume a 28-day cycle from Aug 24, shiftable with the day
           offset control. Group is judged by age on the event's first day;
           SvS brackets are consecutive blocks of 4 anchored at 1097
-          (1097–1100, … 1997–2000).
+          (1097–1100, … 1997–2000). Per-world details link out to{" "}
+          <a href="https://dengsden.com/" target="_blank" rel="noopener">
+            dengsden.com
+          </a>.
         </div>
       </div>
     </div>
