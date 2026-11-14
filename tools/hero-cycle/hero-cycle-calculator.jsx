@@ -265,8 +265,8 @@ const eventsFrom = (server, ev, n) => {
 
 // Every TGL / Wheel of Fate hero, with its event and partner
 const HERO_LIST = PAIRS.flatMap((p, i) => [
-  { name: p.tgl, event: "TGL rewards", partner: p.wheel, partnerEvent: "Wheel of Fate", pairIdx: i },
-  { name: p.wheel, event: "Wheel of Fate", partner: p.tgl, partnerEvent: "TGL rewards", pairIdx: i },
+  { name: p.tgl, event: "TGL", partner: p.wheel, partnerEvent: "Wheel of Fate", pairIdx: i },
+  { name: p.wheel, event: "Wheel of Fate", partner: p.tgl, partnerEvent: "TGL", pairIdx: i },
 ]);
 
 // Servers that have opened by time t
@@ -665,7 +665,7 @@ export default function HeroCycleCalculator() {
                 </>
               ) : (
                 <div className="hc-feats">
-                  <HeroFeature name={r.cur.pair.tgl} label="TGL rewards" />
+                  <HeroFeature name={r.cur.pair.tgl} label="TGL" />
                   <HeroFeature name={r.cur.pair.wheel} label="Wheel of Fate" />
                 </div>
               )}
@@ -710,7 +710,7 @@ export default function HeroCycleCalculator() {
                     </div>
                   ) : (
                     <>
-                      <HeroRow name={g.pair.tgl} label="TGL rewards" />
+                      <HeroRow name={g.pair.tgl} label="TGL" />
                       <HeroRow name={g.pair.wheel} label="Wheel of Fate" />
                     </>
                   )}
