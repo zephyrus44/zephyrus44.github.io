@@ -95,6 +95,25 @@ const PAIRS = [
   { heroes: ["Kelsang", "Rangi"],                      el: "air",   unlock: 544, split: false },
   { heroes: ["Yun", "Varrick"],                        el: "earth", unlock: 586, split: false },
 ];
+// Heroes with a leader skill, marked with 💠
+const LEADERS = new Set([
+  "Aang", "Yangchen", "Jet Sun", "Roku", "Ozai", "Kuruk", "Korra",
+  "Disguised Equalist Korra", "Kyoshi", "Kuvira", "Mad King Bumi",
+]);
+const isLeader = (name) => LEADERS.has(name.replace(/\s*\(.*\)$/, ""));
+const Hero = ({ name }) => (
+  <>
+    {name}
+    {isLeader(name) && (
+      <span className="hc-leader" title="Leader skill" aria-label="Leader skill"> 💠</span>
+    )}
+  </>
+);
+const HeroList = ({ names }) =>
+  names.map((n, i) => (
+    <span key={n}>{i > 0 && " & "}<Hero name={n} /></span>
+  ));
+
 const pairLabel = (p) =>
   p.split === false ? p.heroes.join(" & ") : `${p.wheel} / ${p.tgl}`;
 
@@ -239,6 +258,8 @@ export default function HeroCycleCalculator() {
     .hc-note { color: var(--arc-mut, #8B93A1); font-size: 13px; line-height: 1.65; max-width: 72ch; margin-top: 28px; }
     .hc-warn { color: var(--arc-warn, #F0B35A); font-size: 14px; line-height: 1.6; }
     .hc-warn b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
+    .hc-leader { font-size: 0.85em; }
+    .hc-legend { font-size: 12px; color: var(--arc-mut, #8B93A1); margin-top: 8px; }
     .hc-est { color: var(--arc-warn, #F0B35A); }
     .hc-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 18px; }
     .hc-hero { background: var(--arc-bg, #0E1116); border: 1px solid var(--arc-line, #232934); border-left-width: 3px; border-radius: 12px; padding: 14px 16px; }
@@ -328,7 +349,7 @@ export default function HeroCycleCalculator() {
                   <div className="hc-hero" style={{ borderLeftColor: EL[r.cur.pair.el].c }}>
                     <div className="hc-k">Wheel of Fate &amp; TGL heroes</div>
                     <div className="hc-name" style={{ color: EL[r.cur.pair.el].c }}>
-                      {r.cur.pair.heroes.join(" & ")}
+                      <HeroList names={r.cur.pair.heroes} />
                     </div>
                     <div className="hc-next" style={{ marginTop: 6 }}>
                       Which hero is on which event isn't confirmed yet.
@@ -340,12 +361,12 @@ export default function HeroCycleCalculator() {
                   <div className="hc-hero" style={{ borderLeftColor: EL[r.cur.pair.el].c }}>
                     <div className="hc-k">Wheel of Fate</div>
                     <div className="hc-name" style={{ color: EL[r.cur.pair.el].c }}>
-                      {r.cur.pair.wheel}
+                      <Hero name={r.cur.pair.wheel} />
                     </div>
                   </div>
                   <div className="hc-hero" style={{ borderLeftColor: "var(--arc-line-2, #2E3542)" }}>
                     <div className="hc-k">TGL rewards</div>
-                    <div className="hc-name">{r.cur.pair.tgl}</div>
+                    <div className="hc-name"><Hero name={r.cur.pair.tgl} /></div>
                   </div>
                 </div>
               )}
@@ -388,13 +409,13 @@ export default function HeroCycleCalculator() {
                       {c.pair.split === false ? (
                         <td colSpan={2}>
                           <span className="hc-dot" style={{ background: EL[c.pair.el].c }} />
-                          {c.pair.heroes.join(" & ")}
+                          <HeroList names={c.pair.heroes} />
                           <span style={{ color: "var(--arc-mut, #8B93A1)" }}> · split not confirmed</span>
                         </td>
                       ) : (
                         <>
-                          <td><span className="hc-dot" style={{ background: EL[c.pair.el].c }} />{c.pair.wheel}</td>
-                          <td>{c.pair.tgl}</td>
+                          <td><span className="hc-dot" style={{ background: EL[c.pair.el].c }} /><Hero name={c.pair.wheel} /></td>
+                          <td><Hero name={c.pair.tgl} /></td>
                         </>
                       )}
                       <td>{c.run}/{c.runs}</td>
@@ -403,6 +424,7 @@ export default function HeroCycleCalculator() {
                 </tbody>
               </table>
             </div>
+            <div className="hc-legend">💠 Leader skill</div>
           </>
         )}
 
