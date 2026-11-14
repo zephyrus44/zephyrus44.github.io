@@ -231,7 +231,64 @@ details summary::-webkit-details-marker{display:none}
 :root[data-theme="dark"] .pill{text-transform:none;letter-spacing:0;font-size:11.5px;font-weight:600}
 @media (pointer:coarse){.dgrp button{min-height:36px;min-width:36px;justify-content:center}.dgrp .sw{width:28px;height:28px;min-width:28px;min-height:28px}.dot{position:relative}.dot::after{content:"";position:absolute;inset:-12px;border-radius:50%}.rx{width:32px;height:32px}}
 </style>
-<style>[hidden]{display:none!important}img{max-width:100%}body{margin:0}</style>
+<style>[hidden]{display:none!important}img{max-width:100%}body{margin:0}
+/* ---------- Night Ops map (matches Murong's Grand Melee) ---------- */
+.stage{display:block}
+.stage .corner,.stage .ruler{display:none}
+.mapwrap{position:absolute;inset:0}
+:root[data-theme="dark"]{--map-bg:#12161C;--tile:#1A1F27;--tile-line:#2B323D}
+.terr{stroke-width:.8}
+.terr.z2{fill:#1B2126}.terr.z3{fill:#1D1C27}.terr.z4{fill:#221E18;stroke:rgba(212,154,69,.45)}
+.terr.elig{fill:#232B3A}
+.terr.z4.elig{fill:#2A2419}
+.dim .terr:not(.elig){opacity:.7}
+.zb{fill:none;stroke:#3A4352;stroke-width:1.6;vector-effect:non-scaling-stroke;stroke-linejoin:round;pointer-events:none}
+.tok .ring{fill:#0E1116;stroke-width:1.3;vector-effect:non-scaling-stroke}
+.tok use{pointer-events:none}
+.tok image{pointer-events:none}
+.tok .hit{fill:transparent;cursor:pointer}
+.tok.mk-dim{opacity:.22}
+.zlab{font:600 9px var(--f-ui);fill:#4C5564;letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.objlab{pointer-events:none}
+.objlab text{font-family:var(--f-ui);font-weight:600;paint-order:stroke;stroke:#0E1116;stroke-linejoin:round}
+.ob1{font-size:calc(7.5px / var(--zs,1));letter-spacing:.14em;fill:#F4BF41;stroke-width:calc(2.5px / var(--zs,1))}
+.ob2{font-size:calc(12px / var(--zs,1));fill:#F3EBD6;stroke-width:calc(3px / var(--zs,1))}
+.slab{font-family:var(--f-ui);font-weight:600;font-size:calc(10.5px / var(--zs,1));fill:#DDE2EA;paint-order:stroke;stroke:#0E1116;stroke-width:calc(3px / var(--zs,1));stroke-linejoin:round;pointer-events:none;opacity:0;transition:opacity .15s}
+.slab.b{font-size:calc(9.5px / var(--zs,1));fill:#9AA3B2;font-weight:500}
+#map.lz1 .slab.s,#map.lz2 .slab{opacity:1}
+.tok.mk-dim + .slab,.slab.mk-dim{opacity:0!important}
+.mapkey{position:absolute;left:10px;bottom:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:min(330px,calc(100% - 70px));box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:3;max-height:calc(100% - 120px);overflow:auto}
+.mapkey .khead{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;margin-bottom:6px}
+.mapkey .kbtn{border:1px solid var(--line-strong);background:var(--panel);border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--fg)}
+.mapkey .key{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px;font-size:11.5px}
+.mapkey .key .kz{grid-column:1/-1;font-size:10.5px;color:var(--muted);font-weight:600;margin-top:4px}
+.mapkey .key .kz:first-child{margin-top:0}
+.mapkey .key svg{width:20px;height:20px;flex:none}
+.mapkey .key small{color:var(--muted)}
+.mapkey.min .key{display:none}.mapkey.min .khead{margin:0}
+#cardKey{display:none}
+.infocard{position:absolute;right:56px;top:10px;width:min(300px,calc(100% - 76px));background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:6;display:flex;flex-direction:column;gap:5px;font-size:12.5px}
+.infocard .ih{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center}
+.infocard .ii svg{width:34px;height:34px;display:block}
+.infocard .ih b{font-size:14px;display:block}
+.infocard .ih small{color:var(--muted);font-size:11.5px}
+.infocard .ix{border:0;background:transparent;color:var(--muted);font-size:18px;cursor:pointer;width:28px;height:28px;border-radius:6px}
+.infocard .ix:hover{background:var(--bg);color:var(--fg)}
+.infocard .iown{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:12px}
+.infocard .iown i{width:10px;height:10px;border-radius:50%}
+.infocard .isec{font-size:11.5px;font-weight:600;color:var(--muted);margin-top:6px;border-top:1px solid var(--line);padding-top:7px}
+.infocard .isec small{font-weight:400}
+.infocard .iterr{color:var(--muted)}.infocard .iterr b{color:var(--ok);font-family:var(--f-mono);font-weight:500}
+.infocard .ir{display:flex;justify-content:space-between;gap:10px}
+.infocard .ir b{font-family:var(--f-mono);font-weight:500;color:var(--ok)}
+.infocard .inote{color:var(--fg);line-height:1.4}.infocard .inote b{font-weight:600}
+.infocard .ifc{display:flex;flex-wrap:wrap;gap:5px}
+.infocard .ifc small{font-family:var(--f-ui);color:var(--muted);margin-right:3px}
+.infocard .ifc span{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:3px 7px;font-family:var(--f-mono);font-size:11.5px}
+@media (max-width:820px){.infocard{right:8px;left:8px;width:auto;top:auto;bottom:8px}}
+
+#map:not(.bgon) ~ * #bgOp,.legend:has(#bgChk:not(:checked)) #bgOp{display:none}
+</style>
 </head>
 <body>
 
@@ -306,14 +363,14 @@ details summary::-webkit-details-marker{display:none}
     <canvas class="ruler" id="rx"></canvas>
     <canvas class="ruler" id="ry"></canvas>
     <div class="mapwrap" id="wrap">
-      <svg id="map" xmlns="http://www.w3.org/2000/svg"><g id="vp"><image id="bgimg" href="map.jpg" x="-5" y="-5" width="610" height="610" preserveAspectRatio="none"/><g id="tl"></g><g id="ml"></g><g id="gl"></g><g id="rl"></g><g id="gh"></g><g id="dl"></g></g></svg>
+      <svg id="map" xmlns="http://www.w3.org/2000/svg"><defs id="symdefs"></defs><g id="vp"><rect x="-5" y="-5" width="610" height="610" fill="var(--map-bg)"/><image id="bgimg" href="map.jpg" x="-5" y="-5" width="610" height="610" preserveAspectRatio="none"/><g id="tl"></g><g id="zbl"></g><g id="ml"></g><g id="tkl"></g><g id="lbl"></g><g id="gl"></g><g id="rl"></g><g id="gh"></g><g id="dl"></g></g></svg>
       <div class="modebar" id="modebar" hidden></div>
       <div class="dtools" id="dtools" hidden>
         <div class="dgrp" role="group" aria-label="Drawing tool">
           <button data-tool="hold" title="Alliance stronghold"><svg viewBox="0 0 20 20"><path d="M4 17V8l2-1V4h2v2h1V4h2v2h1V4h2v3l2 1v9h-5v-4H9v4z"/></svg><span>Stronghold</span></button>
           <button data-tool="city" title="Move city here"><svg class="ln" viewBox="0 0 24 24"><path d="M5 11.5 12 5.5l7 6M7 10v8.5h10V10M10.5 18.5v-4.5h3v4.5"/></svg><span>City</span></button>
-          <button data-tool="reinf" title="Reinforce"><svg class="ln" viewBox="0 0 24 24"><path d="M12 3.5l7 2.6v5.4c0 4.3-3 7.4-7 8.9-4-1.5-7-4.6-7-8.9V6.1z"/></svg><span>Reinforce</span></button>
-          <button data-tool="atk" title="Attack"><svg class="ln" viewBox="0 0 24 24"><path d="M19.5 4.5l-.8 4.2-8.6 8.6-3.4-3.4 8.6-8.6zM5.4 12.4l6.2 6.2M8.4 15.6l-3.8 3.8"/></svg><span>Attack</span></button>
+          <button data-tool="reinf" title="Reinforce"><svg class="ln" viewBox="0 0 24 24"><path d="M12 3.8l7 2.8v5.2c0 4.1-2.9 7.2-7 8.4-4.1-1.2-7-4.3-7-8.4V6.6zM12 8.6v6.6M8.7 11.9h6.6"/></svg><span>Reinforce</span></button>
+          <button data-tool="atk" title="Attack"><svg class="ln" viewBox="0 0 24 24"><path d="M5.5 5.5 15 15M18.5 5.5 9 15M5 15.8l3.2 3.2M19 15.8l-3.2 3.2M7 19l-2 2M17 19l2 2"/></svg><span>Attack</span></button>
           <button data-tool="arrow" title="Arrow"><svg viewBox="0 0 20 20"><path d="M3 17L15 5M9 5h6v6" fill="none" stroke-width="2"/></svg><span>Arrow</span></button>
           <button data-tool="circle" title="Circle"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5" fill="none" stroke-width="2"/></svg><span>Circle</span></button>
           <button data-tool="rect" title="Rectangle"><svg viewBox="0 0 20 20"><rect x="3.5" y="5" width="13" height="10" fill="none" stroke-width="2"/></svg><span>Box</span></button>
@@ -327,8 +384,9 @@ details summary::-webkit-details-marker{display:none}
         </div>
         <div class="dhint" id="dhint"></div>
       </div>
+      <div class="mapkey" id="mapkey"><div class="khead"><span>Key</span><button class="kbtn" id="kMin">Hide</button></div><div class="key" id="mkey"></div></div>
       <div class="legend" id="legend">
-        <label><input type="checkbox" id="bgChk" checked> Map overlay</label>
+        <label><input type="checkbox" id="bgChk"> Game map</label>
         <input type="range" id="bgOp" min="15" max="100" value="65" aria-label="Map overlay opacity">
         <label><input type="checkbox" id="mkChk" checked> Markers</label>
         <label id="ghLbl"><input type="checkbox" id="ghChk"> Previous phase</label>
@@ -342,7 +400,7 @@ details summary::-webkit-details-marker{display:none}
       </div>
       <div class="snapov" id="snapOv" hidden><div class="bar"><span>Drag over the area to save</span><button id="snapCancel">Cancel</button></div><div class="snaprect" id="snapRect" hidden></div></div>
       <div class="snaptoast" id="snapToast" hidden></div>
-      <div class="tip" id="tip" hidden></div>
+      <div class="tip" id="tip" hidden></div><div class="infocard" id="infocard" hidden></div>
     </div>
   </main>
 </div>
@@ -354,7 +412,7 @@ const D=window.GW_DATA, NS="http://www.w3.org/2000/svg";
 const PALETTE=["#F4BF41","#F08C33","#BB7128","#784633","#EC4441","#7B2E40","#D7538F","#8647BA","#621D6F","#272742","#3950CF","#3E8CD7","#414569","#627FAB","#428A92","#50B080","#5DA52F","#40632D"];
 const KEY="arc-glowworm-v3";
 const ZN={Z1:"Zone 1",Z2:"Zone 2",Z3:"Zone 3",Z4:"Zone 4",GT:"Passes"};
-const TYPES=D.types, TY={}; TYPES.forEach(t=>TY[t.id]=t);
+const TYPES=D.types, TY={}; TYPES.forEach(t=>{t.name=t.name.replace(/^Level (\d) Base$/,"Lv.$1 Post"); TY[t.id]=t;});
 const items={}; D.t.forEach(t=>items[t.id]={...t,kind:"t"}); D.g.forEach(g=>items[g.id]={...g,kind:"g"});
 const ANY="*";
 const T={post:["Z1:Level_1_Base"],bastion:["Z1:Bastion"],ptree:["Z1:Plagued_Great_Tree"],temple:["Z1:Temple_of_Conquest","Z1:Temple_of_Protection"],
@@ -394,7 +452,7 @@ const DOM=[
 ].map(([id,title,m,ty,need,have,req])=>({id,title,m,ty,need,have,req}));
 const GOALS={}; CH.forEach(g=>GOALS[g.id]=g); DOM.forEach(g=>GOALS[g.id]=g);
 const seed=()=>{const p={}; DOM.forEach(d=>p[d.id]=0); return {prog:p,chDone:{}};};
-let S={alliances:[],active:null,owner:{},tgt:{},shapes:[],tool:"hold",dcol:null,mode:"plan",tab:"chron",goal:null,bg:true,bgOp:65,mk:true,...seed()};
+let S={alliances:[],active:null,owner:{},tgt:{},shapes:[],tool:"hold",dcol:null,mode:"plan",tab:"chron",goal:null,bg:false,bgOp:65,mk:true,...seed()};
 try{const r=localStorage.getItem(KEY); if(r){const o=JSON.parse(r);
   // Older versions pre-filled progress; drop it if the saved values were never changed.
   if(!o.seedV){const oldP=o.prog||{}, oldC=o.chDone||{};
@@ -440,6 +498,100 @@ D.g.forEach(g=>{
   r.setAttribute("x",-3.6);r.setAttribute("y",-3.6);r.setAttribute("width",7.2);r.setAttribute("height",7.2);r.setAttribute("rx",1.2);
   r.setAttribute("vector-effect","non-scaling-stroke"); r.dataset.id=g.id; gg.appendChild(r); gl.appendChild(gg); els[g.id]=r;
 });
+
+/* ---------- structure tokens ---------- */
+const GLYPH={
+ bastion:'<path d="M5 20V10l2-1V5h2.5v2h1.6V5h1.8v2h1.6V5H17v4l2 1v10h-5v-4h-4v4z"/>',
+ conquest:'<path d="M12 3.5v11.5M12 3.5l-1.6 2.2M12 3.5l1.6 2.2M7.5 15h9M12 15v5M10 20.5h4"/>',
+ protection:'<path d="M12 3.5l7 2.6v5.4c0 4.3-3 7.4-7 8.9-4-1.5-7-4.6-7-8.9V6.1z"/>',
+ discovery:'<path d="M2.8 12s3.4-6 9.2-6 9.2 6 9.2 6-3.4 6-9.2 6-9.2-6-9.2-6z"/><circle cx="12" cy="12" r="2.8"/>',
+ recovery:'<path d="M12 7v10M7 12h10"/><circle cx="12" cy="12" r="8.5"/>',
+ might:'<path d="M13.5 3 6 13.5h5.5L10.5 21 18 10.5h-5.5z"/>',
+ mystery:'<path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.3 6.3 0 0 0 10 10z"/><path d="M17 4.5v3M15.5 6h3"/>',
+ restore:'<path d="M12 20.5V12M12 12c0-4.2 3-7.5 7-7.5 0 4.2-3 7.5-7 7.5zM12 14.5C12 11.2 9.6 8.6 6 8.6c0 3.4 2.4 5.9 6 5.9z"/>'
+};
+const TOK={
+ "Z1:Bastion":{g:"bastion",c:"#9DB0D6"},
+ "Z1:Plagued_Great_Tree":{img:"plagued-great-tree",c:"#C77DDB"},
+ "Z1:Temple_of_Conquest":{g:"conquest",c:"#FF7A63"},
+ "Z1:Temple_of_Protection":{g:"protection",c:"#5FD394"},
+ "Z2:Grand_Bazaar":{img:"grand-bazaar",c:"#4FC3B4",big:1},
+ "Z2:Orancle_of_Discovery":{g:"discovery",c:"#F08C33"},
+ "Z2:Oracle_of_Recovery":{g:"recovery",c:"#F4D35E"},
+ "Z3:Corrupted_Great_Tree":{img:"corrupted-great-tree",c:"#E05FB0"},
+ "Z3:Pantheon_of_Might":{g:"might",c:"#FF9B5E"},
+ "Z3:Pantheon_of_Mystery":{g:"mystery",c:"#A98BFF"},
+ "Z3:Restorative_Site":{g:"restore",c:"#A8D96B"},
+ "Z4:Ziggurat_of_Corruption":{img:"ziggurat",c:"#F4BF41",obj:1}
+};
+const ZC={Z1:"#7EA0FF",Z2:"#4FC3A1",Z3:"#B48CFF",Z4:"#F4BF41"};
+const tokR=ty=>TOK[ty].obj?11:TOK[ty].big?8:6;
+(function(){
+  const d=$("symdefs"); let h='<clipPath id="tclip" clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5"/></clipPath>';
+  for(const k in GLYPH) h+=`<symbol id="gl-${k}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${GLYPH[k]}</symbol>`;
+  d.innerHTML=h;
+})();
+const tkl=$("tkl");
+D.t.forEach(t=>{const T=TOK[t.ty]; if(!T) return; const r=tokR(t.ty), x=t.s[0], y=fy(t.s[1]);
+  const g=document.createElementNS(NS,"g"); g.setAttribute("class","tok"); g.dataset.base=`translate(${x} ${y})`; g.setAttribute("transform",g.dataset.base);
+  let h=`<circle class="ring" r="${r}" stroke="${T.c}"/>`;
+  if(T.img) h+=`<image href="icons/${T.img}.webp" x="${-r*.92}" y="${-r*.92}" width="${r*1.84}" height="${r*1.84}" preserveAspectRatio="xMidYMid meet"/>`;
+  else h+=`<use href="#gl-${T.g}" x="${-r*.62}" y="${-r*.62}" width="${r*1.24}" height="${r*1.24}" style="color:${T.c}"/>`;
+  h+=`<circle class="hit" r="${r+1}" data-id="${t.id}"/>`;
+  if(T.obj) h+=`<g class="objlab"><text class="ob1" y="${r+6.5}" text-anchor="middle">OBJECTIVE</text><text class="ob2" y="${r+12}" text-anchor="middle">Ziggurat</text></g>`;
+  g.innerHTML=h; tkl.appendChild(g); els[t.id+"_t"]=g;
+});
+D.t.forEach(t=>{const p=els[t.id]; p.classList.add(t.z.toLowerCase());});
+/* labels: structure names from 2.4x zoom, base and pass names from 5x */
+const lbl=$("lbl"), shortName=n=>n.replace("Level ","Lv.");
+[...D.t,...D.g].forEach(o=>{const T=TOK[o.ty], ty=TY[o.ty], big=!!T&&!T.obj;
+  if(T&&T.obj) return; const x=o.s[0], y=fy(o.s[1]);
+  const tx=document.createElementNS(NS,"text"); tx.setAttribute("class","slab "+(big?"s":"b"));
+  tx.setAttribute("x",x); tx.setAttribute("y",y+(big?tokR(o.ty)+5.4:o.g?6.2:4.6)); tx.setAttribute("text-anchor","middle");
+  tx.textContent=shortName(ty.name); lbl.appendChild(tx); els[o.id+"_l"]=tx;});
+
+/* ---------- structure buffs and first capture rewards (from in-game structure cards) ---------- */
+const TERR=[["All Benders' ATK","+5%"],["Gathering Speed","+10%"],["Troop Marching Speed","+5%"]];
+const R=(g,d,t,tq,r,rq)=>({g,d,t,tq,r,rq});
+const INFO={
+ "Z1:Level_1_Base":{fc:R(20,500,"5m",5,"150K",1)},
+ "Z2:Level_2_Base":{fc:R(20,1000,"5m",5,"150K",1)},
+ "Z3:Level_3_Base":{fc:R(20,500,"5m",5,"150K",1)},
+ "Z4:Level_4_Base":{fc:R(20,1000,"5m",5,"150K",1)},
+ "Z1:Bastion":{},
+ "Z1:Plagued_Great_Tree":{sp:[["Bounty Hunt","Officers of the alliance that captured and restored it can use Bounty Hunt"]],fc:R(200,1500,"1h",1,"500K",1)},
+ "Z1:Temple_of_Conquest":{sp:[["All Benders' ATK","+20%"]],fc:R(200,1500,"1h",1,"500K",1)},
+ "Z1:Temple_of_Protection":{sp:[["All Benders' DEF","+20%"]],fc:R(200,1500,"1h",1,"500K",1)},
+ "Z2:Grand_Bazaar":{sp:[["Bazaar","Leaders from the World that captured and restored it can buy from the Bazaar"]],fc:R(1000,6000,"1h",5,"500K",5)},
+ "Z2:Orancle_of_Discovery":{sp:[["Research Speed","+10%"]],fc:R(500,3000,"1h",3,"500K",3)},
+ "Z2:Oracle_of_Recovery":{sp:[["Healing Speed","+10%"]],fc:R(500,3000,"1h",3,"500K",3)},
+ "Z3:Corrupted_Great_Tree":{sp:[["Bounty Hunt","Officers of the alliance that captured and restored it can use Bounty Hunt"]],fc:R(200,2000,"1h",1,"500K",1)},
+ "Z3:Pantheon_of_Might":{sp:[["Normal Damage","+20%"]],fc:R(200,2000,"1h",1,"500K",1)},
+ "Z3:Pantheon_of_Mystery":{sp:[["Skill Damage","+10%"]],fc:R(200,2000,"1h",1,"500K",1)},
+ "Z3:Restorative_Site":{sp:[["Healing Cost Reduction","+20%"]],fc:R(200,2000,"1h",1,"500K",1)},
+ "Z4:Ziggurat_of_Corruption":{fc:R(2000,1000,"1h",10,"500K",10)},
+ "GT:L1":{fc:R(200,1500,"1h",1,"500K",1)},
+ "GT:L2":{},
+ "GT:L3":{fc:R(1000,10000,"1h",5,"500K",5)},
+ "GT:L4":{fc:R(1000,10000,"1h",5,"500K",5)}
+};
+const spShort=ty=>{const i=INFO[ty]; return i&&i.sp?i.sp.map(([k,v])=>v.startsWith("+")?`${k} ${v}`:k).join(" · "):"";};
+function infoHTML(id){const it=items[id], t=TY[typeOf(id)], I=INFO[t.id]||{}, a=alById(S.owner[id]), xy=it.s.map(Math.round);
+  const row=(k,v)=>`<div class="ir"><span>${k}</span><b>${v}</b></div>`;
+  let h=`<div class="ih"><span class="ii">${keyIcon(t.id)}</span><div><b>${t.name}</b><small>${it.kind==="g"?it.g:ZN[it.z]} · X:${xy[0]} Y:${xy[1]}</small></div><button class="ix" id="infoX" aria-label="Close">×</button></div>`;
+  h+=`<div class="iown">${a?`<i style="background:${a.color}"></i>${esc(a.name)}`:"Unclaimed"}</div>`;
+  if(I.sp) h+=`<div class="isec">Special buff</div>`+I.sp.map(([k,v])=>v.startsWith("+")?row(k,v):`<div class="inote"><b>${k}</b> · ${v}</div>`).join("");
+  else if(t.zone!=="GT"&&!/_Base$/.test(t.id)) h+=`<div class="isec">Special buff</div><div class="inote">Not recorded yet</div>`;
+  h+=`<div class="isec">Territory buff <small>(same on every structure)</small></div><div class="iterr">ATK <b>+5%</b> · Gathering <b>+10%</b> · March <b>+5%</b></div>`;
+  if(I.fc){const f=I.fc; h+=`<div class="isec">First capture rewards</div><div class="ifc"><span><small>Gems</small> ${f.g.toLocaleString()}</span><span><small>Darkstone</small> ${f.d.toLocaleString()}</span><span><small>Speedup</small> ${f.t} ×${f.tq}</span><span><small>Food, wood, stone</small> ${f.r} ×${f.rq}</span></div>`;}
+  else h+=`<div class="isec">First capture rewards</div><div class="inote">Not recorded yet</div>`;
+  return h;}
+function showInfo(id){const c=$("infocard"); if(!id||!items[id]){c.hidden=true; return;} c.innerHTML=infoHTML(id); c.hidden=false; $("infoX").onclick=()=>{c.hidden=true;};}
+function keyIcon(ty){const T=TOK[ty], t=TY[ty];
+  if(t.zone==="GT") return `<svg viewBox="0 0 22 22"><rect x="7" y="7" width="8" height="8" rx="1.3" transform="rotate(45 11 11)" fill="${t.color}" stroke="rgba(0,0,0,.6)"/></svg>`;
+  if(!T) return `<svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="3.6" fill="${ZC[t.zone]}" stroke="rgba(0,0,0,.6)"/></svg>`;
+  const inner=T.img?`<image href="icons/${T.img}.webp" x="2.5" y="2.5" width="17" height="17"/>`:`<svg x="5" y="5" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="${T.c}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${GLYPH[T.g]}</svg>`;
+  return `<svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="10" fill="#0E1116" stroke="${T.c}" stroke-width="1.2"/>${inner}</svg>`;}
 const mr=t=>{const r=TY[t].r; return r>20?4.4:r>12?2.8:1.8;};
 
 function paint(){
@@ -451,7 +603,10 @@ function paint(){
     const a=alById(S.owner[t.id]),p=els[t.id],e=g&&elig(g,t.id);
     p.classList.toggle("own",!!a); p.classList.toggle("elig",!!e); p.style.fill=a?a.color:"";
     const m=els[t.id+"_m"], ty=TY[t.ty], focus=g&&g.ty!==ANY;
-    m.setAttribute("r",mr(t.ty)*(focus&&e?1.5:1)); m.setAttribute("fill",ty.color);
+    const lb=els[t.id+"_l"]; if(lb) lb.classList.toggle("mk-dim",!!focus&&!e||!S.mk);
+    const tk=els[t.id+"_t"];
+    if(tk){m.setAttribute("r",0); tk.setAttribute("transform",tk.dataset.base+(focus&&e?" scale(1.3)":"")); tk.classList.toggle("mk-dim",!!focus&&!e); tk.style.display=S.mk?"":"none";}
+    else m.setAttribute("r",1.6*(focus&&e?1.6:1)); m.setAttribute("fill",ZC[t.z]||ty.color);
     m.setAttribute("stroke","rgba(0,0,0,.65)"); m.setAttribute("stroke-width",.5);
     m.classList.toggle("mk-dim",!!focus&&!e);
   });
@@ -588,6 +743,9 @@ function renderAlliances(){
   }
 }
 function renderKey(){
+  const mk=$("mkey"); let last=""; mk.innerHTML=TYPES.map(t=>{const n=Object.keys(items).filter(id=>typeOf(id)===t.id).length;
+    const z=t.zone==="GT"?"Passes":ZN[t.zone]; const hd=z!==last?`<div class="kz">${z}</div>`:""; last=z;
+    return hd+`<span title="${t.name}">${keyIcon(t.id)}${t.name} <small>${n}</small></span>`;}).join("");
   const k=$("key"); k.innerHTML=TYPES.map(t=>{const n=Object.keys(items).filter(id=>typeOf(id)===t.id).length;
     return `<span title="${t.name}"><i class="${t.zone==="GT"?"g":""}" style="background:${t.color}"></i>${t.name} <small class="note">${n}</small></span>`;}).join("");
 }
@@ -604,6 +762,9 @@ $("mPlan").onclick=()=>setMode("plan"); $("mClaim").onclick=()=>setMode("claim")
 $("addAl").onclick=()=>{const keepDraw=S.mode==="draw";const used=new Set(S.alliances.map(a=>a.color)); const c=PALETTE.find(p=>!used.has(p))||PALETTE[0];
   const a={id:"a"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:"Alliance "+(S.alliances.length+1),color:c}; S.alliances.push(a); S.active=a.id; save(); setMode(keepDraw?"draw":"claim"); renderAll();
   setTimeout(()=>{const i=$("an_"+a.id); if(i){i.focus(); i.select();}},0);};
+$("kMin").onclick=()=>{const m=$("mapkey"); m.classList.toggle("min"); $("kMin").textContent=m.classList.contains("min")?"Show":"Hide";};
+if(document.getElementById("wrap").clientWidth<600){$("mapkey").classList.add("min"); $("kMin").textContent="Show";}
+["mapkey","infocard"].forEach(i=>$(i).addEventListener("pointerdown",e=>e.stopPropagation()));
 $("bgChk").checked=S.bg; $("bgOp").value=S.bgOp; $("mkChk").checked=S.mk;
 $("bgChk").onchange=e=>{S.bg=e.target.checked; save(); paint();};
 $("bgOp").oninput=e=>{S.bgOp=+e.target.value; save(); paint();};
@@ -634,8 +795,8 @@ $("doImp").onclick=()=>{
 const dl=$("dl"); const DCOLS=["#ffffff","#111111","#EC4441","#F4BF41","#50B080","#3E8CD7","#8647BA","#F08C33"];
 const shCol=sh=>{if(sh.al){const a=alById(sh.al); if(a) return a.color;} return sh.c||"#9aa3b2";};
 const PINS={city:"M5 11.5 12 5.5l7 6M7 10v8.5h10V10M10.5 18.5v-4.5h3v4.5",
-  reinf:"M12 3.5l7 2.6v5.4c0 4.3-3 7.4-7 8.9-4-1.5-7-4.6-7-8.9V6.1z",
-  atk:"M19.5 4.5l-.8 4.2-8.6 8.6-3.4-3.4 8.6-8.6zM5.4 12.4l6.2 6.2M8.4 15.6l-3.8 3.8"};
+  reinf:"M12 3.8l7 2.8v5.2c0 4.1-2.9 7.2-7 8.4-4.1-1.2-7-4.3-7-8.4V6.6zM12 8.6v6.6M8.7 11.9h6.6",
+  atk:"M5.5 5.5 15 15M18.5 5.5 9 15M5 15.8l3.2 3.2M19 15.8l-3.2 3.2M7 19l-2 2M17 19l2 2"};
 const PIN_R=6.6, isPin=t=>t in PINS, POINT=t=>t==="hold"||isPin(t);
 const lightCol=c=>{const m=/^#?([0-9a-f]{6})$/i.exec(c||""); if(!m) return false; const n=parseInt(m[1],16); return (0.299*(n>>16)+0.587*(n>>8&255)+0.114*(n&255))>170;};
 /* paint for new drawings: an alliance (follows its colour) or a fixed colour */
@@ -657,24 +818,25 @@ function shapeEl(sh,i){
     if(sh.t==="rect") return ["rect",{x:Math.min(x0,x1),y:Math.min(y0,y1),width:Math.abs(x1-x0),height:Math.abs(y1-y0)}];
     if(sh.t==="tri"){const l=Math.min(x0,x1),r=Math.max(x0,x1),t=Math.min(y0,y1),b=Math.max(y0,y1); return ["path",{d:`M${(l+r)/2} ${t}L${r} ${b}L${l} ${b}Z`}];}};
   if(isPin(sh.t)){
-    const r=PIN_R, ink="#fff";
-    mk("circle",{cx:sh.x,cy:sh.y,r,fill:col,stroke:"#fff","stroke-width":1.8,"vector-effect":"non-scaling-stroke"});
-    const gs=r*1.1/24;
-    mk("path",{d:PINS[sh.t],transform:`translate(${sh.x-12*gs} ${sh.y-12*gs}) scale(${gs.toFixed(4)})`,fill:"none",stroke:ink,"stroke-width":2.4,"stroke-linecap":"round","stroke-linejoin":"round"});
+    const r=PIN_R, cy=sh.y-r*1.55, ink=lightCol(col)?"#14181E":"#FFFFFF";
+    mk("path",{d:`M${sh.x} ${sh.y}L${sh.x-r*.62} ${cy+r*.8}A${r} ${r} 0 1 1 ${sh.x+r*.62} ${cy+r*.8}Z`,fill:col,stroke:"rgba(0,0,0,.7)","stroke-width":1.4,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round"});
+    const gs=r*1.45/24;
+    mk("path",{d:PINS[sh.t],transform:`translate(${sh.x-r*.725} ${cy-r*.725}) scale(${gs.toFixed(4)})`,fill:"none",stroke:ink,"stroke-width":2.6,"stroke-linecap":"round","stroke-linejoin":"round"});
     g.style.cursor="pointer";
   } else if(sh.t==="hold"){
     const a=alById(sh.al), s=1;
-    mk("circle",{cx:sh.x,cy:sh.y,r:7.2,fill:col,stroke:"#fff","stroke-width":1.8,"vector-effect":"non-scaling-stroke"});
-    mk("path",{d:`M${sh.x-4} ${sh.y+3.6}v-5l1.2-.7v-2h1.3v1.2h.8v-1.2h1.4v1.2h.8v-1.2h1.3v2l1.2.7v5h-2.6v-2.3h-1.8v2.3z`,fill:"#fff"});
-    const tx=mk("text",{x:sh.x,y:sh.y+12.5,"text-anchor":"middle","font-size":5,fill:"#fff","stroke-width":2.2});
+    const ink=lightCol(col)?"#14181E":"#FFFFFF";
+    mk("circle",{cx:sh.x,cy:sh.y,r:7.2,fill:col,stroke:"rgba(0,0,0,.7)","stroke-width":1.4,"vector-effect":"non-scaling-stroke"});
+    mk("path",{d:`M${sh.x-4} ${sh.y+3.6}v-5l1.2-.7v-2h1.3v1.2h.8v-1.2h1.4v1.2h.8v-1.2h1.3v2l1.2.7v5h-2.6v-2.3h-1.8v2.3z`,fill:ink});
+    const tx=mk("text",{x:sh.x,y:sh.y+12.5,"text-anchor":"middle","font-size":5,fill:"#fff",stroke:"rgba(0,0,0,.72)","stroke-width":1.6,"paint-order":"stroke","font-weight":600});
     tx.textContent=a?a.name:"Stronghold";
     g.style.cursor="pointer";
-  } else { const [tag,at]=geo(); mk(tag,{...at,...halo}); const e=mk(tag,{...at,...st});
+  } else { const [tag,at]=geo(); mk(tag,{...at,...halo,...(sh.t!=="arrow"?{fill:col,"fill-opacity":.12}:{})}); const e=mk(tag,{...at,...st});
     if(sh.t==="arrow"){e.setAttribute("fill",col);} }
   return g;
 }
 function pointAt(m){let best=-1,bd=1e9;
-  S.shapes.forEach((sh,i)=>{if(!POINT(sh.t)) return; const cx=sh.x, cy=sh.y, rr=isPin(sh.t)?PIN_R*1.3:7.6;
+  S.shapes.forEach((sh,i)=>{if(!POINT(sh.t)) return; const cx=sh.x, cy=isPin(sh.t)?sh.y-PIN_R*1.1:sh.y, rr=isPin(sh.t)?PIN_R*1.6:7.6;
     const d=Math.hypot(m.x-cx,m.y-cy); if(d<=rr&&d<bd){bd=d; best=i;}}); return best;}
 function paintGhost(){const gh=$("gh"); gh.innerHTML="";
   if(!S.ghost||S.ph===0) return; S.phases[S.ph-1].shapes.forEach(sh=>gh.appendChild(shapeEl(sh,-1)));}
@@ -715,7 +877,10 @@ let fitMode="fill";
 function fit(mode){const r=wrap.getBoundingClientRect(), whole=Math.min(r.width,r.height)/620;
   let s=whole; if(mode!=="whole"&&r.height>r.width*1.15) s=Math.min(r.height/612, r.width*1.7/600);   // tall phone screens: fill the height
   fitMode=s>whole*1.01?"fill":"whole"; V={s,x:(r.width-600*s)/2,y:(r.height-600*s)/2}; apply();}
-function apply(){vp.setAttribute("transform",`translate(${V.x} ${V.y}) scale(${V.s})`); rulers();}
+function apply(){vp.setAttribute("transform",`translate(${V.x} ${V.y}) scale(${V.s})`); rulers();
+  /* labels by on-screen scale (px per map unit), so phones and desktops switch at the same apparent size */
+  const m=$("map"), z=V.s; m.style.setProperty("--zs",V.s);
+  m.classList.toggle("lz1",z>=2.7&&z<5.4); m.classList.toggle("lz2",z>=5.4);}
 function zoomAt(f,cx,cy){const ns=Math.min(40,Math.max(.4,V.s*f)); f=ns/V.s; V.x=cx-(cx-V.x)*f; V.y=cy-(cy-V.y)*f; V.s=ns; apply();}
 wrap.addEventListener("wheel",e=>{e.preventDefault(); const r=wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top);},{passive:false});
 const ptrs=new Map(); let moved=0,last=null,pinch=null;
@@ -758,7 +923,7 @@ $("zout").onclick=()=>{const r=wrap.getBoundingClientRect(); zoomAt(1/1.5,r.widt
 $("zfit").onclick=()=>fit(fitMode==="fill"?"whole":"fill");
 ["zin","zout","zfit","zsnap","snapMenu","snapOv","legend"].forEach(i=>{const el=$(i); el.addEventListener("pointerdown",e=>e.stopPropagation());});
 
-function act(id,e){
+function act(id,e){ showInfo(id);
   if(S.mode==="plan"){const g=GOALS[S.goal]; if(!g||!elig(g,id)) return;
     const cur=S.tgt[id], i=cur?ST.indexOf(cur)+1:0; if(i>=ST.length) delete S.tgt[id]; else S.tgt[id]=ST[i];
     save(); paint(); renderGoals(); hover(e); return;}
@@ -773,7 +938,7 @@ function hover(e){
   const xy=it.s.map(v=>Math.round(v));
   tip.innerHTML=`<b>${ty.name}</b><br>
     <span class="mono">X:${xy[0]} Y:${xy[1]}</span><br>
-    <span class="k">${it.kind==="g"?it.g:ZN[it.z]}</span><br>
+    <span class="k">${it.kind==="g"?it.g:ZN[it.z]}</span><br>${spShort(ty.id)?`<span style="color:#F4BF41">★ ${spShort(ty.id)}</span><br>`:""}
     ${a?`<span style="color:${a.color}">●</span> ${esc(a.name)}`:'<span class="k">Unclaimed</span>'}${st?`<br><span style="color:${st==="target"?"inherit":STC[st]}">◎ ${STN[st]}</span>`:""}`;
   const r=wrap.getBoundingClientRect(); tip.hidden=false;
   let x=e.clientX-r.left+14,y=e.clientY-r.top+14; const w=tip.offsetWidth,h=tip.offsetHeight;
