@@ -91,9 +91,9 @@ const PAIRS = [
   { wheel: "Ozai",                     tgl: "Opal",           el: "fire",  unlock: 376 },
   { wheel: "Disguised Equalist Korra", tgl: "Bolin",          el: "water", unlock: 418 },
   { wheel: "Jetsun",                   tgl: "Ty Lee",         el: "air",   unlock: 460 },
-  { heroes: ["Sapphire Fire Katara", "Mad King Bumi"], el: "water", unlock: 502, split: false },
-  { heroes: ["Kelsang", "Rangi"],                      el: "air",   unlock: 544, split: false },
-  { heroes: ["Yun", "Varrick"],                        el: "earth", unlock: 586, split: false },
+  { wheel: "Sapphire Fire Katara",     tgl: "Mad King Bumi",  el: "earth", unlock: 502 },
+  { wheel: "Rangi",                    tgl: "Kelsang",        el: "air",   unlock: 544 },
+  { wheel: "Yun",                      tgl: "Varrick",        el: "water", unlock: 586 },
 ];
 
 // Each hero's element and what they're used for. "Lead" = has a leader skill.
@@ -126,8 +126,8 @@ const HEROES = {
   "Mad King Bumi":            { el: "earth", roles: ["Lead", "Hunt"] },
   "Kelsang":                  { el: "air",   roles: ["Hunt"] },
   "Rangi":                    { el: "fire",  roles: ["Siege"] },
-  "Yun":                      { el: "earth", roles: [] },
-  "Varrick":                  { el: "water", roles: [] },
+  "Yun":                      { el: "earth", roles: ["Versatile"] },
+  "Varrick":                  { el: "water", roles: ["Hunt"] },
 };
 const ROLE_INFO = {
   Lead: "Leader skill",
