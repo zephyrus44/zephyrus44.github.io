@@ -79,61 +79,69 @@ const eventNumber = (server, ev) => {
 // Pairs with split: false are confirmed as a pair, but which hero is on
 // which event isn't known yet.
 const PAIRS = [
-  { wheel: "Iroh",                          tgl: "Aang",           el: "fire",  unlock: 1   },
-  { wheel: "King Bumi (KB)",                tgl: "Amon",           el: "earth", unlock: 46  },
-  { wheel: "Painted Lady Katara (PLK)",     tgl: "Yangchen",       el: "water", unlock: 82  },
-  { wheel: "Lin Beifong",                   tgl: "Roku",           el: "earth", unlock: 124 },
-  { wheel: "Fire Nation Aang (FNA)",        tgl: "Kuruk",          el: "air",   unlock: 166 },
-  { wheel: "Avatar Hunter Zuko (AH Zuko)",  tgl: "Zaheer",         el: "fire",  unlock: 208 },
-  { wheel: "Wolf Warrior Sokka (WW Sokka)", tgl: "Kuvira",         el: "water", unlock: 250 },
-  { wheel: "Mako",                          tgl: "Jinora",         el: "fire",  unlock: 292 },
-  { wheel: "Lady Beifong Toph (LB Toph)",   tgl: "Desna and Eska", el: "earth", unlock: 334 },
-  { wheel: "Ozai",                          tgl: "Opal",           el: "fire",  unlock: 376 },
-  { wheel: "Disguised Equalist Korra",      tgl: "Bolin",          el: "water", unlock: 418 },
-  { wheel: "Jet Sun",                       tgl: "Ty Lee",         el: "air",   unlock: 460 },
+  { wheel: "Iroh",                     tgl: "Aang",           el: "fire",  unlock: 1   },
+  { wheel: "King Bumi",                tgl: "Amon",           el: "earth", unlock: 46  },
+  { wheel: "Painted Lady Katara",      tgl: "Yangchen",       el: "water", unlock: 82  },
+  { wheel: "Lin Beifong",              tgl: "Roku",           el: "earth", unlock: 124 },
+  { wheel: "Fire Nation Aang",         tgl: "Kuruk",          el: "air",   unlock: 166 },
+  { wheel: "Avatar Hunter Zuko",       tgl: "Zaheer",         el: "fire",  unlock: 208 },
+  { wheel: "Wolf Warrior Sokka",       tgl: "Kuvira",         el: "water", unlock: 250 },
+  { wheel: "Mako",                     tgl: "Jinora",         el: "fire",  unlock: 292 },
+  { wheel: "Lady Beifong Toph",        tgl: "Desna and Eska", el: "earth", unlock: 334 },
+  { wheel: "Ozai",                     tgl: "Opal",           el: "fire",  unlock: 376 },
+  { wheel: "Disguised Equalist Korra", tgl: "Bolin",          el: "water", unlock: 418 },
+  { wheel: "Jetsun",                   tgl: "Ty Lee",         el: "air",   unlock: 460 },
   { heroes: ["Sapphire Fire Katara", "Mad King Bumi"], el: "water", unlock: 502, split: false },
   { heroes: ["Kelsang", "Rangi"],                      el: "air",   unlock: 544, split: false },
   { heroes: ["Yun", "Varrick"],                        el: "earth", unlock: 586, split: false },
 ];
-// Heroes with a leader skill, marked with 💠
-const LEADERS = new Set([
-  "Aang", "Yangchen", "Jet Sun", "Roku", "Ozai", "Kuruk", "Korra",
-  "Disguised Equalist Korra", "Kyoshi", "Kuvira", "Mad King Bumi",
-]);
-const isLeader = (name) => LEADERS.has(name.replace(/\s*\(.*\)$/, ""));
-// Each hero's element (from the game's hero roster)
-const HERO_EL = {
-  "Iroh": "fire", "Aang": "air", "King Bumi": "earth", "Amon": "water",
-  "Painted Lady Katara": "water", "Yangchen": "air", "Lin Beifong": "earth",
-  "Roku": "fire", "Fire Nation Aang": "air", "Kuruk": "water",
-  "Avatar Hunter Zuko": "fire", "Zaheer": "air", "Wolf Warrior Sokka": "water",
-  "Kuvira": "earth", "Mako": "fire", "Jinora": "air", "Lady Beifong Toph": "earth",
-  "Desna and Eska": "water", "Ozai": "fire", "Opal": "air",
-  "Disguised Equalist Korra": "water", "Bolin": "earth", "Jet Sun": "air",
-  "Ty Lee": "fire", "Sapphire Fire Katara": "water", "Mad King Bumi": "earth",
-  "Kelsang": "air", "Rangi": "fire", "Yun": "earth", "Varrick": "water",
-};
-const heroEl = (name) => HERO_EL[name.replace(/\s*\(.*\)$/, "")] || "air";
-const heroColor = (name) => EL[heroEl(name)].c;
-const Hero = ({ name, dot }) => (
-  <>
-    {dot && <span className="hc-dot" style={{ background: heroColor(name) }} />}
-    {name}
-    {isLeader(name) && (
-      <span className="hc-leader" title="Leader skill" aria-label="Leader skill"> 💠</span>
-    )}
-  </>
-);
-const HeroList = ({ names, dot, colored }) =>
-  names.map((n, i) => (
-    <span key={n}>
-      {i > 0 && (dot ? "  " : " & ")}
-      <span style={colored ? { color: heroColor(n) } : undefined}><Hero name={n} dot={dot} /></span>
-    </span>
-  ));
 
-const pairLabel = (p) =>
-  p.split === false ? p.heroes.join(" & ") : `${p.wheel} / ${p.tgl}`;
+// Each hero's element and what they're used for. "Lead" = has a leader skill.
+const HEROES = {
+  "Iroh":                     { el: "fire",  roles: ["Garrison"] },
+  "Aang":                     { el: "air",   roles: ["Lead", "Versatile"] },
+  "King Bumi":                { el: "earth", roles: ["Garrison"] },
+  "Amon":                     { el: "water", roles: ["Siege"] },
+  "Painted Lady Katara":      { el: "water", roles: ["Garrison"] },
+  "Yangchen":                 { el: "air",   roles: ["Lead", "Versatile"] },
+  "Lin Beifong":              { el: "earth", roles: ["Garrison"] },
+  "Roku":                     { el: "fire",  roles: ["Lead", "Versatile"] },
+  "Fire Nation Aang":         { el: "air",   roles: ["Siege"] },
+  "Kuruk":                    { el: "water", roles: ["Lead", "Hunt"] },
+  "Avatar Hunter Zuko":       { el: "fire",  roles: ["Siege"] },
+  "Zaheer":                   { el: "air",   roles: ["Siege"] },
+  "Wolf Warrior Sokka":       { el: "water", roles: ["Hunt"] },
+  "Kuvira":                   { el: "earth", roles: ["Lead", "Siege"] },
+  "Mako":                     { el: "fire",  roles: ["Hunt"] },
+  "Jinora":                   { el: "air",   roles: ["Versatile"] },
+  "Lady Beifong Toph":        { el: "earth", roles: ["Siege"] },
+  "Desna and Eska":           { el: "water", roles: ["Versatile"] },
+  "Ozai":                     { el: "fire",  roles: ["Lead", "Siege"] },
+  "Opal":                     { el: "air",   roles: ["Versatile"] },
+  "Disguised Equalist Korra": { el: "water", roles: ["Lead", "Siege"] },
+  "Bolin":                    { el: "earth", roles: ["Garrison"] },
+  "Jetsun":                   { el: "air",   roles: ["Lead", "Versatile"] },
+  "Ty Lee":                   { el: "fire",  roles: ["Hunt"] },
+  "Sapphire Fire Katara":     { el: "water", roles: ["Siege"] },
+  "Mad King Bumi":            { el: "earth", roles: ["Lead", "Hunt"] },
+  "Kelsang":                  { el: "air",   roles: ["Hunt"] },
+  "Rangi":                    { el: "fire",  roles: ["Siege"] },
+  "Yun":                      { el: "earth", roles: [] },
+  "Varrick":                  { el: "water", roles: [] },
+};
+const ROLE_INFO = {
+  Lead: "Leader skill",
+  Siege: "PvP, cities, strongholds",
+  Garrison: "Walls, defense",
+  Versatile: "All-rounder",
+  Hunt: "Skulls, dark spirits",
+  Gathering: "Gathering",
+};
+const NO_PORTRAIT = new Set(["Yun", "Varrick"]);
+const IMG_BASE = "tools/hero-cycle/heroes/";
+const slug = (n) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+const heroInfo = (n) => HEROES[n] || { el: "air", roles: [] };
+const heroColor = (n) => EL[heroInfo(n).el].c;
 
 const EL = {
   fire:  { c: "#E0715A", name: "Fire" },
@@ -142,17 +150,72 @@ const EL = {
   air:   { c: "#E8C468", name: "Air" },
 };
 
+const Portrait = ({ name, size = 40 }) => {
+  const c = heroColor(name);
+  return (
+    <span className="hc-pt" style={{ width: size, height: size, boxShadow: `0 0 0 2px ${c}` }}>
+      {NO_PORTRAIT.has(name)
+        ? <span className="hc-pt-ph" style={{ color: c, fontSize: size * 0.42 }}>{name[0]}</span>
+        : <img src={IMG_BASE + slug(name) + ".png"} alt="" width={size} height={size} loading="lazy" />}
+    </span>
+  );
+};
+
+const Roles = ({ name }) => {
+  const { el, roles } = heroInfo(name);
+  return (
+    <span className="hc-roles">
+      <span className="hc-chip hc-chip-el" style={{ color: EL[el].c }}>
+        <span className="hc-dot" style={{ background: EL[el].c }} />{EL[el].name}
+      </span>
+      {roles.map((r) => (
+        <span key={r} className={"hc-chip" + (r === "Lead" ? " lead" : "")} title={ROLE_INFO[r]}>{r}</span>
+      ))}
+    </span>
+  );
+};
+
+// Big hero block for the current event
+const HeroFeature = ({ name, label }) => (
+  <div className="hc-feat">
+    <Portrait name={name} size={64} />
+    <div style={{ minWidth: 0 }}>
+      <div className="hc-k">{label}</div>
+      <div className="hc-name">{name}</div>
+      <Roles name={name} />
+    </div>
+  </div>
+);
+
+// Compact hero for the schedule list
+const HeroRow = ({ name, label }) => (
+  <div className="hc-hrow">
+    <Portrait name={name} size={36} />
+    <div style={{ minWidth: 0 }}>
+      {label && <div className="hc-k" style={{ fontSize: 11.5 }}>{label}</div>}
+      <div className="hc-hname">{name}</div>
+      <Roles name={name} />
+    </div>
+  </div>
+);
+
+const pairLabel = (p) =>
+  p.split === false ? p.heroes.join(" & ") : `${p.tgl} / ${p.wheel}`;
+
 const ord = (n) => n + (["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || "th");
 const fmtDate = (t) =>
   new Date(t).toLocaleDateString("en-US", {
     timeZone: "UTC", month: "short", day: "numeric", year: "numeric",
   });
-// Short date; adds the year when it isn't the current year
 const fmtShort = (t) =>
   new Date(t).toLocaleDateString("en-US", {
     timeZone: "UTC", weekday: "short", month: "short", day: "numeric",
-    ...(new Date(t).getUTCFullYear() !== new Date().getUTCFullYear() && { year: "numeric" }),
   });
+// "Mon, Nov 16 – Fri, Nov 20"; adds the year once at the end when it isn't this year
+const fmtRange = (a, b) => {
+  const y = new Date(b).getUTCFullYear();
+  return `${fmtShort(a)} – ${fmtShort(b)}${y !== new Date().getUTCFullYear() ? ", " + y : ""}`;
+};
 
 // A hero pair starts at the first event on or after the day its heroes
 // unlock on that server, and runs until the next pair starts.
@@ -266,46 +329,68 @@ export default function HeroCycleCalculator() {
     .hc-stats { display: flex; gap: 18px 32px; flex-wrap: wrap; }
     .hc-stat .k { font-size: 12.5px; font-weight: 500; color: var(--arc-mut, #8B93A1); }
     .hc-stat .v { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin-top: 4px; font-variant-numeric: tabular-nums; }
-    .hc-scroll { border: 1px solid var(--arc-line, #232934); border-radius: 12px; background: var(--arc-panel, #161A21); }
-    .hc-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    .hc-table th { position: sticky; top: 0; z-index: 1; text-align: left; font-size: 12.5px; font-weight: 500;
-      color: var(--arc-mut, #8B93A1); padding: 11px 14px; background: var(--arc-rail, #12161C); border-bottom: 1px solid var(--arc-line, #232934); }
-    .hc-table td { padding: 10px 14px; border-bottom: 1px solid var(--arc-line, #232934); font-variant-numeric: tabular-nums; }
-    .hc-table tr:last-child td { border-bottom: none; }
-    .hc-table tbody tr:hover td { background: var(--arc-raise, #1C222B); }
-    .hc-table tr.you td { background: var(--arc-accent-soft, #1D2640); }
     .hc-mono { font-variant-numeric: tabular-nums; }
-    .hc-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
-    .hc-note { color: var(--arc-mut, #8B93A1); font-size: 13px; line-height: 1.65; max-width: 72ch; margin-top: 28px; }
+    .hc-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; flex: none; }
     .hc-warn { color: var(--arc-warn, #F0B35A); font-size: 14px; line-height: 1.6; }
     .hc-warn b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
-    .hc-leader { font-size: 0.85em; }
-    .hc-legend { font-size: 12px; color: var(--arc-mut, #8B93A1); margin-top: 8px; }
     .hc-est { color: var(--arc-warn, #F0B35A); }
-    .hc-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 18px; }
-    .hc-hero { background: var(--arc-bg, #0E1116); border: 1px solid var(--arc-line, #232934); border-left-width: 3px; border-radius: 12px; padding: 14px 16px; }
     .hc-k { font-size: 12.5px; font-weight: 500; color: var(--arc-mut, #8B93A1); }
-    .hc-name { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.2; margin-top: 4px; }
+    .hc-name { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; line-height: 1.2; margin: 2px 0 8px; }
+    .hc-pt { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none;
+      border-radius: 50%; overflow: hidden; background: var(--arc-raise, #1C222B); }
+    .hc-pt img { width: 100%; height: 100%; object-fit: cover; display: block; transform: scale(1.12); }
+    .hc-pt-ph { font-weight: 700; }
+    .hc-roles { display: flex; flex-wrap: wrap; gap: 5px; }
+    .hc-chip { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 999px;
+      font-size: 11.5px; font-weight: 500; color: var(--arc-text-2, #C3C8D1); background: var(--arc-raise, #1C222B);
+      border: 1px solid var(--arc-line, #232934); white-space: nowrap; }
+    .hc-chip-el { background: transparent; }
+    .hc-chip.lead { color: #0E1116; background: var(--arc-warn, #F0B35A); border-color: transparent; font-weight: 600; }
+    .hc-feats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 18px; }
+    .hc-feat { display: flex; gap: 14px; align-items: center; background: var(--arc-bg, #0E1116);
+      border: 1px solid var(--arc-line, #232934); border-radius: 12px; padding: 14px 16px; }
     .hc-band { display: flex; gap: 3px; margin-top: 20px; }
     .hc-seg { flex: 1; height: 8px; border-radius: 3px; opacity: 0.22; }
     .hc-seg.cur { opacity: 1; }
-    .hc-bandlbl { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11.5px;
-      color: var(--arc-mut, #8B93A1); font-variant-numeric: tabular-nums; }
-    .hc-next { margin-top: 16px; font-size: 13.5px; color: var(--arc-mut, #8B93A1); }
-    .hc-next b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
-    .hc-scroll { overflow-x: auto; }
-    .hc-table { min-width: 560px; }
+    .hc-bandlbl { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11.5px; color: var(--arc-mut, #8B93A1); }
+    .hc-h2 { font-size: 15px; font-weight: 600; margin: 28px 0 12px; }
+    .hc-list { display: flex; flex-direction: column; gap: 10px; }
+    .hc-group { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 240px; gap: 16px; align-items: start;
+      background: var(--arc-panel, #161A21); border: 1px solid var(--arc-line, #232934); border-radius: 12px; padding: 14px 16px; }
+    .hc-group.now { border-color: color-mix(in srgb, var(--arc-accent, #7EA0FF) 55%, transparent); }
+    .hc-group.split { grid-template-columns: minmax(0, 2fr) 240px; }
+    .hc-group .hc-heroes2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .hc-hrow { display: flex; gap: 10px; align-items: flex-start; }
+    .hc-hname { font-size: 14.5px; font-weight: 600; margin: 1px 0 5px; }
+    .hc-runs { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-variant-numeric: tabular-nums; }
+    .hc-run { display: flex; gap: 8px; color: var(--arc-text-2, #C3C8D1); white-space: nowrap; }
+    .hc-run .n { color: var(--arc-mut, #8B93A1); width: 34px; flex: none; }
+    .hc-run.now { color: var(--arc-accent, #7EA0FF); font-weight: 600; }
+    .hc-run.now .n { color: inherit; }
+    .hc-note2 { font-size: 12px; color: var(--arc-mut, #8B93A1); margin-top: 6px; }
+    .hc-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--arc-mut, #8B93A1); margin-top: 14px; }
+    .hc-legend span { display: inline-flex; align-items: center; }
+    .hc-legend b { color: var(--arc-text-2, #C3C8D1); font-weight: 600; margin-right: 4px; }
     @media (max-width: 600px) {
       .hc-root { padding: 28px 16px 56px; }
       .hc-title { font-size: 26px; }
       .hc-stats { gap: 14px 22px; }
       .hc-card { padding: 16px; }
-      .hc-pair { grid-template-columns: 1fr; }
+      .hc-feats { grid-template-columns: 1fr; }
+      .hc-group, .hc-group.split { grid-template-columns: 1fr; gap: 12px; }
+      .hc-group .hc-heroes2 { grid-template-columns: 1fr; gap: 12px; }
     }
   `;
 
   const r = result;
-  const range = (c) => `${fmtShort(c.evStart)} – ${fmtShort(c.evEnd - DAY)}`;
+  // Consecutive events with the same hero pair, grouped
+  const groups = [];
+  for (const c of r?.upcoming || []) {
+    const g = groups[groups.length - 1];
+    if (g && g.pair === c.pair) g.events.push(c);
+    else groups.push({ pair: c.pair, events: [c] });
+  }
+  const range = (c) => fmtRange(c.evStart, c.evEnd - DAY);
 
   return (
     <div className="hc-root">
@@ -366,31 +451,18 @@ export default function HeroCycleCalculator() {
               )}
 
               {r.cur.pair.split === false ? (
-                <div className="hc-pair" style={{ gridTemplateColumns: "1fr" }}>
-                  <div className="hc-hero" style={{ borderLeftColor: "var(--arc-line-2, #2E3542)" }}>
-                    <div className="hc-k">TGL &amp; Wheel of Fate heroes</div>
-                    <div className="hc-name">
-                      <HeroList names={r.cur.pair.heroes} colored />
-                    </div>
-                    <div className="hc-next" style={{ marginTop: 6 }}>
-                      Which hero is on which event isn't confirmed yet.
-                    </div>
+                <>
+                  <div className="hc-feats">
+                    {r.cur.pair.heroes.map((n) => <HeroFeature key={n} name={n} label="TGL or Wheel of Fate" />)}
                   </div>
-                </div>
+                  <div className="hc-note2" style={{ marginTop: -8, marginBottom: 16 }}>
+                    Which hero is on which event isn't confirmed yet.
+                  </div>
+                </>
               ) : (
-                <div className="hc-pair">
-                  <div className="hc-hero" style={{ borderLeftColor: heroColor(r.cur.pair.tgl) }}>
-                    <div className="hc-k">TGL rewards</div>
-                    <div className="hc-name" style={{ color: heroColor(r.cur.pair.tgl) }}>
-                      <Hero name={r.cur.pair.tgl} />
-                    </div>
-                  </div>
-                  <div className="hc-hero" style={{ borderLeftColor: heroColor(r.cur.pair.wheel) }}>
-                    <div className="hc-k">Wheel of Fate</div>
-                    <div className="hc-name" style={{ color: heroColor(r.cur.pair.wheel) }}>
-                      <Hero name={r.cur.pair.wheel} />
-                    </div>
-                  </div>
+                <div className="hc-feats">
+                  <HeroFeature name={r.cur.pair.tgl} label="TGL rewards" />
+                  <HeroFeature name={r.cur.pair.wheel} label="Wheel of Fate" />
                 </div>
               )}
 
@@ -420,39 +492,42 @@ export default function HeroCycleCalculator() {
               <div className="hc-bandlbl"><span>First pair</span><span>Last known pair</span></div>
             </div>
 
-            <div className="hc-scroll">
-              <table className="hc-table">
-                <thead>
-                  <tr><th>Event</th><th>TGL rewards</th><th>Wheel of Fate</th><th>Run</th></tr>
-                </thead>
-                <tbody>
-                  {r.upcoming.map((c, i) => (
-                    <tr key={c.evStart} className={i === 0 ? "you" : ""}>
-                      <td style={{ whiteSpace: "nowrap" }}>{r.est || r.newServer ? "~" : ""}{range(c)}</td>
-                      {c.pair.split === false ? (
-                        <td colSpan={2}>
-                          <HeroList names={c.pair.heroes} dot />
-                          <span style={{ color: "var(--arc-mut, #8B93A1)" }}> · split not confirmed</span>
-                        </td>
-                      ) : (
-                        <>
-                          <td><Hero name={c.pair.tgl} dot /></td>
-                          <td><Hero name={c.pair.wheel} dot /></td>
-                        </>
-                      )}
-                      <td>{c.run}/{c.runs}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="hc-h2">Upcoming schedule</div>
+            <div className="hc-list">
+              {groups.map((g, gi) => (
+                <div key={g.events[0].evStart}
+                  className={"hc-group" + (g.pair.split === false ? " split" : "") + (gi === 0 ? " now" : "")}>
+                  {g.pair.split === false ? (
+                    <div>
+                      <div className="hc-heroes2">
+                        {g.pair.heroes.map((n) => <HeroRow key={n} name={n} />)}
+                      </div>
+                      <div className="hc-note2">Which hero is on which event isn't confirmed yet.</div>
+                    </div>
+                  ) : (
+                    <>
+                      <HeroRow name={g.pair.tgl} label="TGL rewards" />
+                      <HeroRow name={g.pair.wheel} label="Wheel of Fate" />
+                    </>
+                  )}
+                  <div className="hc-runs">
+                    {g.events.map((c, i) => (
+                      <div key={c.evStart} className={"hc-run" + (gi === 0 && i === 0 ? " now" : "")}>
+                        <span className="n">{c.run}/{c.runs}</span>
+                        <span>{r.est || r.newServer ? "~" : ""}{range(c)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="hc-legend">
               {Object.values(EL).map((e) => (
-                <span key={e.name} style={{ marginRight: 14 }}>
-                  <span className="hc-dot" style={{ background: e.c }} />{e.name}
-                </span>
+                <span key={e.name}><span className="hc-dot" style={{ background: e.c }} />{e.name}</span>
               ))}
-              <span>💠 Leader skill</span>
+              {Object.entries(ROLE_INFO).filter(([k]) => k !== "Gathering").map(([k, v]) => (
+                <span key={k}><b>{k}</b>{v}</span>
+              ))}
             </div>
           </>
         )}
