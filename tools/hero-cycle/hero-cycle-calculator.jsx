@@ -288,8 +288,31 @@ const pairByServer = (pairIdx, t) => {
   return { now: group(now), later: group(later) };
 };
 
-const HeroSearch = ({ onPick }) => {
-  const [q, setQ] = useState("");
+/* Keep the inputs in the address (e.g. ?server=1082), so a copied link opens
+ * with the same inputs filled in. Empty values are left out. */
+const urlParam = (k) => { try { return new URLSearchParams(location.search).get(k); } catch { return null; } };
+function useShareParams(params) {
+  const own = useMemo(() => { try { return location.pathname; } catch { return ""; } }, []);
+  const key = JSON.stringify(params);
+  useEffect(() => {
+    const apply = () => {
+      try {
+        if (location.pathname !== own) return; // another tool is showing
+        const q = new URLSearchParams();
+        for (const [k, v] of Object.entries(params)) if (v !== "" && v != null && v !== false) q.set(k, v);
+        const s = q.toString();
+        const next = own + (s ? "?" + s : "") + location.hash;
+        if (next !== location.pathname + location.search + location.hash) history.replaceState(history.state, "", next);
+      } catch {}
+    };
+    apply();
+    window.addEventListener("arc:route", apply);
+    return () => window.removeEventListener("arc:route", apply);
+  }, [key]);
+}
+
+const HeroSearch = ({ onPick, initial }) => {
+  const [q, setQ] = useState(initial ? initial.name : "");
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);
   const norm = (x) => x.toLowerCase().replace(/[^a-z]/g, "");
@@ -338,17 +361,30 @@ export default function HeroCycleCalculator() {
   const todayISO = new Date().toISOString().slice(0, 10);
   // Remember the last server between visits (browser storage can be unavailable)
   const [serverStr, setServerStr] = useState(() => {
+    const u = urlParam("server");
+    if (u && /^\d+$/.test(u)) return u;
     try { return localStorage.getItem("hc-server") || ""; } catch { return ""; }
   });
   useEffect(() => {
     try { localStorage.setItem("hc-server", serverStr); } catch {}
   }, [serverStr]);
-  const [dateStr, setDateStr] = useState(todayISO);
+  const [dateStr, setDateStr] = useState(() => {
+    const u = urlParam("date");
+    return u && /^\d{4}-\d{2}-\d{2}$/.test(u) ? u : todayISO;
+  });
   const [mode, setMode] = useState(() => {
+    if (urlParam("hero")) return "hero";
+    if (urlParam("server")) return "server";
     try { return localStorage.getItem("hc-mode") || "server"; } catch { return "server"; }
   });
   useEffect(() => { try { localStorage.setItem("hc-mode", mode); } catch {} }, [mode]);
-  const [hero, setHero] = useState(null);
+  const [hero, setHero] = useState(() => {
+    const u = urlParam("hero");
+    return (u && HERO_LIST.find((h) => slug(h.name) === u)) || null;
+  });
+  useShareParams(mode === "hero"
+    ? { hero: hero ? slug(hero.name) : "", date: dateStr !== todayISO ? dateStr : "" }
+    : { server: serverStr, date: dateStr !== todayISO ? dateStr : "" });
 
   const server = parseInt(serverStr, 10);
   const validServer = Number.isFinite(server) && server >= 1001;
@@ -526,7 +562,7 @@ export default function HeroCycleCalculator() {
               <div className="hc-controls">
                 <div className="hc-field" style={{ flex: "1 1 260px" }}>
                   <label htmlFor="hc-hero">Hero</label>
-                  <HeroSearch onPick={setHero} />
+                  <HeroSearch onPick={setHero} initial={hero} />
                 </div>
                 <div className="hc-field">
                   <label htmlFor="hc-date2">Date</label>

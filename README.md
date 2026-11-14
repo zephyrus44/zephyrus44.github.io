@@ -23,6 +23,8 @@ data/           world power and warzone data from dengsden.com, used by Era Grou
 
 Each tool's address is its folder, e.g. `zephyrus44.github.io/tools/hero-cycle/`, so a copied link shows that tool's preview. Older addresses (`#z3`-style links, `grand-melee-planner.html`, `era-grouping.html`, `GlowwormsRusePlanner/glowworm/`) redirect there, so old bookmarks and share links keep working.
 
+Migration Scout, Hero Cycle and Era Grouping keep their inputs in the address (`?server=1082`, `?hero=zaheer`, `?date=…&offset=…`), so a copied link opens with the same inputs filled in.
+
 ## Adding or updating a tool
 
 - **Update:** replace the file inside its `tools/<name>/` folder.

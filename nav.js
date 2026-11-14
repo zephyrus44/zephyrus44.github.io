@@ -176,7 +176,7 @@
       loadTools(function () {
         var here = location.pathname.replace(/index\.html$/, "");
         var t = (window.ARC_TOOLS || []).filter(function (x) { return x.page && href(x) === here; })[0];
-        if (t) location.replace("/#" + t.id); else mount();
+        if (t) location.replace("/" + location.search + "#" + t.id); else mount();
       });
       return;
     }
