@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 /* ---------------- World ages (all UTC) ----------------
    In-game "Day N" for every world as shown on the Migration screen
@@ -137,7 +137,7 @@ const ROLE_INFO = {
   Hunt: "Skulls, dark spirits",
   Gathering: "Gathering",
 };
-const NO_PORTRAIT = new Set(["Yun", "Varrick"]);
+const NO_PORTRAIT = new Set();
 const IMG_BASE = "tools/hero-cycle/heroes/";
 const slug = (n) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const heroInfo = (n) => HEROES[n] || { el: "air", roles: [] };
@@ -156,7 +156,7 @@ const Portrait = ({ name, size = 40 }) => {
     <span className="hc-pt" style={{ width: size, height: size, boxShadow: `0 0 0 2px ${c}` }}>
       {NO_PORTRAIT.has(name)
         ? <span className="hc-pt-ph" style={{ color: c, fontSize: size * 0.42 }}>{name[0]}</span>
-        : <img src={IMG_BASE + slug(name) + ".png"} alt="" width={size} height={size} loading="lazy" />}
+        : <img src={IMG_BASE + slug(name) + ".webp"} alt="" width={size} height={size} loading="lazy" />}
     </span>
   );
 };
@@ -261,7 +261,13 @@ const eventsFrom = (server, ev, n) => {
 
 export default function HeroCycleCalculator() {
   const todayISO = new Date().toISOString().slice(0, 10);
-  const [serverStr, setServerStr] = useState("");
+  // Remember the last server between visits (browser storage can be unavailable)
+  const [serverStr, setServerStr] = useState(() => {
+    try { return localStorage.getItem("hc-server") || ""; } catch { return ""; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("hc-server", serverStr); } catch {}
+  }, [serverStr]);
   const [dateStr, setDateStr] = useState(todayISO);
 
   const server = parseInt(serverStr, 10);
