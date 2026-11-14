@@ -62,15 +62,15 @@ const eventNumber = (server, ev) =>
 const PAIRS = [
   { wheel: "Iroh",                     tgl: "Aang",           el: "fire",  unlock: 1   },
   { wheel: "King Bumi",                tgl: "Amon",           el: "earth", unlock: 46  },
-  { wheel: "Painted Lady Katara",      tgl: "Yangchen",       el: "water", unlock: 82  },
-  { wheel: "Lin Beifong",              tgl: "Roku",           el: "earth", unlock: 124 },
-  { wheel: "Fire Nation Aang",         tgl: "Kuruk",          el: "air",   unlock: 166 },
-  { wheel: "Avatar Hunter Zuko",       tgl: "Zaheer",         el: "fire",  unlock: 208 },
-  { wheel: "Wolf Warrior Sokka",       tgl: "Kuvira",         el: "water", unlock: 250, release: Date.UTC(2025, 10, 26) },
+  { wheel: "Painted Lady Katara",      tgl: "Yangchen",       el: "water", unlock: 84  },
+  { wheel: "Lin Beifong",              tgl: "Roku",           el: "earth", unlock: 126 },
+  { wheel: "Fire Nation Aang",         tgl: "Kuruk",          el: "air",   unlock: 168 },
+  { wheel: "Avatar Hunter Zuko",       tgl: "Zaheer",         el: "fire",  unlock: 210 },
+  { wheel: "Wolf Warrior Sokka",       tgl: "Kuvira",         el: "water", unlock: 252, release: Date.UTC(2025, 10, 26) },
   { wheel: "Mako",                     tgl: "Jinora",         el: "fire",  unlock: 294, release: Date.UTC(2026, 0, 1) },
   { wheel: "Lady Beifong Toph",        tgl: "Desna and Eska", el: "earth", unlock: 336, release: Date.UTC(2026, 1, 4) },
   { wheel: "Ozai",                     tgl: "Opal",           el: "fire",  unlock: 378, release: Date.UTC(2026, 3, 1) },
-  { wheel: "Disguised Equalist Korra", tgl: "Bolin",          el: "water", unlock: 418, release: Date.UTC(2026, 3, 29) },
+  { wheel: "Disguised Equalist Korra", tgl: "Bolin",          el: "water", unlock: 420, release: Date.UTC(2026, 3, 29) },
   { wheel: "Jetsun",                   tgl: "Ty Lee",         el: "air",   unlock: 462, release: Date.UTC(2026, 5, 24) },
   { wheel: "Sapphire Fire Katara",     tgl: "Mad King Bumi",  el: "earth", unlock: 504, release: Date.UTC(2026, 6, 22) },
   { wheel: "Rangi",                    tgl: "Kelsang",        el: "air",   unlock: 546, release: Date.UTC(2026, 8, 16) },
@@ -200,9 +200,18 @@ const fmtRange = (a, b) => {
 
 // A hero pair starts at the first event on or after the day its heroes
 // unlock on that server, and runs until the next pair starts.
-const pairStarts = (server) =>
-  PAIRS.map((p) => eventOnOrAfter(server,
-    Math.max(launchOf(server) + (p.unlock - 1) * DAY, p.release || -Infinity)));
+// Every pair runs at least 3 times before the next one can start.
+const MIN_RUNS = 3;
+const pairStarts = (server) => {
+  const out = [];
+  PAIRS.forEach((p, i) => {
+    let start = eventOnOrAfter(server,
+      Math.max(launchOf(server) + (p.unlock - 1) * DAY, p.release || -Infinity));
+    if (i > 0) start = Math.max(start, out[i - 1] + MIN_RUNS * CYCLE_MS);
+    out.push(start);
+  });
+  return out;
+};
 
 // Details for the event that opens at evStart on this server
 const eventInfo = (server, evStart) => {
