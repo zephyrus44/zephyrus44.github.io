@@ -2,56 +2,60 @@ import { useState, useMemo, useEffect } from "react";
 
 // ---------------- Core game math (all UTC) ----------------
 const DAY = 86400000;
-// Reference moment: 00:00 UTC July 13, 2026.
-// Screenshots taken ~Jul 12 22:00 UTC showed each server at "Xd22h",
-// so elapsed whole days at the reference = X + 1.
-const REF = Date.UTC(2026, 6, 13);
 
-// Exact elapsed days at REF, read from in-game migration screen.
-// Early servers launched on an irregular schedule (some on the same day!),
-// so a lookup table is required instead of a formula.
-const KNOWN = {
-  1001: 817, 1002: 761, 1003: 705, 1004: 635, 1005: 586, 1006: 516,
-  1007: 495, 1008: 495, 1009: 483, 1010: 483, 1011: 483, 1012: 481,
-  1013: 480, 1014: 478, 1015: 477,
-  1042: 377, 1043: 370, 1044: 363, 1045: 358, 1046: 353, 1047: 347,
-  1048: 340, 1049: 333,
-  1064: 220, 1065: 213, 1066: 206, 1067: 199, 1068: 192, 1069: 185,
-  1070: 178, 1071: 171,
-  1074: 150, 1075: 143, 1076: 136, 1077: 129, 1078: 122, 1079: 115,
-  1080: 108, 1081: 101,
-  1088: 52, 1089: 45, 1090: 38, 1091: 31, 1092: 24, 1093: 17,
-  1094: 10, 1095: 3,
+// In-game "Day N" for every world, read from the Migration screen on
+// Sun Nov 1, 2026 (UTC). Day 1 = the world's open date; matches Deng's Den
+// open dates. Worlds opened irregularly early on (1007/1008 share a day, as
+// do 1009/1010/1011), so this is a table, not a formula.
+// Canonical copy lives in /data/world-days.json; this is the offline fallback.
+const REF = Date.UTC(2026, 10, 1);
+const EMBED_GAME_DAY = {
+  1001: 929, 1002: 873, 1003: 817, 1004: 747, 1005: 698, 1006: 628, 1007: 607, 1008: 607,
+  1009: 595, 1010: 595, 1011: 595, 1012: 593, 1013: 592, 1014: 590, 1015: 589, 1016: 587,
+  1017: 585, 1018: 583, 1019: 582, 1020: 581, 1021: 578, 1022: 576, 1023: 574, 1024: 571,
+  1025: 568, 1026: 565, 1027: 562, 1028: 559, 1029: 555, 1030: 552, 1031: 548, 1032: 544,
+  1033: 539, 1034: 534, 1035: 529, 1036: 526, 1037: 521, 1038: 515, 1039: 509, 1040: 503,
+  1041: 496, 1042: 489, 1043: 482, 1044: 475, 1045: 470, 1046: 465, 1047: 459, 1048: 452,
+  1049: 445, 1050: 438, 1051: 432, 1052: 425, 1053: 418, 1054: 411, 1055: 404, 1056: 397,
+  1057: 390, 1058: 383, 1059: 376, 1060: 362, 1061: 353, 1062: 346, 1063: 339, 1064: 332,
+  1065: 325, 1066: 318, 1067: 311, 1068: 304, 1069: 297, 1070: 290, 1071: 283, 1072: 276,
+  1073: 269, 1074: 262, 1075: 255, 1076: 248, 1077: 241, 1078: 234, 1079: 227, 1080: 220,
+  1081: 213, 1082: 206, 1083: 199, 1084: 192, 1085: 185, 1086: 178, 1087: 171, 1088: 164,
+  1089: 157, 1090: 150, 1091: 143, 1092: 136, 1093: 129, 1094: 122, 1095: 115, 1096: 108,
+  1097: 101, 1098: 94, 1099: 87, 1100: 80, 1101: 73, 1102: 66, 1103: 59, 1104: 52,
+  1105: 45, 1106: 38, 1107: 31, 1108: 24, 1109: 17, 1110: 10, 1111: 3,
 };
-const NEWEST_KNOWN = 1095; // launched Fri Jul 10, 2026; weekly thereafter
+const EMBED_NEWEST = 1111; // opened Fri Oct 30, 2026; new worlds every Friday after
 
-// Fill gaps by linear interpolation between the nearest known anchors.
-// If the gap divides evenly (uniform 7-day cadence), treat as exact;
-// otherwise mark the estimate as approximate.
-const { ELAPSED, APPROX } = (() => {
-  const elapsed = {};
-  const approx = {};
-  const keys = Object.keys(KNOWN).map(Number).sort((a, b) => a - b);
-  for (const k of keys) elapsed[k] = KNOWN[k];
-  for (let i = 0; i < keys.length - 1; i++) {
-    const lo = keys[i], hi = keys[i + 1];
-    const steps = hi - lo;
-    if (steps <= 1) continue;
-    const delta = KNOWN[lo] - KNOWN[hi];
-    const uneven = delta % steps !== 0;
-    for (let s = lo + 1; s < hi; s++) {
-      elapsed[s] = Math.round(KNOWN[lo] - ((s - lo) * delta) / steps);
-      if (uneven) approx[s] = true;
-    }
+// Swapped for the live file by loadWorldDays() when it resolves.
+let GAME_DAY = EMBED_GAME_DAY;
+let NEWEST_KNOWN = EMBED_NEWEST;
+
+async function loadWorldDays() {
+  try {
+    const r = await fetch("/data/world-days.json", { cache: "no-store" });
+    if (!r.ok) return false;
+    const j = await r.json();
+    if (!j || !j.game_day) return false;
+    const next = {};
+    for (const [k, v] of Object.entries(j.game_day)) next[Number(k)] = Number(v);
+    const newest = Number(j.newest_known);
+    if (!Number.isFinite(newest) || !next[newest]) return false;
+    GAME_DAY = next;
+    NEWEST_KNOWN = newest;
+    return true;
+  } catch (e) {
+    return false;
   }
-  return { ELAPSED: elapsed, APPROX: approx };
-})();
+}
 
+// Day counter for world s at time t. Worlds past NEWEST_KNOWN are projected
+// on the weekly Friday cadence and flagged as estimates.
+const isProjected = (s) => s > NEWEST_KNOWN;
 const launchOf = (s) =>
-  s <= NEWEST_KNOWN
-    ? REF - ELAPSED[s] * DAY
-    : REF - ELAPSED[NEWEST_KNOWN] * DAY + (s - NEWEST_KNOWN) * 7 * DAY;
-const isApprox = (s) => !!APPROX[s];
+  isProjected(s)
+    ? REF - (GAME_DAY[NEWEST_KNOWN] - 1) * DAY + (s - NEWEST_KNOWN) * 7 * DAY
+    : REF - (GAME_DAY[s] - 1) * DAY;
 const ageOn = (s, t) => Math.floor((t - launchOf(s)) / DAY) + 1;
 const groupOf = (age) => (age >= 162 ? 2 : age >= 78 ? 1 : 0);
 
@@ -119,7 +123,22 @@ function useShareParams(params) {
   }, [key]);
 }
 
+/* The live table in /data/world-days.json is loaded once per page and shared
+ * by every mount; `dataTick` bumps so hooks recompute once it lands. */
+let worldDaysPromise = null;
+function useWorldDays() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    worldDaysPromise = worldDaysPromise || loadWorldDays();
+    worldDaysPromise.then((changed) => { if (alive && changed) setTick((t) => t + 1); });
+    return () => { alive = false; };
+  }, []);
+  return tick;
+}
+
 export default function MigrationScout() {
+  const dataTick = useWorldDays();
   // Default event = live event if one is running, otherwise the next one
   const defaultEvent = useMemo(() => {
     const now = Date.now();
@@ -165,19 +184,19 @@ export default function MigrationScout() {
       return { launch, age, state: "young", firstN };
     }
     // All servers in the same group at this event
-    const launched1095 = launchOf(NEWEST_KNOWN);
+    const launchedNewest = launchOf(NEWEST_KNOWN);
     const newest =
       NEWEST_KNOWN +
-      Math.max(0, Math.floor((start - launched1095) / (7 * DAY)));
+      Math.max(0, Math.floor((start - launchedNewest) / (7 * DAY)));
     const list = [];
     for (let s = 1001; s <= newest; s++) {
       const a = ageOn(s, start);
       if (a >= 1 && groupOf(a) === group) {
-        list.push({ s, age: a, pos: svsPos(s), launch: launchOf(s), est: isApprox(s) });
+        list.push({ s, age: a, pos: svsPos(s), launch: launchOf(s), est: isProjected(s) });
       }
     }
     return { launch, age, group, list, state: "ok" };
-  }, [server, validServer, start, eventN, offset]);
+  }, [server, validServer, start, eventN, offset, dataTick]);
 
   const filtered =
     result?.list?.filter((r) => posFilter === 0 || r.pos === posFilter) ?? [];
@@ -439,13 +458,13 @@ export default function MigrationScout() {
                   <div className="ms-stat">
                     <div className="k">Age at event start</div>
                     <div className="v ms-mono">
-                      {isApprox(server) ? "~" : ""}day {result.age}
+                      {isProjected(server) ? "~" : ""}day {result.age}
                     </div>
                   </div>
                   <div className="ms-stat">
                     <div className="k">Launched</div>
                     <div className="v">
-                      {isApprox(server) ? "~" : ""}{fmtDate(result.launch)}
+                      {isProjected(server) ? "~" : ""}{fmtDate(result.launch)}
                     </div>
                   </div>
                   <div className="ms-stat">
@@ -551,13 +570,12 @@ export default function MigrationScout() {
         )}
 
         <div className="ms-note">
-          Server ages use exact values read from the in-game migration screen
-          (as of Jul 12, 2026 UTC). Early servers launched irregularly — 1007/1008
-          share a launch day, as do 1009/1010/1011 — so a lookup table is used
-          instead of a weekly formula. Ages for servers 1016–1041 and 1050–1063 are
-          not yet confirmed; they're linear estimates marked with{" "}
-          <span className="ms-est">~</span>. Servers after 1095 assume the current
-          weekly Friday cadence. Event 1 ran Jul 6–10 and event 2 runs Aug 24–28;
+          Each world's age is its in-game Day counter, read from the Migration
+          screen on Nov 1, 2026 and matching Deng's Den open dates. Worlds opened
+          irregularly early on — 1007/1008 share an open day, as do 1009/1010/1011
+          — so ages come from a table rather than a weekly formula. Worlds past{" "}
+          {NEWEST_KNOWN} assume the current weekly Friday cadence and are marked
+          with <span className="ms-est">~</span>. Event 1 ran Jul 6–10 and event 2 ran Aug 24–28;
           events 3+ assume a 28-day cycle from Aug 24, shiftable with the day
           offset control. Group is judged by age on the event's first day;
           SvS brackets are consecutive blocks of 4 anchored at 1097

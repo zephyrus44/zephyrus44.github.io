@@ -185,7 +185,24 @@ const GAME_DAY = {
   1097: 101, 1098: 94, 1099: 87, 1100: 80, 1101: 73, 1102: 66, 1103: 59, 1104: 52,
   1105: 45, 1106: 38, 1107: 31, 1108: 24, 1109: 17, 1110: 10, 1111: 3,
 };
-const NEWEST_KNOWN = 1111; // opened Fri Oct 30, 2026; new worlds every Friday after
+let NEWEST_KNOWN = 1111; // opened Fri Oct 30, 2026; new worlds every Friday after
+
+// Canonical copy of the table above lives in /data/world-days.json, shared with
+// Migration Scout. The built-in values are the fallback if that file is missing.
+async function loadWorldDays() {
+  try {
+    const r = await fetch('/data/world-days.json', { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (!j || !j.game_day) return;
+    const next = {}; for (const [k, v] of Object.entries(j.game_day)) next[Number(k)] = Number(v);
+    const newest = Number(j.newest_known);
+    if (!Number.isFinite(newest) || !next[newest]) return;
+    for (const k of Object.keys(GAME_DAY)) delete GAME_DAY[k];
+    Object.assign(GAME_DAY, next);
+    NEWEST_KNOWN = newest;
+  } catch (e) {}
+}
 
 const EMBED_POWER = {"taken_at":"2026-10-31T07:00:06.000Z","top100":{"23":18568241766,"18":14204982039,"10":14190720390,"31":15051151723,"11":13448726593,"25":14403303351,"41":13702339420,"34":13826740668,"54":13399745502,"9":10880768222,"50":12530344541,"16":12830969073,"26":11448451543,"6":11429947893,"73":10887513677,"48":11744212963,"40":10551811443,"29":9712887778,"5":8634456591,"58":9664971447,"17":9222654971,"15":7449416669,"46":8698382415,"43":9064179329,"3":9756834056,"71":8890104823,"72":8733884276,"24":7564892847,"21":7158037272,"51":9521776205,"74":8839276019,"36":7250169244,"28":6194305046,"68":6440624512,"81":6900258713,"69":7692989462,"14":6903407938,"13":7024048199,"80":6829590596,"37":6172545683,"82":7451837337,"12":6511951800,"57":8927705457,"35":7403645612,"27":5478338103,"86":5613535590,"19":5432171981,"42":6208990145,"33":5708415800,"20":5208942228,"65":7945260315,"22":5172221404,"66":7061724154,"32":4982930441,"30":5184251632,"70":6721802148,"45":5855882023,"84":5291032687,"53":6151469493,"38":4136085759,"47":4763659882,"90":5823051462,"39":3875777029,"49":3462873261,"60":3756932096,"95":3802668580,"7":4410180890,"89":4066283018,"1":5936921903,"59":2988520249,"83":2353112393,"79":2966897928,"67":2896196298,"44":3626747794,"8":3933813006,"4":3831660370,"64":3814368989,"78":2899810245,"52":3241544639,"85":2033817829,"93":2950815230,"88":3485041881,"55":3145692317,"97":2393793076,"96":2752341395,"56":2748394986,"2":3593384295,"94":2414938382,"77":2658312545,"75":2266542667,"63":2767393740,"76":2213463766,"100":1976891876,"99":2299367920,"98":2118612367,"61":2054530276,"62":2136157355,"101":1848356625,"91":2193466604,"87":1562311415,"92":1478410576,"102":1390052209,"105":942339047,"103":1005207583,"104":998659346,"108":518211252,"109":346985031,"106":714024229,"107":613070639,"110":240937673,"111":63090154}};
 const EMBED_SVS = {"start":1790985600,"worlds":[{"warzone":1,"era":"Mythic","servers":[18,23,10,25],"winner":23},{"warzone":2,"era":"Mythic","servers":[31,34,11,16],"winner":31},{"warzone":3,"era":"Mythic","servers":[6,41,48,3],"winner":48},{"warzone":4,"era":"Mythic","servers":[40,9,26,1],"winner":26},{"warzone":5,"era":"Mythic","servers":[5,29,43,17],"winner":29},{"warzone":6,"era":"Mythic","servers":[15,46,24,13],"winner":46},{"warzone":7,"era":"Mythic","servers":[21,35,36,42],"winner":36},{"warzone":8,"era":"Mythic","servers":[12,28,33,14],"winner":14},{"warzone":9,"era":"Mythic","servers":[30,37,45,20],"winner":20},{"warzone":10,"era":"Mythic","servers":[2,27,7,4],"winner":2},{"warzone":11,"era":"Mythic","servers":[8,47,32,22],"winner":null},{"warzone":12,"era":"Mythic","servers":[44,38,39,19],"winner":null},{"warzone":13,"era":"Dominance","servers":[51,54,57,50],"winner":51},{"warzone":14,"era":"Dominance","servers":[53,55,60,58],"winner":58},{"warzone":15,"era":"Dominance","servers":[56,52,59,49],"winner":null},{"warzone":16,"era":"Conquest","servers":[65,72,69,71],"winner":71},{"warzone":17,"era":"Conquest","servers":[70,64,68,66],"winner":70},{"warzone":18,"era":"Conquest","servers":[62,61,63,67],"winner":null},{"warzone":19,"era":"Clash","servers":[82,73,80,74],"winner":73},{"warzone":20,"era":"Clash","servers":[84,81,78,79],"winner":84},{"warzone":21,"era":"Clash","servers":[75,77,76,83],"winner":null},{"warzone":22,"era":"Frontier","servers":[95,86,89,90],"winner":90},{"warzone":23,"era":"Frontier","servers":[96,94,88,93],"winner":88},{"warzone":24,"era":"Frontier","servers":[87,91,85,92],"winner":91}]};
@@ -225,6 +242,7 @@ let model = (() => { try { return { ...DEFAULT_MODEL, ...JSON.parse(saved('model
 const DATA = { power: EMBED_POWER, powerSrc: 'built-in snapshot', svs: EMBED_SVS, history: { '2026-10-08': EMBED_MATCH } };
 const getJSON = (url) => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(r.status));
 async function loadData() {
+  await loadWorldDays();
   try {
     const s = await getJSON('/data/deng-servers.json');
     const top100 = {}; s.rows.forEach(r => top100[r.server] = Number(r.top100_sum));
