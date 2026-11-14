@@ -263,6 +263,89 @@ const eventsFrom = (server, ev, n) => {
 
 
 
+// Every TGL / Wheel of Fate hero, with its event and partner
+const HERO_LIST = PAIRS.flatMap((p, i) => [
+  { name: p.tgl, event: "TGL rewards", partner: p.wheel, partnerEvent: "Wheel of Fate", pairIdx: i },
+  { name: p.wheel, event: "Wheel of Fate", partner: p.tgl, partnerEvent: "TGL rewards", pairIdx: i },
+]);
+
+// Servers that have opened by time t
+const openServers = (t) => {
+  const out = [];
+  for (let s = 1001; launchOf(s) <= t; s++) out.push(s);
+  return out;
+};
+
+// For one hero pair on date t: which servers have it now, and which get it later
+const pairByServer = (pairIdx, t) => {
+  const now = [], later = [];
+  for (const s of openServers(t)) {
+    const cur = eventInfo(s, currentEvent(s, t));
+    if (!cur) continue;
+    if (cur.pairIdx === pairIdx) now.push({ s, e: cur });
+    else if (cur.pairIdx < pairIdx) {
+      const start = pairStarts(s)[pairIdx];
+      later.push({ s, e: eventInfo(s, start) });
+    }
+  }
+  const group = (list) => {
+    const m = new Map();
+    for (const x of list) {
+      const k = x.e.evStart;
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(x);
+    }
+    return [...m.entries()].sort((a, b) => a[0] - b[0]).map(([k, xs]) => ({ evStart: k, evEnd: xs[0].e.evEnd, xs }));
+  };
+  return { now: group(now), later: group(later) };
+};
+
+const HeroSearch = ({ onPick }) => {
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const norm = (x) => x.toLowerCase().replace(/[^a-z]/g, "");
+  const nq = norm(q);
+  const matches = HERO_LIST
+    .filter((h) => !nq || norm(h.name).includes(nq) ||
+      h.name.toLowerCase().split(/\s+/).some((w) => w.startsWith(q.toLowerCase().trim())))
+    .sort((a, b) => (norm(a.name).startsWith(nq) ? 0 : 1) - (norm(b.name).startsWith(nq) ? 0 : 1))
+    .slice(0, 8);
+  const pick = (h) => { onPick(h); setQ(h.name); setOpen(false); };
+  return (
+    <div className="hc-combo">
+      <input id="hc-hero" className="hc-input" style={{ width: "100%", maxWidth: 360 }}
+        placeholder="Start typing a hero name" autoComplete="off" role="combobox"
+        aria-expanded={open && matches.length > 0} aria-controls="hc-hero-list" aria-autocomplete="list"
+        aria-activedescendant={open && matches[hi] ? "hc-opt-" + hi : undefined}
+        value={q}
+        onChange={(e) => { setQ(e.target.value); setOpen(true); setHi(0); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown") { e.preventDefault(); setOpen(true); setHi((i) => Math.min(i + 1, matches.length - 1)); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); setHi((i) => Math.max(i - 1, 0)); }
+          else if (e.key === "Enter" && open && matches[hi]) { e.preventDefault(); pick(matches[hi]); }
+          else if (e.key === "Escape") setOpen(false);
+        }}/>
+      {open && matches.length > 0 && (
+        <ul id="hc-hero-list" className="hc-opts" role="listbox">
+          {matches.map((h, i) => (
+            <li key={h.name} id={"hc-opt-" + i} role="option" aria-selected={i === hi}
+              className={"hc-opt" + (i === hi ? " hi" : "")}
+              onMouseDown={(e) => { e.preventDefault(); pick(h); }}
+              onMouseEnter={() => setHi(i)}>
+              <Portrait name={h.name} size={30} />
+              <span className="hc-opt-name">{h.name}</span>
+              <span className="hc-opt-ev">{h.event}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 export default function HeroCycleCalculator() {
   const todayISO = new Date().toISOString().slice(0, 10);
   // Remember the last server between visits (browser storage can be unavailable)
@@ -273,6 +356,11 @@ export default function HeroCycleCalculator() {
     try { localStorage.setItem("hc-server", serverStr); } catch {}
   }, [serverStr]);
   const [dateStr, setDateStr] = useState(todayISO);
+  const [mode, setMode] = useState(() => {
+    try { return localStorage.getItem("hc-mode") || "server"; } catch { return "server"; }
+  });
+  useEffect(() => { try { localStorage.setItem("hc-mode", mode); } catch {} }, [mode]);
+  const [hero, setHero] = useState(null);
 
   const server = parseInt(serverStr, 10);
   const validServer = Number.isFinite(server) && server >= 1001;
@@ -313,6 +401,10 @@ export default function HeroCycleCalculator() {
       newServer: t < launchOf(server) + CHRONICLE_END_OFFSET * DAY,
     };
   }, [server, validServer, t, validDate]);
+
+  const heroResult = useMemo(
+    () => (hero && validDate ? pairByServer(hero.pairIdx, t) : null),
+    [hero, t, validDate]);
 
   const css = `
     .hc-root { min-height: 100vh; background: var(--arc-bg, #0E1116); color: var(--arc-text, #E8EAEE);
@@ -379,6 +471,27 @@ export default function HeroCycleCalculator() {
     .hc-run.now { color: var(--arc-accent, #7EA0FF); font-weight: 600; }
     .hc-run.now .n { color: inherit; }
     .hc-note2 { font-size: 12px; color: var(--arc-mut, #8B93A1); margin-top: 6px; }
+    .hc-seg2 { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--arc-bg, #0E1116);
+      border: 1px solid var(--arc-line, #232934); margin-bottom: 16px; }
+    .hc-seg2 button { border: 0; background: transparent; color: var(--arc-mut, #8B93A1); font-size: 13.5px; font-weight: 500;
+      height: 30px; padding: 0 14px; border-radius: 7px; cursor: pointer; }
+    .hc-seg2 button.on { background: var(--arc-raise, #1C222B); color: var(--arc-text, #E8EAEE); }
+    .hc-combo { position: relative; }
+    .hc-opts { position: absolute; z-index: 5; left: 0; top: calc(100% + 6px); width: 100%; max-width: 360px; margin: 0; padding: 4px;
+      list-style: none; background: var(--arc-panel, #161A21); border: 1px solid var(--arc-line-2, #2E3542); border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(0,0,0,.45); max-height: 340px; overflow-y: auto; }
+    .hc-opt { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+    .hc-opt.hi { background: var(--arc-raise, #1C222B); }
+    .hc-opt-name { font-size: 14px; font-weight: 500; flex: 1; min-width: 0; }
+    .hc-opt-ev { font-size: 11.5px; color: var(--arc-mut, #8B93A1); white-space: nowrap; }
+    .hc-srvs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .hc-srv { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px;
+      border: 1px solid var(--arc-line, #232934); background: var(--arc-bg, #0E1116); color: var(--arc-text, #E8EAEE);
+      font: 500 13px/1 var(--arc-font, "Geist", Inter, system-ui, sans-serif); font-variant-numeric: tabular-nums; cursor: pointer; }
+    .hc-srv:hover { border-color: var(--arc-line-2, #2E3542); background: var(--arc-raise, #1C222B); }
+    .hc-srv .r { color: var(--arc-mut, #8B93A1); font-weight: 400; }
+    .hc-evgrp + .hc-evgrp { margin-top: 14px; }
+    .hc-evgrp .d { font-size: 13px; color: var(--arc-text-2, #C3C8D1); }
     .hc-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--arc-mut, #8B93A1); margin-top: 14px; }
     .hc-legend span { display: inline-flex; align-items: center; }
     .hc-legend b { color: var(--arc-text-2, #C3C8D1); font-weight: 600; margin-right: 4px; }
@@ -413,6 +526,93 @@ export default function HeroCycleCalculator() {
           The Greatest Leader and Wheel of Fate heroes for any server on any date. All dates are in UTC.
         </div>
 
+        <div className="hc-seg2" role="tablist">
+          <button role="tab" aria-selected={mode === "server"} className={mode === "server" ? "on" : ""}
+            onClick={() => setMode("server")}>By server</button>
+          <button role="tab" aria-selected={mode === "hero"} className={mode === "hero" ? "on" : ""}
+            onClick={() => setMode("hero")}>By hero</button>
+        </div>
+
+        {mode === "hero" && (
+          <>
+            <div className="hc-card">
+              <div className="hc-controls">
+                <div className="hc-field" style={{ flex: "1 1 260px" }}>
+                  <label htmlFor="hc-hero">Hero</label>
+                  <HeroSearch onPick={setHero} />
+                </div>
+                <div className="hc-field">
+                  <label htmlFor="hc-date2">Date</label>
+                  <input id="hc-date2" className="hc-input" type="date" style={{ width: 170 }}
+                    value={dateStr} onChange={(e) => setDateStr(e.target.value)}/>
+                </div>
+              </div>
+            </div>
+
+            {!hero && (
+              <div className="hc-card" style={{ color: "var(--arc-mut, #8B93A1)" }}>
+                Search for a hero to see which servers have them, and their partner on the other event.
+              </div>
+            )}
+
+            {hero && heroResult && (
+              <>
+                <div className="hc-card">
+                  <div className="hc-feats" style={{ marginTop: 0 }}>
+                    <HeroFeature name={hero.name} label={hero.event} />
+                    <HeroFeature name={hero.partner} label={hero.partnerEvent + " (same cycle)"} />
+                  </div>
+
+                  <div className="hc-h2" style={{ marginTop: 4 }}>Servers on this pair now</div>
+                  {heroResult.now.length === 0 && (
+                    <div className="hc-note2">No server has this pair for the event on or after this date.</div>
+                  )}
+                  {heroResult.now.map((g) => (
+                    <div key={g.evStart} className="hc-evgrp">
+                      <div className="d">
+                        {fmtRange(g.evStart, g.evEnd - DAY)}
+                        <span style={{ color: "var(--arc-mut, #8B93A1)" }}> · {g.xs.length} server{g.xs.length === 1 ? "" : "s"}</span>
+                      </div>
+                      <div className="hc-srvs">
+                        {g.xs.map(({ s: sv, e }) => (
+                          <button key={sv} className="hc-srv" title={"Open server " + sv}
+                            onClick={() => { setServerStr(String(sv)); setMode("server"); }}>
+                            {sv}<span className="r">{e.runs ? `${e.run}/${e.runs}` : ord(e.run)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {heroResult.later.length > 0 && (
+                    <>
+                      <div className="hc-h2">Coming up</div>
+                      {heroResult.later.map((g) => (
+                        <div key={g.evStart} className="hc-evgrp">
+                          <div className="d">
+                            First run {fmtRange(g.evStart, g.evEnd - DAY)}
+                            <span style={{ color: "var(--arc-mut, #8B93A1)" }}> · {g.xs.length} server{g.xs.length === 1 ? "" : "s"}</span>
+                          </div>
+                          <div className="hc-srvs">
+                            {g.xs.map(({ s: sv }) => (
+                              <button key={sv} className="hc-srv" title={"Open server " + sv}
+                                onClick={() => { setServerStr(String(sv)); setMode("server"); }}>{sv}</button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  <div className="hc-note2" style={{ marginTop: 14 }}>
+                    Tap a server to see its full schedule. Dates for servers in their first 77 days are estimates.
+                  </div>
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {mode === "server" && (<>
         <div className="hc-card">
           <div className="hc-controls">
             <div className="hc-field">
@@ -541,6 +741,7 @@ export default function HeroCycleCalculator() {
           </>
         )}
 
+        </>)}
       </div>
     </div>
   );
