@@ -75,7 +75,9 @@ const eventNumber = (server, ev) => {
   return chronCount + Math.round((ev - sharedOnOrAfter(chronEnd)) / CYCLE_MS) + 1;
 };
 
-// unlock = server day the pair's heroes unlock (game data, Deng's Den hero roster).
+// unlock = server age (days) a pair needs; release = the update that added
+// the pair (UTC). A server gets a pair once it is both old enough and the pair
+// has been released. Sources: the game's update notes and Deng's Den hero roster.
 // Pairs with split: false are confirmed as a pair, but which hero is on
 // which event isn't known yet.
 const PAIRS = [
@@ -85,15 +87,15 @@ const PAIRS = [
   { wheel: "Lin Beifong",              tgl: "Roku",           el: "earth", unlock: 124 },
   { wheel: "Fire Nation Aang",         tgl: "Kuruk",          el: "air",   unlock: 166 },
   { wheel: "Avatar Hunter Zuko",       tgl: "Zaheer",         el: "fire",  unlock: 208 },
-  { wheel: "Wolf Warrior Sokka",       tgl: "Kuvira",         el: "water", unlock: 250 },
-  { wheel: "Mako",                     tgl: "Jinora",         el: "fire",  unlock: 292 },
-  { wheel: "Lady Beifong Toph",        tgl: "Desna and Eska", el: "earth", unlock: 334 },
-  { wheel: "Ozai",                     tgl: "Opal",           el: "fire",  unlock: 376 },
-  { wheel: "Disguised Equalist Korra", tgl: "Bolin",          el: "water", unlock: 418 },
-  { wheel: "Jetsun",                   tgl: "Ty Lee",         el: "air",   unlock: 460 },
-  { wheel: "Sapphire Fire Katara",     tgl: "Mad King Bumi",  el: "earth", unlock: 502 },
-  { wheel: "Rangi",                    tgl: "Kelsang",        el: "air",   unlock: 544 },
-  { wheel: "Yun",                      tgl: "Varrick",        el: "water", unlock: 586 },
+  { wheel: "Wolf Warrior Sokka",       tgl: "Kuvira",         el: "water", unlock: 250, release: Date.UTC(2025, 10, 26) },
+  { wheel: "Mako",                     tgl: "Jinora",         el: "fire",  unlock: 294, release: Date.UTC(2026, 0, 1) },
+  { wheel: "Lady Beifong Toph",        tgl: "Desna and Eska", el: "earth", unlock: 336, release: Date.UTC(2026, 1, 4) },
+  { wheel: "Ozai",                     tgl: "Opal",           el: "fire",  unlock: 378, release: Date.UTC(2026, 3, 1) },
+  { wheel: "Disguised Equalist Korra", tgl: "Bolin",          el: "water", unlock: 418, release: Date.UTC(2026, 3, 29) },
+  { wheel: "Jetsun",                   tgl: "Ty Lee",         el: "air",   unlock: 462, release: Date.UTC(2026, 5, 24) },
+  { wheel: "Sapphire Fire Katara",     tgl: "Mad King Bumi",  el: "earth", unlock: 504, release: Date.UTC(2026, 6, 22) },
+  { wheel: "Rangi",                    tgl: "Kelsang",        el: "air",   unlock: 546, release: Date.UTC(2026, 8, 16) },
+  { wheel: "Yun",                      tgl: "Varrick",        el: "water", unlock: 588, release: Date.UTC(2026, 9, 28) },
 ];
 
 // Each hero's element and what they're used for. "Lead" = has a leader skill.
@@ -220,7 +222,8 @@ const fmtRange = (a, b) => {
 // A hero pair starts at the first event on or after the day its heroes
 // unlock on that server, and runs until the next pair starts.
 const pairStarts = (server) =>
-  PAIRS.map((p) => eventOnOrAfter(server, launchOf(server) + (p.unlock - 1) * DAY));
+  PAIRS.map((p) => eventOnOrAfter(server,
+    Math.max(launchOf(server) + (p.unlock - 1) * DAY, p.release || -Infinity)));
 
 // Details for the event that opens at evStart on this server
 const eventInfo = (server, evStart) => {
@@ -232,13 +235,14 @@ const eventInfo = (server, evStart) => {
   const n = eventNumber(server, evStart);
   const n0 = eventNumber(server, starts[pairIdx]);
   const run = n - n0 + 1;
-  const runs = last ? 3 : eventNumber(server, starts[pairIdx + 1]) - n0;
+  // The newest pair keeps running until the next heroes are released
+  const runs = last ? null : eventNumber(server, starts[pairIdx + 1]) - n0;
   return {
     evStart,
     evEnd: evStart + EVENT_LEN * DAY, // exclusive
     cycle: n,
     pairIdx,
-    pair: last && run > runs ? null : PAIRS[pairIdx],
+    pair: PAIRS[pairIdx], last,
     run, runs,
   };
 };
@@ -281,7 +285,6 @@ export default function HeroCycleCalculator() {
     const dayN = gameDayOn(server, t);
     const firstEv = currentEvent(server, t);
     const cur = eventInfo(server, firstEv);
-    if (!cur.pair) return { state: "beyond", dayN };
 
     let status, statusText;
     if (t < cur.evStart) {
@@ -294,10 +297,12 @@ export default function HeroCycleCalculator() {
     }
 
     const upcoming = [];
-    // Every remaining event, through the last known hero pair
+    // Every remaining event; the newest pair is shown for 3 more events,
+    // since it keeps running until new heroes are released
+    let lastShown = 0;
     for (const ev of eventsFrom(server, firstEv, 80)) {
       const e = eventInfo(server, ev);
-      if (!e.pair) break;
+      if (e.last && ++lastShown > 3) break;
       upcoming.push(e);
     }
 
@@ -435,13 +440,6 @@ export default function HeroCycleCalculator() {
           </div>
         )}
 
-        {r?.state === "beyond" && (
-          <div className="hc-card" style={{ color: "var(--arc-mut, #8B93A1)" }}>
-            Server {server} is on day {r.dayN}, past the end of the known hero list (the last
-            pair unlocks on day {PAIRS[PAIRS.length - 1].unlock}). Its hero pair can't be worked
-            out from the schedule.
-          </div>
-        )}
 
         {r?.state === "ok" && (
           <>
@@ -479,7 +477,7 @@ export default function HeroCycleCalculator() {
                 </div>
                 <div className="hc-stat">
                   <div className="hc-k">Run</div>
-                  <div className="v">{ord(r.cur.run)} of {r.cur.runs}</div>
+                  <div className="v">{ord(r.cur.run)}{r.cur.runs ? ` of ${r.cur.runs}` : ""}</div>
                 </div>
                 <div className="hc-stat">
                   <div className="hc-k">Server day</div>
@@ -517,9 +515,14 @@ export default function HeroCycleCalculator() {
                     </>
                   )}
                   <div className="hc-runs">
+                    {g.pair === PAIRS[PAIRS.length - 1] && (
+                      <div className="hc-note2" style={{ marginTop: 0, marginBottom: 2 }}>
+                        Newest heroes: repeats until the next ones are released
+                      </div>
+                    )}
                     {g.events.map((c, i) => (
                       <div key={c.evStart} className={"hc-run" + (gi === 0 && i === 0 ? " now" : "")}>
-                        <span className="n">{c.run}/{c.runs}</span>
+                        <span className="n">{c.runs ? `${c.run}/${c.runs}` : ord(c.run)}</span>
                         <span>{r.est || r.newServer ? "~" : ""}{range(c)}</span>
                       </div>
                     ))}
