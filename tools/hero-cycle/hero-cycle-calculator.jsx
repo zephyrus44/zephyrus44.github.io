@@ -129,9 +129,11 @@ const fmtDate = (t) =>
   new Date(t).toLocaleDateString("en-US", {
     timeZone: "UTC", month: "short", day: "numeric", year: "numeric",
   });
+// Short date; adds the year when it isn't the current year
 const fmtShort = (t) =>
   new Date(t).toLocaleDateString("en-US", {
     timeZone: "UTC", weekday: "short", month: "short", day: "numeric",
+    ...(new Date(t).getUTCFullYear() !== new Date().getUTCFullYear() && { year: "numeric" }),
   });
 
 // A hero pair starts at the first event on or after the day its heroes
@@ -205,7 +207,8 @@ export default function HeroCycleCalculator() {
     }
 
     const upcoming = [];
-    for (const ev of eventsFrom(server, firstEv, 8)) {
+    // Every remaining event, through the last known hero pair
+    for (const ev of eventsFrom(server, firstEv, 80)) {
       const e = eventInfo(server, ev);
       if (!e.pair) break;
       upcoming.push(e);
