@@ -11,6 +11,7 @@ theme.css       shared colours, fonts and shapes used by the site and every tool
 nav.js          top bar and tool menu for HTML tools opened as full pages (phones and tablets)
 404.html        shown for addresses that don't exist
 tools/<name>/   one folder per tool
+og/             link-preview pictures for the site and each tool (made by scripts/og-cards.js)
 data/           world power and warzone data from dengsden.com, used by Era Grouping
 .github/workflows/deng-data.yml   refreshes data/ once a day
 .github/workflows/deng-alliances.yml   builds the top 8 alliances on every server, with
@@ -28,6 +29,7 @@ Older addresses (`grand-melee-planner.html`, `era-grouping.html`, `GlowwormsRuse
 - **Add:** create `tools/<name>/`, put the tool in it, and add an entry to `tools.js`.
   - A finished HTML page goes in as `index.html` and is listed with `page: "tools/<name>/"`. Add `<script src="/nav.js" defer></script>` to its `<head>` so it gets the site menu on phones.
   - A React component goes in as a `.jsx` file and is listed with `file: "tools/<name>/<file>.jsx"`.
+- **Link previews:** after adding a tool or changing a name or description, run `node scripts/og-cards.js`. It redraws the preview pictures in `og/` and updates the preview tags in each page. A React tool gets an `index.html` in its folder, so `zephyrus44.github.io/tools/<name>/` shows that tool's preview and opens it on the site.
 
 ## Look and feel
 
