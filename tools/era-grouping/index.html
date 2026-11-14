@@ -303,6 +303,7 @@ function render() {
   const t = start;                  // era cutoff = first day of the round
   save('date', $('date').value); save('offset', String(off)); save('server', $('server').value);
   save('open', JSON.stringify([...open])); save('view', JSON.stringify(view));
+  syncURL();
 
   const n = Math.round((base - ANCHOR) / (56 * DAY));
   const onCycle = (base - ANCHOR) % (56 * DAY) === 0;
@@ -427,9 +428,28 @@ $('offPlus').onclick = () => { $('offset').value = (parseInt($('offset').value, 
   render();
 }));
 
-$('date').value = saved('date', '2026-11-28');
-$('offset').value = saved('offset', '0');
-$('server').value = saved('server', '');
+// Inputs live in the address too (?date=…&offset=…&server=…), so a copied link
+// opens with the same inputs filled in.
+const urlQ = (() => { try { return new URLSearchParams(location.search); } catch (e) { return new URLSearchParams(); } })();
+const okDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v || '');
+function syncURL() {
+  const q = new URLSearchParams();
+  if ($('date').value) q.set('date', $('date').value);
+  const off = parseInt($('offset').value, 10) || 0; if (off) q.set('offset', off);
+  if ($('server').value) q.set('server', $('server').value);
+  const s = q.toString() ? '?' + q : '';
+  try { if (location.search !== s) history.replaceState(history.state, '', location.pathname + s + location.hash); } catch (e) {}
+  // inside the site's frame, mirror it into the address bar
+  try {
+    const top = window.top;
+    if (top !== window && top.location.pathname === location.pathname && top.location.search !== s)
+      top.history.replaceState(top.history.state, '', top.location.pathname + s + top.location.hash);
+  } catch (e) {}
+}
+try { if (window.top !== window) window.top.addEventListener('arc:route', syncURL); } catch (e) {}
+$('date').value = okDate(urlQ.get('date')) ? urlQ.get('date') : saved('date', '2026-11-28');
+$('offset').value = /^-?\d+$/.test(urlQ.get('offset') || '') ? urlQ.get('offset') : (urlQ.get('date') ? '0' : saved('offset', '0'));
+$('server').value = /^\d+$/.test(urlQ.get('server') || '') ? urlQ.get('server') : (urlQ.toString() ? '' : saved('server', ''));
 $('fitStat').textContent = '72 of 96 worlds in their exact warzone and 95 of 96 within one';
 renderModel();
 render();

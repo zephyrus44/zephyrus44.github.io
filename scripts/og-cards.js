@@ -99,7 +99,7 @@ const stub = (t, block) => `<!doctype html>
 <title>${esc(t.name)} · ARC Tools</title>
 ${block}
 <meta http-equiv="refresh" content="0; url=/#${t.id}">
-<script>location.replace("/#${t.id}");</script>
+<script>location.replace("/" + location.search + "#${t.id}");</script>
 </head>
 <body style="background:#0E1116"></body>
 </html>
@@ -118,7 +118,7 @@ ${block}
   for (const t of TOOLS) {
     if (t.page) { inject(path.join(REPO, t.page, 'index.html'), toolTags(t, `${SITE}/${t.page}`)); continue; }
     const dir = path.dirname(t.file), f = path.join(REPO, dir, 'index.html');
-    if (fs.existsSync(f) && !fs.readFileSync(f, 'utf8').includes('location.replace("/#')) { console.warn('skipped, not a stub:', f); continue; }
+    if (fs.existsSync(f) && !fs.readFileSync(f, 'utf8').includes('location.replace("/')) { console.warn('skipped, not a stub:', f); continue; }
     fs.writeFileSync(f, stub(t, toolTags(t, `${SITE}/${dir}/`)));
   }
   for (const [file, id] of Object.entries(LEGACY)) {

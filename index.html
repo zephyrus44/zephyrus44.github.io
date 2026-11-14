@@ -420,7 +420,7 @@
     return g;
   };
   const toolPath = (t) => "/" + (t.page || t.file.replace(/[^/]*$/, "")).replace(/^\//, "").replace(/\/?$/, "/");
-  const go = (href) => { const u = new URL(href, location.href); if (u.pathname + u.hash !== location.pathname + location.hash) history.pushState(null, "", u.pathname + u.hash); show(); };
+  const go = (href) => { const u = new URL(href, location.href); if (u.pathname + u.search + u.hash !== location.pathname + location.search + location.hash) history.pushState(null, "", u.pathname + u.search + u.hash); show(); };
   const chevron = () => el("span", { class: "go", "aria-hidden": "true", html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' });
 
   /* ── localStorage that never throws (private mode, quota, blocked) ── */
@@ -684,7 +684,7 @@
           if (r.status === 404) { p.replaceChildren(explain(tool, fail("missing"), () => start(tool, entry))); return; }
         } catch (e) { /* offline or HEAD unsupported: let the frame try anyway */ }
       }
-      const frame = el("iframe", { src: tool.page, title: tool.name, allow: "clipboard-read; clipboard-write; fullscreen", allowfullscreen: true });
+      const frame = el("iframe", { src: tool.page + (toolPath(tool) === location.pathname ? location.search : ""), title: tool.name, allow: "clipboard-read; clipboard-write; fullscreen", allowfullscreen: true });
       frame.addEventListener("load", () => { frame.classList.add("ready"); const l = p.querySelector(".loading"); if (l) l.remove(); }, { once: true });
       p.append(frame);
       return;
@@ -730,12 +730,13 @@
 
   function show() {
     let tool = current();
-    const want = tool ? toolPath(tool) : "/";
+    // keep ?… (a tool's filled-in inputs) when it belongs to the tool being shown
+    const want = (tool ? toolPath(tool) : "/") + (tool && (toolPath(tool) === location.pathname || location.pathname === "/") ? location.search : "");
     // Phones and tablets open HTML tools as full pages: mobile browsers can stop drawing
     // parts of a scrolling frame. The page's own top bar links back here.
     if (tool && tool.page && FULL_PAGE.matches) { location.replace(want); return; }
     // show the tool's own address (replaces old #id and alias addresses, no extra history entry)
-    if (location.pathname + location.hash !== want) history.replaceState(null, "", want);
+    if (location.pathname + location.search + location.hash !== want) history.replaceState(null, "", want);
     const id = tool ? tool.id : "home";
 
     const entry = pane(id);
@@ -752,6 +753,8 @@
     if (tool) store.set(NS + "last-tab", tool.id);
     closeDrawer();
     tick();
+    // tools that keep their inputs in the address put them back after a switch
+    window.dispatchEvent(new Event("arc:route"));
   }
 
   /* ── sidebar collapse (desktop) and drawer (phone) ────────────────── */

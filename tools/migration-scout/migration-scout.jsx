@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 // ---------------- Core game math (all UTC) ----------------
 const DAY = 86400000;
@@ -93,6 +93,29 @@ const ELEMENT = {
   4: { name: "Air", color: "#E8C468" },
 };
 
+/* Keep the inputs in the address (e.g. ?server=1082), so a copied link opens
+ * with the same inputs filled in. Empty values are left out. */
+const urlParam = (k) => { try { return new URLSearchParams(location.search).get(k); } catch { return null; } };
+function useShareParams(params) {
+  const own = useMemo(() => { try { return location.pathname; } catch { return ""; } }, []);
+  const key = JSON.stringify(params);
+  useEffect(() => {
+    const apply = () => {
+      try {
+        if (location.pathname !== own) return; // another tool is showing
+        const q = new URLSearchParams();
+        for (const [k, v] of Object.entries(params)) if (v !== "" && v != null && v !== false) q.set(k, v);
+        const s = q.toString();
+        const next = own + (s ? "?" + s : "") + location.hash;
+        if (next !== location.pathname + location.search + location.hash) history.replaceState(history.state, "", next);
+      } catch {}
+    };
+    apply();
+    window.addEventListener("arc:route", apply);
+    return () => window.removeEventListener("arc:route", apply);
+  }, [key]);
+}
+
 export default function MigrationScout() {
   // Default event = live event if one is running, otherwise the next one
   const defaultEvent = useMemo(() => {
@@ -103,10 +126,17 @@ export default function MigrationScout() {
     return now < eventStart(n, 0) + EVENT_LENGTH ? n : n + 1;
   }, []);
 
-  const [serverStr, setServerStr] = useState("1097");
-  const [eventN, setEventN] = useState(defaultEvent);
-  const [offset, setOffset] = useState(0);
-  const [posFilter, setPosFilter] = useState(0); // 0 = all
+  const num = (k) => { const v = parseInt(urlParam(k), 10); return Number.isFinite(v) ? v : null; };
+  const [serverStr, setServerStr] = useState(() => (num("server") ? String(num("server")) : "1097"));
+  const [eventN, setEventN] = useState(() => (num("event") >= 1 ? num("event") : defaultEvent));
+  const [offset, setOffset] = useState(() => num("offset") ?? 0);
+  const [posFilter, setPosFilter] = useState(() => num("pos") ?? 0); // 0 = all
+  useShareParams({
+    server: serverStr,
+    event: eventN !== defaultEvent ? eventN : "",
+    offset: offset || "",
+    pos: posFilter || "",
+  });
 
   const server = parseInt(serverStr, 10);
   const validServer = Number.isFinite(server) && server >= 1001;
