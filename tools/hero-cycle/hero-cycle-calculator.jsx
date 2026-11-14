@@ -41,39 +41,18 @@ const gameDayOn = (s, t) => Math.floor((t - launchOf(s)) / DAY) + 1;
    the second Monday after it launches (10 days after opening day), and
    every later event opens 14 days after the previous one.            */
 const EVENT_LEN = 5;
-// For a server's first 77 days, its events open on its own schedule:
-// day 6 (the Wednesday after a Friday opening), then every 14 days.
-// From day 78 (when migration opens up) it joins the shared
-// schedule: the same Mondays on every server, every 14 days.
+// Events run on the same Mondays on every server, every 14 days.
 const CYCLE_MS = 14 * DAY;
 const EVENT_ANCHOR = Date.UTC(2026, 10, 16); // Mon Nov 16, 2026
-const FIRST_EVENT_OFFSET = 5;  // days after opening day (day 6)
-const CHRONICLE_END_OFFSET = 77; // joins the shared schedule at the start of day 78
 const sharedOnOrAfter = (t) =>
   EVENT_ANCHOR + Math.ceil((t - EVENT_ANCHOR) / CYCLE_MS) * CYCLE_MS;
 
 // Start of the first event on this server opening at or after time t
-const eventOnOrAfter = (server, t) => {
-  const launch = launchOf(server);
-  const chronEnd = launch + CHRONICLE_END_OFFSET * DAY;
-  const first = launch + FIRST_EVENT_OFFSET * DAY;
-  if (t < chronEnd) {
-    const k = Math.max(0, Math.ceil((t - first) / CYCLE_MS));
-    const ev = first + k * CYCLE_MS;
-    if (ev < chronEnd) return ev;
-  }
-  return sharedOnOrAfter(Math.max(t, chronEnd));
-};
+const eventOnOrAfter = (server, t) => sharedOnOrAfter(Math.max(t, launchOf(server)));
 
 // Number of events from the server's first event up to and including ev
-const eventNumber = (server, ev) => {
-  const launch = launchOf(server);
-  const chronEnd = launch + CHRONICLE_END_OFFSET * DAY;
-  const first = launch + FIRST_EVENT_OFFSET * DAY;
-  if (ev < chronEnd) return Math.round((ev - first) / CYCLE_MS) + 1;
-  const chronCount = Math.floor((chronEnd - 1 - first) / CYCLE_MS) + 1;
-  return chronCount + Math.round((ev - sharedOnOrAfter(chronEnd)) / CYCLE_MS) + 1;
-};
+const eventNumber = (server, ev) =>
+  Math.round((ev - eventOnOrAfter(server, launchOf(server))) / CYCLE_MS) + 1;
 
 // unlock = server age (days) a pair needs; release = the update that added
 // the pair (UTC). A server gets a pair once it is both old enough and the pair
@@ -397,8 +376,7 @@ export default function HeroCycleCalculator() {
     return {
       state: "ok", dayN, cur, status, statusText, upcoming,
       est: isProjected(server),
-      // Event dates for servers in their first 77 days aren't confirmed yet
-      newServer: t < launchOf(server) + CHRONICLE_END_OFFSET * DAY,
+      newServer: false,
     };
   }, [server, validServer, t, validDate]);
 
@@ -604,7 +582,7 @@ export default function HeroCycleCalculator() {
                     </>
                   )}
                   <div className="hc-note2" style={{ marginTop: 14 }}>
-                    Tap a server to see its full schedule. Dates for servers in their first 77 days are estimates.
+                    Tap a server to see its full schedule. 
                   </div>
                 </div>
               </>
@@ -646,13 +624,6 @@ export default function HeroCycleCalculator() {
             <div className="hc-card">
               <span className={"hc-status " + r.status}>{r.statusText}</span>
 
-              {r.newServer && (
-                <div className="hc-warn" style={{ marginTop: 12 }}>
-                  <b>Dates not confirmed.</b> Server {server} is on day {r.dayN}. Event dates for
-                  servers in their first 77 days don't follow a confirmed schedule yet, so the dates
-                  below are estimates (marked ~). Check the in-game event calendar to be sure.
-                </div>
-              )}
 
               {r.cur.pair.split === false ? (
                 <>
