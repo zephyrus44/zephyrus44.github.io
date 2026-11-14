@@ -66,7 +66,7 @@
     else g.textContent = (t.name || "?").trim().charAt(0).toUpperCase();
     return g;
   }
-  function href(t) { return t.page ? "/" + t.page.replace(/^\//, "") : "/#" + t.id; }
+  function href(t) { return "/" + (t.page || t.file.replace(/[^/]*$/, "")).replace(/^\//, "").replace(/\/?$/, "/"); }
 
   function loadTools(done) {
     if (window.ARC_TOOLS) return done();
@@ -168,7 +168,20 @@
     setInterval(tick, 10000);
   }
 
-  function start() { loadTools(mount); }
+  // On a computer, tools open inside the site (sidebar + frame). A tool address opened on
+  // its own goes there instead, unless it carries a #... (e.g. a shared plan).
+  var FULL_PAGE = window.matchMedia("(max-width: 860px), (pointer: coarse)");
+  function start() {
+    if (!FULL_PAGE.matches && !location.hash) {
+      loadTools(function () {
+        var here = location.pathname.replace(/index\.html$/, "");
+        var t = (window.ARC_TOOLS || []).filter(function (x) { return x.page && href(x) === here; })[0];
+        if (t) location.replace("/#" + t.id); else mount();
+      });
+      return;
+    }
+    loadTools(mount);
+  }
   if (document.body) start();
   else document.addEventListener("DOMContentLoaded", start);
 })();
