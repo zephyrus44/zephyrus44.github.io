@@ -21,7 +21,7 @@ data/           world power and warzone data from dengsden.com, used by Era Grou
                 branch is replaced on every run, so it adds nothing to main's history.
 ```
 
-Older addresses (`grand-melee-planner.html`, `era-grouping.html`, `GlowwormsRusePlanner/glowworm/`) redirect to the new folders, so old bookmarks and share links keep working.
+Each tool's address is its folder, e.g. `zephyrus44.github.io/tools/hero-cycle/`, so a copied link shows that tool's preview. Older addresses (`#z3`-style links, `grand-melee-planner.html`, `era-grouping.html`, `GlowwormsRusePlanner/glowworm/`) redirect there, so old bookmarks and share links keep working.
 
 ## Adding or updating a tool
 

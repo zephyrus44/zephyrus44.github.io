@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<base href="/">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1116">
 <title>ARC Tools</title>
@@ -352,7 +353,7 @@
 
   <aside class="rail" id="rail" aria-label="Tools">
     <div class="rail-top">
-      <a class="brand" href="#" title="Home">
+      <a class="brand" href="/" title="Home">
         <span class="mark"><svg viewBox="0 0 24 24"><path d="M12 2.5L21.5 12 12 21.5 2.5 12z" fill="#F4BF41"/><path d="M12 7.5L16.5 12 12 16.5 7.5 12z" fill="#0E1116"/></svg></span>
         <span class="brand-name">ARC Tools</span>
       </a>
@@ -418,6 +419,8 @@
     else g.textContent = (tool.name || "?").trim().charAt(0).toUpperCase();
     return g;
   };
+  const toolPath = (t) => "/" + (t.page || t.file.replace(/[^/]*$/, "")).replace(/^\//, "").replace(/\/?$/, "/");
+  const go = (href) => { const u = new URL(href, location.href); if (u.pathname + u.hash !== location.pathname + location.hash) history.pushState(null, "", u.pathname + u.hash); show(); };
   const chevron = () => el("span", { class: "go", "aria-hidden": "true", html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>' });
 
   /* ── localStorage that never throws (private mode, quota, blocked) ── */
@@ -616,7 +619,7 @@
       const list = el("ul", { class: "rows" });
       for (const t of g.tools) {
         list.append(el("li", { class: "row" },
-          el("a", { href: "#" + t.id }, glyph(t), el("span", null, el("b", null, t.name), t.blurb ? el("small", null, t.blurb) : null), chevron())));
+          el("a", { href: toolPath(t) }, glyph(t), el("span", null, el("b", null, t.name), t.blurb ? el("small", null, t.blurb) : null), chevron())));
       }
       wrap.append(el("section", { class: "section", "aria-label": g.name }, el("h2", null, g.name), list));
     }
@@ -629,7 +632,7 @@
     for (const g of byGroup) {
       const box = el("div", { class: "group", "data-group": g.id }, el("p", { class: "group-name" }, g.name));
       for (const t of g.tools) {
-        const a = el("a", { class: "item", href: "#" + t.id, title: t.name }, glyph(t), el("span", { class: "name" }, t.name));
+        const a = el("a", { class: "item", href: toolPath(t), title: t.name, "data-id": t.id }, glyph(t), el("span", { class: "name" }, t.name));
         navItems.set(t.id, a);
         box.append(a);
       }
@@ -645,7 +648,7 @@
     for (const box of nav.querySelectorAll(".group")) {
       let shown = 0;
       for (const a of box.querySelectorAll(".item")) {
-        const t = TOOLS.find((x) => "#" + x.id === a.getAttribute("href"));
+        const t = TOOLS.find((x) => x.id === a.dataset.id);
         const hit = !q || norm(t.name + " " + (t.blurb || "") + " " + (t.aliases || []).join(" ")).includes(q);
         a.hidden = !hit;
         if (hit) shown++;
@@ -714,15 +717,25 @@
     lookup.set(t.id.toLowerCase(), t);
     for (const a of t.aliases || []) lookup.set(String(a).toLowerCase(), t);
   }
-  const current = () => lookup.get(decodeURIComponent(location.hash.replace(/^#\/?/, "")).toLowerCase()) || null;
+  // Each tool's address is its folder, e.g. /tools/hero-cycle/. That address has the tool's
+  // link preview, so a copied link shows the right card. Older #id links still open the tool.
+  const cleanPath = (p) => p.replace(/index\.html$/, "").replace(/\/?$/, "/");
+  const byPath = new Map(TOOLS.map((t) => [toolPath(t), t]));
+  const routeOf = (url) => {
+    const h = decodeURIComponent(url.hash.replace(/^#\/?/, "")).toLowerCase();
+    if (h) return lookup.get(h) || null;
+    return byPath.get(cleanPath(url.pathname)) || null;
+  };
+  const current = () => routeOf(location);
 
   function show() {
     let tool = current();
-    // an old or alias address: switch to the tool's own id without adding a history entry
-    if (tool && location.hash.slice(1) !== tool.id) history.replaceState(null, "", "#" + tool.id);
+    const want = tool ? toolPath(tool) : "/";
     // Phones and tablets open HTML tools as full pages: mobile browsers can stop drawing
     // parts of a scrolling frame. The page's own top bar links back here.
-    if (tool && tool.page && FULL_PAGE.matches) { location.replace(new URL(tool.page, location.href).href); return; }
+    if (tool && tool.page && FULL_PAGE.matches) { location.replace(want); return; }
+    // show the tool's own address (replaces old #id and alias addresses, no extra history entry)
+    if (location.pathname + location.hash !== want) history.replaceState(null, "", want);
     const id = tool ? tool.id : "home";
 
     const entry = pane(id);
@@ -762,7 +775,7 @@
     if (e.key === "Escape") { find.value = ""; filterNav(); find.blur(); }
     if (e.key === "Enter") {
       const first = nav.querySelector(".item:not([hidden])");
-      if (first) { location.hash = first.getAttribute("href"); find.value = ""; filterNav(); find.blur(); }
+      if (first) { go(first.href); find.value = ""; filterNav(); find.blur(); }
     }
   });
   document.addEventListener("keydown", (e) => {
@@ -779,6 +792,17 @@
   renderNav();
   if (store.get(NS + "rail") === "mini") setMini(true);
   window.addEventListener("hashchange", show);
+  window.addEventListener("popstate", show);
+  // links to the home page or a tool switch panes here instead of reloading the site
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest("a[href]");
+    if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target) return;
+    const url = new URL(a.href);
+    if (url.origin !== location.origin) return;
+    if (url.pathname !== "/" && !routeOf(url)) return;
+    e.preventDefault();
+    go(url.href);
+  });
   show();
 })();
 </script>
