@@ -101,27 +101,45 @@ const LEADERS = new Set([
   "Disguised Equalist Korra", "Kyoshi", "Kuvira", "Mad King Bumi",
 ]);
 const isLeader = (name) => LEADERS.has(name.replace(/\s*\(.*\)$/, ""));
-const Hero = ({ name }) => (
+// Each hero's element (from the game's hero roster)
+const HERO_EL = {
+  "Iroh": "fire", "Aang": "air", "King Bumi": "earth", "Amon": "water",
+  "Painted Lady Katara": "water", "Yangchen": "air", "Lin Beifong": "earth",
+  "Roku": "fire", "Fire Nation Aang": "air", "Kuruk": "water",
+  "Avatar Hunter Zuko": "fire", "Zaheer": "air", "Wolf Warrior Sokka": "water",
+  "Kuvira": "earth", "Mako": "fire", "Jinora": "air", "Lady Beifong Toph": "earth",
+  "Desna and Eska": "water", "Ozai": "fire", "Opal": "air",
+  "Disguised Equalist Korra": "water", "Bolin": "earth", "Jet Sun": "air",
+  "Ty Lee": "fire", "Sapphire Fire Katara": "water", "Mad King Bumi": "earth",
+  "Kelsang": "air", "Rangi": "fire", "Yun": "earth", "Varrick": "water",
+};
+const heroEl = (name) => HERO_EL[name.replace(/\s*\(.*\)$/, "")] || "air";
+const heroColor = (name) => EL[heroEl(name)].c;
+const Hero = ({ name, dot }) => (
   <>
+    {dot && <span className="hc-dot" style={{ background: heroColor(name) }} />}
     {name}
     {isLeader(name) && (
       <span className="hc-leader" title="Leader skill" aria-label="Leader skill"> 💠</span>
     )}
   </>
 );
-const HeroList = ({ names }) =>
+const HeroList = ({ names, dot, colored }) =>
   names.map((n, i) => (
-    <span key={n}>{i > 0 && " & "}<Hero name={n} /></span>
+    <span key={n}>
+      {i > 0 && (dot ? "  " : " & ")}
+      <span style={colored ? { color: heroColor(n) } : undefined}><Hero name={n} dot={dot} /></span>
+    </span>
   ));
 
 const pairLabel = (p) =>
   p.split === false ? p.heroes.join(" & ") : `${p.wheel} / ${p.tgl}`;
 
 const EL = {
-  fire:  { c: "#E0715A" },
-  water: { c: "#4FA3D1" },
-  earth: { c: "#7FB069" },
-  air:   { c: "#E8C468" },
+  fire:  { c: "#E0715A", name: "Fire" },
+  water: { c: "#4FA3D1", name: "Water" },
+  earth: { c: "#7FB069", name: "Earth" },
+  air:   { c: "#E8C468", name: "Air" },
 };
 
 const ord = (n) => n + (["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10] || "th");
@@ -349,10 +367,10 @@ export default function HeroCycleCalculator() {
 
               {r.cur.pair.split === false ? (
                 <div className="hc-pair" style={{ gridTemplateColumns: "1fr" }}>
-                  <div className="hc-hero" style={{ borderLeftColor: EL[r.cur.pair.el].c }}>
-                    <div className="hc-k">Wheel of Fate &amp; TGL heroes</div>
-                    <div className="hc-name" style={{ color: EL[r.cur.pair.el].c }}>
-                      <HeroList names={r.cur.pair.heroes} />
+                  <div className="hc-hero" style={{ borderLeftColor: "var(--arc-line-2, #2E3542)" }}>
+                    <div className="hc-k">TGL &amp; Wheel of Fate heroes</div>
+                    <div className="hc-name">
+                      <HeroList names={r.cur.pair.heroes} colored />
                     </div>
                     <div className="hc-next" style={{ marginTop: 6 }}>
                       Which hero is on which event isn't confirmed yet.
@@ -361,15 +379,17 @@ export default function HeroCycleCalculator() {
                 </div>
               ) : (
                 <div className="hc-pair">
-                  <div className="hc-hero" style={{ borderLeftColor: EL[r.cur.pair.el].c }}>
-                    <div className="hc-k">Wheel of Fate</div>
-                    <div className="hc-name" style={{ color: EL[r.cur.pair.el].c }}>
-                      <Hero name={r.cur.pair.wheel} />
+                  <div className="hc-hero" style={{ borderLeftColor: heroColor(r.cur.pair.tgl) }}>
+                    <div className="hc-k">TGL rewards</div>
+                    <div className="hc-name" style={{ color: heroColor(r.cur.pair.tgl) }}>
+                      <Hero name={r.cur.pair.tgl} />
                     </div>
                   </div>
-                  <div className="hc-hero" style={{ borderLeftColor: "var(--arc-line-2, #2E3542)" }}>
-                    <div className="hc-k">TGL rewards</div>
-                    <div className="hc-name"><Hero name={r.cur.pair.tgl} /></div>
+                  <div className="hc-hero" style={{ borderLeftColor: heroColor(r.cur.pair.wheel) }}>
+                    <div className="hc-k">Wheel of Fate</div>
+                    <div className="hc-name" style={{ color: heroColor(r.cur.pair.wheel) }}>
+                      <Hero name={r.cur.pair.wheel} />
+                    </div>
                   </div>
                 </div>
               )}
@@ -403,7 +423,7 @@ export default function HeroCycleCalculator() {
             <div className="hc-scroll">
               <table className="hc-table">
                 <thead>
-                  <tr><th>Event</th><th>Wheel of Fate</th><th>TGL rewards</th><th>Run</th></tr>
+                  <tr><th>Event</th><th>TGL rewards</th><th>Wheel of Fate</th><th>Run</th></tr>
                 </thead>
                 <tbody>
                   {r.upcoming.map((c, i) => (
@@ -411,14 +431,13 @@ export default function HeroCycleCalculator() {
                       <td style={{ whiteSpace: "nowrap" }}>{r.est || r.newServer ? "~" : ""}{range(c)}</td>
                       {c.pair.split === false ? (
                         <td colSpan={2}>
-                          <span className="hc-dot" style={{ background: EL[c.pair.el].c }} />
-                          <HeroList names={c.pair.heroes} />
+                          <HeroList names={c.pair.heroes} dot />
                           <span style={{ color: "var(--arc-mut, #8B93A1)" }}> · split not confirmed</span>
                         </td>
                       ) : (
                         <>
-                          <td><span className="hc-dot" style={{ background: EL[c.pair.el].c }} /><Hero name={c.pair.wheel} /></td>
-                          <td><Hero name={c.pair.tgl} /></td>
+                          <td><Hero name={c.pair.tgl} dot /></td>
+                          <td><Hero name={c.pair.wheel} dot /></td>
                         </>
                       )}
                       <td>{c.run}/{c.runs}</td>
@@ -427,7 +446,14 @@ export default function HeroCycleCalculator() {
                 </tbody>
               </table>
             </div>
-            <div className="hc-legend">💠 Leader skill</div>
+            <div className="hc-legend">
+              {Object.values(EL).map((e) => (
+                <span key={e.name} style={{ marginRight: 14 }}>
+                  <span className="hc-dot" style={{ background: e.c }} />{e.name}
+                </span>
+              ))}
+              <span>💠 Leader skill</span>
+            </div>
           </>
         )}
 
