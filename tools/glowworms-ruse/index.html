@@ -257,6 +257,10 @@ details summary::-webkit-details-marker{display:none}
 .slab{font-family:var(--f-ui);font-weight:600;font-size:calc(10.5px / var(--zs,1));fill:#DDE2EA;paint-order:stroke;stroke:#0E1116;stroke-width:calc(3px / var(--zs,1));stroke-linejoin:round;pointer-events:none;opacity:0;transition:opacity .15s}
 .slab.b{font-size:calc(9.5px / var(--zs,1));fill:#9AA3B2;font-weight:500}
 #map.lz1 .slab.s,#map.lz2 .slab{opacity:1}
+.slab .fu{display:none} #map.lz2 .slab .fu{display:inline} #map.lz2 .slab .sh{display:none}
+#map.lz1 .slab.s{font-size:calc(9px / var(--zs,1))}
+#map.nomk .slab{opacity:0!important}
+#map.lz1 .slab.s.fade,#map.lz2 .slab.fade{opacity:.4}
 .tok.mk-dim + .slab,.slab.mk-dim{opacity:0!important}
 .mapkey{position:absolute;left:10px;bottom:56px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:min(330px,calc(100% - 70px));box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:3;max-height:calc(100% - 120px);overflow:auto}
 .mapkey .khead{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600;margin-bottom:6px}
@@ -642,7 +646,8 @@ const lbl=$("lbl"), shortName=n=>n.replace("Level ","Lv.");
   if(T&&T.obj) return; const x=o.s[0], y=fy(o.s[1]);
   const tx=document.createElementNS(NS,"text"); tx.setAttribute("class","slab "+(big?"s":"b"));
   tx.setAttribute("x",x); tx.setAttribute("y",y+(big?tokR(o.ty)+5.4:o.g?6.2:4.6)); tx.setAttribute("text-anchor","middle");
-  tx.textContent=shortName(ty.name); lbl.appendChild(tx); els[o.id+"_l"]=tx;});
+  const full=shortName(ty.name), brief=full.replace(/^(Temple|Oracle|Pantheon) of /,"").replace(" Great Tree"," Tree").replace("Grand Bazaar","Bazaar").replace("Restorative Site","Restorative");
+  tx.innerHTML=big?`<tspan class="sh">${brief}</tspan><tspan class="fu" x="${x}" dy="0">${full}</tspan>`:full; lbl.appendChild(tx); els[o.id+"_l"]=tx;});
 
 /* ---------- structure buffs and first capture rewards (from in-game structure cards) ---------- */
 const TERR=[["All Benders' ATK","+5%"],["Gathering Speed","+10%"],["Troop Marching Speed","+5%"]];
@@ -688,7 +693,7 @@ function keyIcon(ty){const T=TOK[ty], t=TY[ty];
   return `<svg viewBox="0 0 22 22"><circle cx="11" cy="11" r="10" fill="#0E1116" stroke="${T.c}" stroke-width="1.2"/>${inner}</svg>`;}
 const mr=t=>{const r=TY[t].r; return r>20?4.4:r>12?2.8:1.8;};
 
-function paint(){
+function paint(){ $("map").classList.toggle("nomk",!S.mk);
   const svg=$("map"), g=GOALS[S.goal];
   svg.classList.toggle("bgon",S.bg); svg.classList.toggle("dim",!!g&&g.ty!==ANY);
   $("bgimg").style.display=S.bg?"":"none"; $("bgimg").setAttribute("opacity",S.bgOp/100);
@@ -697,7 +702,7 @@ function paint(){
     const a=alById(S.owner[t.id]),p=els[t.id],e=g&&elig(g,t.id);
     p.classList.toggle("own",!!a); p.classList.toggle("elig",!!e); p.style.fill=a?a.color:"";
     const m=els[t.id+"_m"], ty=TY[t.ty], focus=g&&g.ty!==ANY;
-    const lb=els[t.id+"_l"]; if(lb) lb.classList.toggle("mk-dim",!!focus&&!e||!S.mk);
+    const lb=els[t.id+"_l"]; if(lb){lb.classList.remove("mk-dim"); lb.classList.toggle("fade",!!focus&&!e);}
     const tk=els[t.id+"_t"];
     if(tk){m.setAttribute("r",0); tk.setAttribute("transform",tk.dataset.base+(focus&&e?" scale(1.3)":"")); tk.classList.toggle("mk-dim",!!focus&&!e); tk.style.display=S.mk?"":"none";}
     else m.setAttribute("r",1.6*(focus&&e?1.6:1)); m.setAttribute("fill",ZC[t.z]||ty.color);
@@ -1544,7 +1549,7 @@ function fit(mode){const r=wrap.getBoundingClientRect(), whole=Math.min(r.width,
 function apply(){vp.setAttribute("transform",`translate(${V.x} ${V.y}) scale(${V.s})`); rulers();
   /* labels by on-screen scale (px per map unit), so phones and desktops switch at the same apparent size */
   const m=$("map"), z=V.s; m.style.setProperty("--zs",V.s);
-  m.classList.toggle("lz1",z>=2.7&&z<5.4); m.classList.toggle("lz2",z>=5.4);
+  m.classList.toggle("lz1",z>=1.25&&z<3.6); m.classList.toggle("lz2",z>=3.6);
   if(Math.abs(liveF()-F)>1e-4) mkRender();}
 function zoomAt(f,cx,cy){const ns=Math.min(40,Math.max(.4,V.s*f)); f=ns/V.s; V.x=cx-(cx-V.x)*f; V.y=cy-(cy-V.y)*f; V.s=ns; apply();}
 wrap.addEventListener("wheel",e=>{e.preventDefault(); const r=wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top);},{passive:false});
