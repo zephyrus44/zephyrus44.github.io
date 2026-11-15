@@ -287,6 +287,99 @@ details summary::-webkit-details-marker{display:none}
 .infocard .ifc span{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:3px 7px;font-family:var(--f-mono);font-size:11.5px}
 @media (max-width:820px){.infocard{right:8px;left:8px;width:auto;top:auto;bottom:8px}}
 
+
+/* ---------- markings, selection card and roster (from Murong's Grand Melee) ---------- */
+#dl,#gh{pointer-events:none}
+.mapwrap.drawing{cursor:crosshair}
+.mapwrap.over-item{cursor:move}
+.mapwrap.over-handle{cursor:grab}
+.dgrp button[disabled]{opacity:.35;cursor:default}
+.dgrp #dUndo,.dgrp #dRedo{padding:5px 7px}
+#mkTools{flex-wrap:wrap;justify-content:center}
+#dtools{container-type:inline-size}
+@container (max-width:900px){#mkTools [data-tool=line] span,#mkTools [data-tool=circle] span,#mkTools [data-tool=rect] span,#mkTools [data-tool=square] span,#mkTools [data-tool=select] span{display:none}}
+@container (max-width:640px){#mkTools [data-tool] span{display:none}}
+@media (max-width:600px){#mkTools{display:grid;grid-template-columns:repeat(6,1fr);width:100%}#mkTools .sep{display:none}#mkTools button{justify-content:center}}
+.mapkey.hidesel{display:none}
+#mksel{position:absolute;left:10px;bottom:56px;z-index:6}
+#mksel.selcard{width:min(320px,calc(100% - 70px));max-height:calc(100% - 130px);overflow:auto}
+.selcard{background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:12px;display:flex;flex-direction:column;gap:9px}
+.selcard .head b{font-size:13px}
+.selcard .x{border:0;background:transparent;color:var(--muted);cursor:pointer;width:26px;height:26px;border-radius:6px;font-size:16px}
+.selcard .x:hover{background:var(--bg);color:var(--fg)}
+.selcard .input{font-weight:500}
+.sseg{display:inline-flex;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:3px;gap:3px}
+.sseg button{border:0;background:transparent;border-radius:6px;padding:4px 10px;font-weight:600;font-size:12px;color:var(--muted);cursor:pointer}
+.sseg button[aria-pressed="true"]{background:var(--panel);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.cols{display:flex;gap:6px;flex-wrap:wrap}
+.cols button{width:20px;height:20px;border-radius:50%;border:0;padding:0;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35)}
+.cols button[aria-pressed="true"]{outline:2px solid var(--fg);outline-offset:1px}
+.ptags{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.ptags .note{margin-right:2px}
+.chip{display:inline-flex;align-items:center;gap:2px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 4px 2px 9px;font-size:12px;font-weight:600;max-width:100%}
+.chip button{border:0;background:transparent;color:var(--muted);cursor:pointer;width:20px;height:20px;border-radius:50%;font-size:14px;line-height:1;padding:0}
+.chip button:hover{color:var(--danger);background:var(--panel)}
+.ptagadd{position:relative}
+.ptaglist{position:absolute;left:0;right:0;bottom:calc(100% + 4px);background:var(--panel);border:1px solid var(--line-strong);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:3px;display:flex;flex-direction:column;max-height:220px;overflow-y:auto;z-index:8}
+.ptaglist button{border:0;background:transparent;text-align:left;border-radius:6px;padding:7px 9px;font-size:12.5px;cursor:pointer;display:flex;justify-content:space-between;gap:8px;color:var(--fg)}
+.ptaglist button:hover,.ptaglist button.on{background:var(--bg)}
+.ptaglist small{color:var(--muted);font-size:11.5px;white-space:nowrap}
+.selbar{position:absolute;left:6px!important;right:6px;bottom:6px!important;z-index:7;display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line-strong);border-radius:10px;padding:6px 6px 6px 12px;box-shadow:0 6px 18px rgba(0,0,0,.3)}
+.selbar .nm{flex:1;min-width:0;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.selbar .nm small{font-weight:400;color:var(--muted);margin-left:6px}
+.selbar button{border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);border-radius:8px;min-height:36px;padding:0 10px;font-size:13px;font-weight:600;cursor:pointer}
+.selbar button.danger{color:var(--danger)}
+@media (max-width:600px){#mksel.selcard{left:6px;right:6px;bottom:6px;width:auto;max-height:72%}}
+.mapkey .mkkey{margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+.mapkey .key .kzrow{display:flex;justify-content:space-between;align-items:center;margin-top:0}
+.mapkey .key.mkkey.editing{grid-template-columns:1fr;gap:4px}
+.kbtn.on{background:var(--accent);border-color:var(--accent);color:var(--arc-accent-ink,#0B1020)}
+.krow{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:6px;align-items:center}
+.krow.off svg,.krow.off .kin{opacity:.4}
+.kin{border:1px solid var(--line);border-radius:6px;background:var(--bg);padding:3px 6px;font-size:12px;min-width:0;width:100%}
+.kin:focus{outline:none;border-color:var(--accent)}
+.kvis{border:0;background:transparent;color:var(--muted);font-size:11.5px;font-weight:600;cursor:pointer;padding:2px 4px;border-radius:5px}
+.kvis:hover{color:var(--fg);background:var(--bg)}
+.rhead{display:flex;flex-direction:column;gap:10px}
+.rteam{grid-template-columns:auto minmax(0,1fr) auto auto}
+.rx{border:0;background:transparent;color:var(--muted);cursor:pointer;width:24px;height:24px;border-radius:6px;font-size:15px;line-height:1;padding:0;flex:none}
+.rx:hover{background:var(--bg);color:var(--danger)}
+.rfilters{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:6px}
+.rfilters .input{font-weight:500}
+.rlist{display:flex;flex-direction:column;gap:3px;max-height:340px;overflow-y:auto;margin-inline:-4px;padding-inline:4px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) 64px 104px 24px;gap:4px;align-items:center;border-left:3px solid var(--tc);padding-left:6px;border-radius:2px}
+.pin{border:1px solid transparent;background:transparent;border-radius:6px;padding:4px 6px;font-size:12.5px;min-width:0;width:100%}
+.pin:hover{border-color:var(--line)}
+.pin:focus{outline:none;border-color:var(--accent);background:var(--bg)}
+.pin.pw{font-family:var(--f-mono);font-size:11.5px;text-align:right}
+select.pin{border-color:var(--line);background:var(--bg);cursor:pointer;padding:3px 4px}
+#gm-rfoot:empty{display:none}
+#gm-radd{min-height:110px;font-size:12.5px}
+.deng{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line-strong);border-radius:10px;padding:12px;background:var(--bg)}
+.deng[hidden]{display:none}
+.dhead{display:flex;align-items:center;gap:8px}
+.dhead b{flex:1;font-size:13.5px}
+.deng .note a{color:var(--accent)}
+.dlist-pop{top:calc(100% + 4px);bottom:auto}
+.dallies{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dallies button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:7px 9px;font-size:12.5px;font-weight:600;cursor:pointer;text-align:left;min-width:0}
+.dallies button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dallies button small{color:var(--muted);font-weight:400;font-size:11.5px}
+.dallies button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.dallies button:disabled{opacity:.45;cursor:default}
+.dsearch{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px;align-items:center}
+.dplist{display:flex;flex-direction:column;max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.dprow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px}
+.dprow:last-child{border-bottom:0}
+.dprow input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.dpn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.dpn small{font-weight:400;color:var(--muted);font-size:11px}
+.dpp{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.dfoot{display:flex;flex-direction:column;gap:8px}
+.dtot{display:flex;align-items:baseline;gap:6px;font-size:13px}
+.dtot span{margin-left:auto;font-family:var(--f-mono);font-size:12.5px;color:var(--fg)}
+.snaptoast{white-space:normal!important;max-width:calc(100% - 32px);text-align:center}
+@media (pointer:coarse){.rx{width:32px;height:32px}}
 #map:not(.bgon) ~ * #bgOp,.legend:has(#bgChk:not(:checked)) #bgOp{display:none}
 </style>
 </head>
@@ -338,6 +431,15 @@ details summary::-webkit-details-marker{display:none}
       <div class="row" id="claimTools"></div>
     </section>
 
+    <section class="card" id="cardRoster">
+      <div class="head"><h2>Roster</h2><span class="note" id="gm-rsum"></span></div>
+      <div class="deng" id="gm-deng" hidden></div>
+      <div id="gm-rhead" class="rhead"></div>
+      <div class="rfilters" id="gm-rfilters"></div>
+      <div class="rlist" id="gm-rlist"></div>
+      <div class="row" id="gm-rfoot"></div>
+    </section>
+
     <section class="card" id="cardKey">
       <details>
         <summary><h2>Map key</h2><span class="note">show</span></summary>
@@ -367,25 +469,12 @@ details summary::-webkit-details-marker{display:none}
       <svg id="map" xmlns="http://www.w3.org/2000/svg"><defs id="symdefs"></defs><g id="vp"><rect x="-5" y="-5" width="610" height="610" fill="var(--map-bg)"/><image id="bgimg" href="map.jpg" x="-5" y="-5" width="610" height="610" preserveAspectRatio="none"/><g id="tl"></g><g id="zbl"></g><g id="ml"></g><g id="tkl"></g><g id="lbl"></g><g id="gl"></g><g id="rl"></g><g id="gh"></g><g id="dl"></g></g></svg>
       <div class="modebar" id="modebar" hidden></div>
       <div class="dtools" id="dtools" hidden>
-        <div class="dgrp" role="group" aria-label="Drawing tool">
-          <button data-tool="hold" title="Alliance stronghold"><svg viewBox="0 0 20 20"><path d="M4 17V8l2-1V4h2v2h1V4h2v2h1V4h2v3l2 1v9h-5v-4H9v4z"/></svg><span>Stronghold</span></button>
-          <button data-tool="city" title="Move city here"><svg class="ln" viewBox="0 0 24 24"><path d="M5 11.5 12 5.5l7 6M7 10v8.5h10V10M10.5 18.5v-4.5h3v4.5"/></svg><span>City</span></button>
-          <button data-tool="reinf" title="Reinforce"><svg class="ln" viewBox="0 0 24 24"><path d="M12 3.8l7 2.8v5.2c0 4.1-2.9 7.2-7 8.4-4.1-1.2-7-4.3-7-8.4V6.6zM12 8.6v6.6M8.7 11.9h6.6"/></svg><span>Reinforce</span></button>
-          <button data-tool="atk" title="Attack"><svg class="ln" viewBox="0 0 24 24"><path d="M5.5 5.5 15 15M18.5 5.5 9 15M5 15.8l3.2 3.2M19 15.8l-3.2 3.2M7 19l-2 2M17 19l2 2"/></svg><span>Attack</span></button>
-          <button data-tool="arrow" title="Arrow"><svg viewBox="0 0 20 20"><path d="M3 17L15 5M9 5h6v6" fill="none" stroke-width="2"/></svg><span>Arrow</span></button>
-          <button data-tool="circle" title="Circle"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6.5" fill="none" stroke-width="2"/></svg><span>Circle</span></button>
-          <button data-tool="rect" title="Rectangle"><svg viewBox="0 0 20 20"><rect x="3.5" y="5" width="13" height="10" fill="none" stroke-width="2"/></svg><span>Box</span></button>
-          <button data-tool="tri" title="Triangle"><svg viewBox="0 0 20 20"><path d="M10 3.5L17 16H3z" fill="none" stroke-width="2" stroke-linejoin="round"/></svg><span>Triangle</span></button>
-          <button data-tool="erase" title="Erase: tap a drawing to remove it"><svg viewBox="0 0 20 20"><path d="M4 14l7-9 5 4-6 8H6z M8 17h8" fill="none" stroke-width="2" stroke-linejoin="round"/></svg><span>Erase</span></button>
-        </div>
-        <div class="dgrp" id="dcolors" role="group" aria-label="Drawing colour"></div>
-        <div class="dgrp">
-          <button id="dUndo" title="Undo last drawing"><span>Undo</span></button>
-          <button id="dClear" title="Remove all drawings"><span>Clear</span></button>
-        </div>
+        <div class="dgrp" id="mkTools" role="toolbar" aria-label="Tools"></div>
+        <div class="dgrp" id="dcolors" role="group" aria-label="Colour"></div>
+        <div class="dgrp"><button id="dUndo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="ln" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7.5 4.5 12 9 16.5M5 12h9.5a5 5 0 0 1 0 10H12"/></svg></button><button id="dRedo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo"><svg class="ln" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 7.5 19.5 12 15 16.5M19 12H9.5a5 5 0 0 0 0 10H12"/></svg></button></div>
         <div class="dhint" id="dhint"></div>
       </div>
-      <div class="mapkey" id="mapkey"><div class="khead"><span>Key</span><button class="kbtn" id="kMin">Hide</button></div><div class="key" id="mkey"></div></div>
+      <div class="mapkey" id="mapkey"><div class="khead"><span>Key</span><button class="kbtn" id="kMin">Hide</button></div><div class="key mkkey" id="mkkey"></div><div class="key" id="mkey"></div></div><div id="mksel" hidden></div>
       <div class="legend" id="legend">
         <label><input type="checkbox" id="bgChk"> Game map</label>
         <input type="range" id="bgOp" min="15" max="100" value="65" aria-label="Map overlay opacity">
@@ -453,7 +542,7 @@ const DOM=[
 ].map(([id,title,m,ty,need,have,req])=>({id,title,m,ty,need,have,req}));
 const GOALS={}; CH.forEach(g=>GOALS[g.id]=g); DOM.forEach(g=>GOALS[g.id]=g);
 const seed=()=>{const p={}; DOM.forEach(d=>p[d.id]=0); return {prog:p,chDone:{}};};
-let S={alliances:[],active:null,owner:{},tgt:{},shapes:[],tool:"hold",dcol:null,mode:"plan",tab:"chron",goal:null,bg:false,bgOp:65,mk:true,...seed()};
+let S={alliances:[],active:null,owner:{},tgt:{},shapes:[],tool:"select",dcol:null,mode:"plan",tab:"chron",goal:null,bg:false,bgOp:65,mk:true,...seed()};
 try{const r=localStorage.getItem(KEY); if(r){const o=JSON.parse(r);
   // Older versions pre-filled progress; drop it if the saved values were never changed.
   if(!o.seedV){const oldP=o.prog||{}, oldC=o.chDone||{};
@@ -714,7 +803,7 @@ function renderAlliances(){
     const d=document.createElement("div"); d.className="al"+(a.id===S.active?" on":"");
     d.innerHTML=`<button class="dot" style="background:${a.color}" aria-label="Change color"></button>
       <input id="an_${a.id}" value="${esc(a.name)}" aria-label="Alliance name">
-      <div class="pts">${tot[a.id].n}<small>${S.shapes.some(x=>x.t==="hold"&&x.al===a.id)?"⌂ ":""}${tot[a.id].s} key sites</small></div>
+      <div class="pts">${tot[a.id].n}<small>${S.shapes.some(x=>x.type==="hold"&&x.al===a.id)?"⌂ ":""}${tot[a.id].s} key sites</small></div>
       <div class="bar"><i style="width:${tot[a.id].n/max*100}%;background:${a.color}"></i></div>`;
     d.onclick=e=>{if(e.target.tagName==="INPUT"||e.target.classList.contains("dot"))return; S.active=a.id; if(typeof S.dcol==="string"&&S.dcol.startsWith("al:")) S.dcol=null; save(); renderAlliances(); updateModebar(); if(S.mode==="draw") renderTools();};
     d.querySelector(".dot").onclick=e=>{e.stopPropagation(); pickerFor=pickerFor===a.id?null:a.id; S.active=a.id; renderAlliances();};
@@ -731,7 +820,7 @@ function renderAlliances(){
       const del=document.createElement("button"); del.className="btn ghost danger"; del.textContent="Remove selected";
       del.onclick=()=>{if(!S.active)return; syncPh(); const gone=alById(S.active);
         S.phases.forEach(p=>{for(const k in p.owner) if(p.owner[k]===S.active) delete p.owner[k];
-          p.shapes=p.shapes.filter(x=>!(x.t==="hold"&&x.al===S.active)); p.shapes.forEach(x=>{if(x.al===S.active){delete x.al; x.c=gone.color;}});});
+          p.shapes=p.shapes.filter(x=>!(x.type==="hold"&&x.al===S.active)); p.shapes.forEach(x=>{if(x.al===S.active){delete x.al; x.color=gone.color;}});});
         S.owner=S.phases[S.ph].owner; S.shapes=S.phases[S.ph].shapes; if(S.dcol==="al:"+S.active) S.dcol=null; S.alliances=S.alliances.filter(x=>x.id!==S.active); S.active=S.alliances[0]?.id||null; save(); renderAll();};
       const rs=document.createElement("button"); rs.className="btn ghost"; rs.textContent="Clear phase claims"; rs.onclick=()=>{confirmReset=true; renderAlliances();};
       tools.append(rs,del);
@@ -779,98 +868,639 @@ function copyText(txt,msg){
   const fallback=()=>{$("impBox").hidden=false; $("impText").value=txt; $("impText").select(); show("Copy blocked here. The text is selected below.");};
   try{navigator.clipboard.writeText(txt).then(()=>show(msg),fallback);}catch(e){fallback();}
 }
-$("cpPlan").onclick=()=>{syncPh(); copyText(JSON.stringify({glowwormPlan:4,alliances:S.alliances,phases:S.phases,tgt:S.tgt,prog:S.prog,chDone:S.chDone,evStart:S.evStart||null}),"Plan copied");};
+$("cpPlan").onclick=()=>{syncPh(); copyText(JSON.stringify({glowwormPlan:5,alliances:S.alliances,roster:S.roster,mkey:S.mkey,phases:S.phases,tgt:S.tgt,prog:S.prog,chDone:S.chDone,evStart:S.evStart||null}),"Plan copied");};
 $("showImp").onclick=()=>{$("impBox").hidden=!$("impBox").hidden;};
 $("doImp").onclick=()=>{
   try{const o=JSON.parse($("impText").value); if(!o.glowwormPlan) throw 0;
     ["tgt","prog","chDone"].forEach(k=>{if(o[k]) S[k]=o[k];});
     if(Array.isArray(o.phases)&&o.phases.length){S.phases=o.phases.map(normPh); S.ph=0;}
     else S.phases=[normPh({name:"Phase 1",owner:o.owner,shapes:o.shapes})], S.ph=0;
-    S.owner=S.phases[0].owner; S.shapes=S.phases[0].shapes;
+    S.phases.forEach(p=>{p.shapes=p.shapes.map(migrateShape).filter(Boolean);});
+    S.owner=S.phases[0].owner; S.shapes=S.phases[0].shapes; MS.sel=null;
+    if(o.roster) S.roster=normRoster(o.roster); if(o.mkey) S.mkey={labels:o.mkey.labels||{},hidden:o.mkey.hidden||{}};
     if("evStart" in o){S.evStart=o.evStart||null; applySchedule(); renderEvent();}
     if(o.alliances){S.alliances=o.alliances; S.active=S.alliances[0]?.id||null;}
-    save(); renderAll(); renderPhases(); $("impMsg").textContent="Loaded · "+S.phases.length+(S.phases.length===1?" phase":" phases");}
+    save(); renderAll(); renderPhases(); renderRoster(); renderMkKey(); renderSel(); $("impMsg").textContent="Loaded · "+S.phases.length+(S.phases.length===1?" phase":" phases");}
   catch(e){$("impMsg").textContent="That text isn't a copied plan. Paste the whole thing.";}
 };
 
-/* ---------- drawings & strongholds ---------- */
-const dl=$("dl"); const DCOLS=["#ffffff","#111111","#EC4441","#F4BF41","#50B080","#3E8CD7","#8647BA","#F08C33"];
-const shCol=sh=>{if(sh.al){const a=alById(sh.al); if(a) return a.color;} return sh.c||"#9aa3b2";};
-const PINS={city:"M5 11.5 12 5.5l7 6M7 10v8.5h10V10M10.5 18.5v-4.5h3v4.5",
-  reinf:"M12 3.8l7 2.8v5.2c0 4.1-2.9 7.2-7 8.4-4.1-1.2-7-4.3-7-8.4V6.6zM12 8.6v6.6M8.7 11.9h6.6",
-  atk:"M5.5 5.5 15 15M18.5 5.5 9 15M5 15.8l3.2 3.2M19 15.8l-3.2 3.2M7 19l-2 2M17 19l2 2"};
-const PIN_R=6.6, isPin=t=>t in PINS, POINT=t=>t==="hold"||isPin(t);
-const lightCol=c=>{const m=/^#?([0-9a-f]{6})$/i.exec(c||""); if(!m) return false; const n=parseInt(m[1],16); return (0.299*(n>>16)+0.587*(n>>8&255)+0.114*(n&255))>170;};
-/* paint for new drawings: an alliance (follows its colour) or a fixed colour */
+/* ---------- markings: same tools, editing and Night Ops look as Murong's Grand Melee ---------- */
+const dl=$("dl"), gh=$("gh");
+const DCOLS=["#ffffff","#111111","#EC4441","#F4BF41","#50B080","#3E8CD7","#8647BA","#F08C33"];
+const RCOLS=["#3E8CD7","#F08C33","#50B080","#8647BA","#D7538F","#F4BF41","#EC4441","#428A92","#627FAB","#5DA52F"];
+const MG={
+  city:"M5 11.5 12 5.5l7 6M7 10v8.5h10V10M10.5 18.5v-4.5h3v4.5",
+  reinforce:"M12 3.8l7 2.8v5.2c0 4.1-2.9 7.2-7 8.4-4.1-1.2-7-4.3-7-8.4V6.6zM12 8.6v6.6M8.7 11.9h6.6",
+  attack:"M5.5 5.5 15 15M18.5 5.5 9 15M5 15.8l3.2 3.2M19 15.8l-3.2 3.2M7 19l-2 2M17 19l2 2",
+  hold:"M5.5 19.5V10l1.8-1V5h2.3v2h1.5V5h1.8v2h1.5V5h2.3v4l1.8 1v9.5h-4.6v-4h-3.8v4z",
+  note:"M6 6.5h12M6 11h12M6 15.5h7"};
+const MI={
+  select:'<path d="M6 3.5l12 7.4-5.3 1.2 3 6.1-2.5 1.2-3-6.1L6 17.3z" fill="currentColor" stroke="none"/>',
+  hold:`<path d="${MG.hold}"/>`, arrow:'<path d="M4.5 19.5 18 6M10 6h8v8"/>', line:'<path d="M4.5 19.5 19.5 4.5"/>',
+  city:`<path d="${MG.city}"/>`, reinforce:`<path d="${MG.reinforce}"/>`, attack:`<path d="${MG.attack}"/>`,
+  label:'<path d="M5.5 6.5V5h13v1.5M12 5v14M9.2 19h5.6"/>',
+  circle:'<circle cx="12" cy="12" r="7.5"/>', rect:'<rect x="3.5" y="6.5" width="17" height="11" rx="1"/>', square:'<rect x="5.5" y="5.5" width="13" height="13" rx="1"/>',
+  undo:'<path d="M9 7.5 4.5 12 9 16.5M5 12h9.5a5 5 0 0 1 0 10H12"/>', redo:'<path d="M15 7.5 19.5 12 15 16.5M19 12H9.5a5 5 0 0 0 0 10H12"/>'};
+const mico=n=>`<svg class="ln" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${MI[n]}</svg>`;
+const TOOLS=[["select","Select","V"],["hold","Stronghold","H"],"sep",["arrow","Arrow","A"],["city","City","M"],["reinforce","Reinforce","R"],["attack","Attack","X"],["label","Text","T"],"sep",["line","Line","L"],["circle","Circle","O"],["rect","Box","B"],["square","Square","S"]];
+const TYPE_NAME={arrow:"Arrow",line:"Line",city:"Move city here",reinforce:"Reinforce",attack:"Attack",label:"Text",circle:"Circle",rect:"Box",square:"Square",hold:"Alliance stronghold"};
+const PIN={city:1,reinforce:1,attack:1,hold:1}, DRAW={arrow:1,line:1,circle:1,rect:1,square:1};
+const LK={ink:"#0E1116",pill:"rgba(14,17,22,.9)",sel:"#7EA0FF"};
+const clone=o=>JSON.parse(JSON.stringify(o));
+
+/* older saves stored shapes as {t,x0,y0,x1,y1}; convert them to markings */
+function migrateShape(sh){
+  if(!sh||typeof sh!=="object") return null;
+  if(sh.type){sh.id=sh.id||uid(); return sh;}
+  const o={id:uid(),label:""}; if(sh.al) o.al=sh.al; if(sh.c) o.color=sh.c;
+  const t=sh.t;
+  if(t==="hold") return {...o,type:"hold",x:sh.x,y:sh.y};
+  if(t==="city"||t==="reinf"||t==="atk") return {...o,type:t==="reinf"?"reinforce":t==="atk"?"attack":"city",x:sh.x,y:sh.y};
+  if(t==="arrow") return {...o,type:"arrow",x:sh.x0,y:sh.y0,x2:sh.x1,y2:sh.y1};
+  if(t==="circle") return {...o,type:"circle",x:sh.x0,y:sh.y0,r:Math.max(4,Math.hypot(sh.x1-sh.x0,sh.y1-sh.y0))};
+  if(t==="rect"||t==="tri") return {...o,type:"rect",x:Math.min(sh.x0,sh.x1),y:Math.min(sh.y0,sh.y1),w:Math.max(4,Math.abs(sh.x1-sh.x0)),h:Math.max(4,Math.abs(sh.y1-sh.y0))};
+  return null;
+}
+S.phases.forEach(p=>{p.shapes=p.shapes.map(migrateShape).filter(Boolean);}); S.shapes=S.phases[S.ph].shapes;
+S.tool={reinf:"reinforce",atk:"attack",tri:"square",erase:"select"}[S.tool]||S.tool;
+if(!TOOLS.some(t=>t[0]===S.tool)) S.tool="select";
+function normRoster(r){r=r&&typeof r==="object"?r:{};
+  if(!Array.isArray(r.teams)) r.teams=[{id:"rt1",name:"Team 1",color:RCOLS[0]},{id:"rt2",name:"Team 2",color:RCOLS[1]}];
+  r.teams=r.teams.filter(t=>t&&t.id).map((t,i)=>({id:String(t.id),name:String(t.name||"Team "+(i+1)),color:t.color||RCOLS[i%RCOLS.length]}));
+  r.players=(Array.isArray(r.players)?r.players:[]).filter(x=>x&&x.name).map(x=>({id:x.id||uid(),name:String(x.name),power:typeof x.power==="number"?x.power:null,team:x.team||"",...(typeof x.src==="number"?{src:x.src}:{})}));
+  return r;}
+S.roster=normRoster(S.roster);
+S.mkey=S.mkey&&typeof S.mkey==="object"?S.mkey:{}; S.mkey.labels=S.mkey.labels||{}; S.mkey.hidden=S.mkey.hidden||{};
+const MS={sel:null,selOpen:false,keyEdit:false,rfilter:"",rsearch:"",radd:false,rconfirm:null,rimport:null,rpicker:null};
+const RO=()=>S.roster;
+const rteam=id=>RO().teams.find(t=>t.id===id)||null;
+const findItem=id=>S.shapes.find(i=>i.id===id)||null;
+const itemCol=it=>{if(it.type==="hold"||it.al){const a=alById(it.al); if(a) return a.color; if(it.type==="hold") return "#9aa3b2";} return it.color||"#ffffff";};
+
+/* undo / redo across markings, claims and the roster */
+let hist=[],fut=[];
+const snapState=()=>{syncPh(); return JSON.stringify({phases:S.phases,roster:S.roster,mkey:S.mkey});};
+function commit(){hist.push(snapState()); if(hist.length>150) hist.shift(); fut=[]; updUndo();}
+function restoreState(j){const o=JSON.parse(j); S.phases=o.phases; S.roster=normRoster(o.roster); S.mkey=o.mkey||{labels:{},hidden:{}};
+  S.ph=Math.min(S.ph,S.phases.length-1); S.owner=S.phases[S.ph].owner; S.shapes=S.phases[S.ph].shapes;
+  if(MS.sel&&!findItem(MS.sel)) MS.sel=null; save(); renderAll(); renderPhases(); renderRoster(); renderSel(); renderMkKey(); updUndo();}
+function undo(){if(!hist.length) return; fut.push(snapState()); restoreState(hist.pop());}
+function redo(){if(!fut.length) return; hist.push(snapState()); restoreState(fut.pop());}
+function updUndo(){const u=$("dUndo"), r=$("dRedo"); if(u) u.disabled=!hist.length; if(r) r.disabled=!fut.length;}
+function changed(){save(); phMetaLive();}
+
+/* sizing: markings keep the same size on screen at any zoom, like Grand Melee */
+var F=1;
+function liveF(){return Math.max(.22,Math.min(1.5,.8/V.s));}
+const Sz=n=>+(n*F).toFixed(2);
+const isLight=hex=>{const n=parseInt(String(hex).slice(1),16); return ((n>>16)*.299+((n>>8)&255)*.587+(n&255)*.114)>170;};
+let twCtx=null; const twCache={};
+function tw(text,size,weight){const k=weight+"|"+text; if(twCache[k]==null){if(!twCtx) twCtx=document.createElement("canvas").getContext("2d"); twCtx.font=weight+" 100px Geist, Inter, Arial, sans-serif"; twCache[k]=twCtx.measureText(text).width/100;} return twCache[k]*size;}
+function glyphAt(kind,cx,cy,size,color,sw){const k=size/24; return `<path transform="translate(${(cx-size/2).toFixed(2)} ${(cy-size/2).toFixed(2)}) scale(${k.toFixed(4)})" d="${MG[kind]||MG.note}" fill="none" stroke="${color}" stroke-width="${sw||2.6}" stroke-linecap="round" stroke-linejoin="round"/>`;}
+const ctrl=it=>it.cx!=null?{x:it.cx,y:it.cy}:{x:(it.x+it.x2)/2,y:(it.y+it.y2)/2};
+const arrowMid=it=>{const c=ctrl(it); return {x:.25*it.x+.5*c.x+.25*it.x2,y:.25*it.y+.5*c.y+.25*it.y2};};
+const taggedPlayers=it=>{if(!it.players||!it.players.length) return []; const by={}; RO().players.forEach(p=>by[p.id]=p); return it.players.map(id=>by[id]).filter(Boolean);};
+const tagLine=it=>{const ps=taggedPlayers(it); if(!ps.length) return ""; const n=ps.slice(0,3).map(p=>p.name).join(", "); return ps.length>3?n+" +"+(ps.length-3):n;};
+
+/* labels: a pill beside the marking, or pulled away on a leader line */
+const LEADER_DEF={dx:30,dy:-34};
+function leaderPlace(it,g,wpx,hpx){
+  if(!it.ld||!(PIN[it.type]||it.type==="label")) return false;
+  const o=it.lo||LEADER_DEF, px=it.x+o.dx*F, py=it.y+o.dy*F;
+  g.x=o.dx>=0?px:px-wpx; g.y=py-hpx/2; g.leader={x1:it.x,y1:it.y,x2:o.dx>=0?g.x:g.x+wpx,y2:py}; return true;}
+function drawLeader(it,g){const Ld=g.leader; if(!Ld) return "";
+  let sx=Ld.x1, sy=Ld.y1; const dx=Ld.x2-sx, dy=Ld.y2-sy, l=Math.hypot(dx,dy)||1, start=PIN[it.type]?11.5*F:0;
+  sx+=dx/l*start; sy+=dy/l*start;
+  let s=`<line x1="${sx}" y1="${sy}" x2="${Ld.x2}" y2="${Ld.y2}" stroke="#E8EAEE" stroke-opacity=".6" stroke-width="${Sz(1.2)}" stroke-linecap="round"/>`;
+  if(it.type==="label") s+=`<circle cx="${Ld.x1}" cy="${Ld.y1}" r="${Sz(3)}" fill="${itemCol(it)}" stroke="${LK.ink}" stroke-width="${Sz(1.2)}"/>`;
+  return s;}
+function opsPill(it){
+  const tm=it.team?rteam(it.team):null, ps=taggedPlayers(it), al=it.type==="hold"?alById(it.al):null;
+  const text=it.type==="label"?(it.label||"Text"):(it.label||(al?al.name:"")||(tm?tm.name:"")||(ps.length?ps[0].name+(ps.length>1?" +"+(ps.length-1):""):""));
+  if(!text) return null;
+  const big=it.type==="label", fs=(big?12:10.5)*(big?(it.size||1):1), h=fs*1.75;
+  const count=(it.label||tm||al)&&ps.length?ps.length:0, dot=(it.type==="arrow"||it.type==="line")?itemCol(it):null;
+  const w=tw(text,fs,600)+fs*1.5+(dot?fs*.9:0)+(count?h*.95:0)+(big?fs*.4:0);
+  let x,y;
+  if(PIN[it.type]){x=it.x+17*F; y=it.y-h*F/2;}
+  else if(big){x=it.x-w*F/2; y=it.y-h*F/2;}
+  else if(it.type==="arrow"||it.type==="line"){const m=arrowMid(it); x=m.x+8*F; y=m.y-h*F-2*F;}
+  else if(it.type==="circle"){x=it.x-it.r*.72; y=it.y-it.r*.72-h*F-3*F;}
+  else {x=it.x; y=it.y-h*F-4*F;}
+  const g={x,y,w:w*F,h:h*F,fs:fs*F,text,count,dot,big}; leaderPlace(it,g,w*F,h*F); return g;}
+function drawOpsPill(g,sel){
+  const r=g.h/2; let s=`<rect x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" rx="${r}" fill="${LK.pill}" stroke="${sel?LK.sel:"rgba(255,255,255,.12)"}" stroke-width="${Sz(sel?1.4:1)}"/>`;
+  let tx=g.x+g.fs*.75;
+  if(g.dot){s+=`<circle cx="${g.x+g.fs*.8}" cy="${g.y+r}" r="${g.fs*.3}" fill="${g.dot}"/>`; tx=g.x+g.fs*1.55;}
+  if(g.big){s+=`<rect x="${g.x}" y="${g.y}" width="${g.fs*.26}" height="${g.h}" rx="${g.fs*.13}" fill="#E8EAEE" fill-opacity=".55"/>`; tx=g.x+g.fs*.95;}
+  s+=`<text x="${tx}" y="${g.y+r+g.fs*.36}" font-family="Geist, Inter, Arial, sans-serif" font-size="${g.fs}" font-weight="600" fill="#E8EAEE">${esc(g.text)}</text>`;
+  if(g.count){const cx=g.x+g.w-r; s+=`<circle cx="${cx}" cy="${g.y+r}" r="${r*.74}" fill="#2E3542"/><text x="${cx}" y="${g.y+r+g.fs*.3}" text-anchor="middle" font-family="Geist, Arial, sans-serif" font-size="${g.fs*.8}" font-weight="700" fill="#E8EAEE">${g.count}</text>`;}
+  return s;}
+function itemSVG(it,selected,ghost){
+  const col=itemCol(it); let s="";
+  if(it.type==="arrow"||it.type==="line"){
+    const isLine=it.type==="line", c=ctrl(it); let tx=it.x2-c.x, ty=it.y2-c.y, tl=Math.hypot(tx,ty);
+    if(tl<.01){tx=it.x2-it.x; ty=it.y2-it.y; tl=Math.hypot(tx,ty)||1;} tx/=tl; ty/=tl;
+    const hl=isLine?0:10*F, hw=8*F, bx=it.x2-tx*hl*.65, by=it.y2-ty*hl*.65;
+    const d=`M${it.x} ${it.y} Q${c.x} ${c.y} ${bx} ${by}`, dash=it.dash?` stroke-dasharray="${Sz(6)} ${Sz(5)}"`:"";
+    s+=`<path d="${d}" fill="none" stroke="${col}" stroke-opacity=".45" stroke-width="${Sz(7)}" stroke-linecap="round" filter="url(#gm-glow)"${dash}/>`;
+    s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="${Sz(2.6)}" stroke-linecap="round"${dash}/>`;
+    if(!isLine){const hx=it.x2, hy=it.y2;
+      s+=`<path d="M${hx} ${hy}L${hx-tx*hl-ty*hw/2} ${hy-ty*hl+tx*hw/2}L${hx-tx*hl*.6} ${hy-ty*hl*.6}L${hx-tx*hl+ty*hw/2} ${hy-ty*hl-tx*hw/2}Z" fill="${col}" stroke="${col}" stroke-width="${Sz(1)}" stroke-linejoin="round"/>`;}
+    if(selected) s+=`<path d="${d}" fill="none" stroke="${LK.sel}" stroke-opacity=".55" stroke-width="${Sz(9)}" stroke-linecap="round"/>`;
+  } else if(PIN[it.type]){
+    const rb=11.5*F;
+    if(selected) s+=`<circle cx="${it.x}" cy="${it.y}" r="${rb+4.5*F}" fill="none" stroke="${LK.sel}" stroke-width="${Sz(1.8)}"/>`;
+    s+=`<circle cx="${it.x}" cy="${it.y}" r="${rb}" fill="${col}" stroke="${LK.ink}" stroke-width="${Sz(2)}" filter="url(#gm-sh)"/>`;
+    s+=glyphAt(it.type,it.x,it.y,14*F,isLight(col)?"#14181E":"#FFFFFF",2.6);
+  } else if(it.type==="circle"||it.type==="rect"||it.type==="square"){
+    const da=it.dash?` stroke-dasharray="${Sz(5)} ${Sz(4)}"`:"", sc=selected?LK.sel:col;
+    if(it.type==="circle") s+=`<circle cx="${it.x}" cy="${it.y}" r="${it.r}" fill="${col}" fill-opacity=".07" stroke="${sc}" stroke-opacity=".85" stroke-width="${Sz(1.6)}"${da}/>`;
+    else s+=`<rect x="${it.x}" y="${it.y}" width="${it.w}" height="${it.h}" rx="${Sz(6)}" fill="${col}" fill-opacity=".07" stroke="${sc}" stroke-opacity=".85" stroke-width="${Sz(1.6)}"${da}/>`;
+  }
+  if(!ghost){const gp=opsPill(it); if(gp) s=drawLeader(it,gp)+s+drawOpsPill(gp,selected&&(it.type==="label"||!!it.ld));}
+  return s;}
+function handlePos(it){
+  if(it.type==="arrow"||it.type==="line"){const m=arrowMid(it); return [["start",it.x,it.y],["end",it.x2,it.y2],["bend",m.x,m.y]];}
+  if(it.type==="circle") return [["radius",it.x+it.r,it.y]];
+  if(it.type==="rect"||it.type==="square") return [["corner",it.x+it.w,it.y+it.h]];
+  return [];}
+const handlesSVG=it=>handlePos(it).map(h=>{const b=h[0]==="bend";
+  return `<circle cx="${h[1]}" cy="${h[2]}" r="${Sz(b?4.5:5.5)}" fill="${b?"#7ea0ff":"#fff"}" stroke="#111" stroke-width="${Sz(1.5)}"/>`;}).join("");
+let mkDraft=null;
+function mkRender(){
+  F=liveF();
+  const defs=`<defs><filter id="gm-sh" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="${Sz(1.2)}" stdDeviation="${Sz(1.4)}" flood-color="#000" flood-opacity=".55"/></filter><filter id="gm-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="${Sz(2.4)}"/></filter></defs>`;
+  const show=S.mode==="draw"||S.mkShow!==false;
+  let s=defs;
+  if(show){S.shapes.forEach(it=>{s+=`<g>${itemSVG(it,S.mode==="draw"&&it.id===MS.sel,false)}</g>`;});
+    if(mkDraft) s+=`<g opacity=".85">${itemSVG(mkDraft,false,false)}</g>`;
+    const si=S.mode==="draw"&&MS.sel&&findItem(MS.sel); if(si) s+=handlesSVG(si);}
+  dl.innerHTML=s;
+  gh.innerHTML=(S.ghost&&S.ph>0&&show)?S.phases[S.ph-1].shapes.map(it=>itemSVG(it,false,true)).join(""):"";
+}
+function paintShapes(){mkRender();}
+
+/* hit testing in map units */
+function curveDist(it,p){const c=ctrl(it); let best=Infinity;
+  for(let i=0;i<=32;i++){const t=i/32,u=1-t,x=u*u*it.x+2*u*t*c.x+t*t*it.x2,y=u*u*it.y+2*u*t*c.y+t*t*it.y2; best=Math.min(best,Math.hypot(p.x-x,p.y-y));} return best;}
+function itemDist(it,p,insideOk){
+  const g=opsPill(it); let dBox=Infinity;
+  if(g) dBox=Math.hypot(Math.max(0,g.x-p.x,p.x-(g.x+g.w)),Math.max(0,g.y-p.y,p.y-(g.y+g.h)));
+  if(PIN[it.type]) return Math.min(Math.max(0,Math.hypot(p.x-it.x,p.y-it.y)-11.5*F),dBox);
+  if(it.type==="label") return Math.min(g?dBox:Infinity,it.ld?Math.max(0,Math.hypot(p.x-it.x,p.y-it.y)-4*F):Infinity);
+  if(it.type==="arrow"||it.type==="line") return Math.min(curveDist(it,p),dBox);
+  if(it.type==="circle"){const d=Math.hypot(p.x-it.x,p.y-it.y)-it.r; return Math.min(d<0&&insideOk?0:Math.abs(d),dBox);}
+  if(it.type==="rect"||it.type==="square"){const ox=Math.max(it.x-p.x,0,p.x-(it.x+it.w)), oy=Math.max(it.y-p.y,0,p.y-(it.y+it.h));
+    if(ox||oy) return Math.min(Math.hypot(ox,oy),dBox); if(insideOk) return 0; return Math.min(p.x-it.x,it.x+it.w-p.x,p.y-it.y,it.y+it.h-p.y,dBox);}
+  return Infinity;}
+function itemAt(p,tol,insideOk){let best=null,bd=Infinity,area=null;
+  for(let i=S.shapes.length-1;i>=0;i--){const it=S.shapes[i], isArea=it.type==="circle"||it.type==="rect"||it.type==="square", d=itemDist(it,p,insideOk);
+    if(d>tol) continue; if(isArea){if(!area&&(d>0||insideOk)) area=it; continue;} if(d<bd){bd=d; best=it;}}
+  return (best||area||{}).id||null;}
+function handleAt(p,tol){const it=MS.sel&&findItem(MS.sel); if(!it) return null; let best=null,bd=tol;
+  handlePos(it).forEach(h=>{const d=Math.hypot(p.x-h[1],p.y-h[2]); if(d<=bd){bd=d; best=h[0];}}); return best;}
+
+/* paint for new markings: an alliance (its colour follows the alliance) or a fixed colour */
 function curPaint(){const d=S.dcol;
   if(typeof d==="string"&&d.startsWith("al:")&&alById(d.slice(3))) return {al:d.slice(3)};
-  if(typeof d==="string"&&d.startsWith("#")) return {c:d};
+  if(typeof d==="string"&&d.startsWith("#")) return {color:d};
   if(alById(S.active)) return {al:S.active};
-  return {c:"#EC4441"};}
-function arrowPath(x0,y0,x1,y1){const L=Math.hypot(x1-x0,y1-y0)||1, h=Math.min(L*.35,9), ux=(x1-x0)/L, uy=(y1-y0)/L;
-  const bx=x1-ux*h, by=y1-uy*h, w=h*.55; return `M${x0} ${y0}L${bx} ${by}M${x1} ${y1}L${bx-uy*w} ${by+ux*w}L${bx+uy*w} ${by-ux*w}Z`;}
-function shapeEl(sh,i){
-  const g=document.createElementNS(NS,"g"), col=shCol(sh); g.dataset.sh=i;
-  const mk=(tag,at)=>{const e=document.createElementNS(NS,tag); for(const k in at) e.setAttribute(k,at[k]); e.dataset.sh=i; g.appendChild(e); return e;};
-  const st={fill:"none",stroke:col,"stroke-width":2.5,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round","stroke-linecap":"round"};
-  const halo={...st,stroke:"rgba(0,0,0,.45)","stroke-width":5};
-  const geo=()=>{const {x0,y0,x1,y1}=sh;
-    if(sh.t==="arrow") return ["path",{d:arrowPath(x0,y0,x1,y1)}];
-    if(sh.t==="circle") return ["circle",{cx:x0,cy:y0,r:Math.hypot(x1-x0,y1-y0)}];
-    if(sh.t==="rect") return ["rect",{x:Math.min(x0,x1),y:Math.min(y0,y1),width:Math.abs(x1-x0),height:Math.abs(y1-y0)}];
-    if(sh.t==="tri"){const l=Math.min(x0,x1),r=Math.max(x0,x1),t=Math.min(y0,y1),b=Math.max(y0,y1); return ["path",{d:`M${(l+r)/2} ${t}L${r} ${b}L${l} ${b}Z`}];}};
-  if(isPin(sh.t)){
-    const r=PIN_R, cy=sh.y-r*1.55, ink=lightCol(col)?"#14181E":"#FFFFFF";
-    mk("path",{d:`M${sh.x} ${sh.y}L${sh.x-r*.62} ${cy+r*.8}A${r} ${r} 0 1 1 ${sh.x+r*.62} ${cy+r*.8}Z`,fill:col,stroke:"rgba(0,0,0,.7)","stroke-width":1.4,"vector-effect":"non-scaling-stroke","stroke-linejoin":"round"});
-    const gs=r*1.45/24;
-    mk("path",{d:PINS[sh.t],transform:`translate(${sh.x-r*.725} ${cy-r*.725}) scale(${gs.toFixed(4)})`,fill:"none",stroke:ink,"stroke-width":2.6,"stroke-linecap":"round","stroke-linejoin":"round"});
-    g.style.cursor="pointer";
-  } else if(sh.t==="hold"){
-    const a=alById(sh.al), s=1;
-    const ink=lightCol(col)?"#14181E":"#FFFFFF";
-    mk("circle",{cx:sh.x,cy:sh.y,r:7.2,fill:col,stroke:"rgba(0,0,0,.7)","stroke-width":1.4,"vector-effect":"non-scaling-stroke"});
-    mk("path",{d:`M${sh.x-4} ${sh.y+3.6}v-5l1.2-.7v-2h1.3v1.2h.8v-1.2h1.4v1.2h.8v-1.2h1.3v2l1.2.7v5h-2.6v-2.3h-1.8v2.3z`,fill:ink});
-    const tx=mk("text",{x:sh.x,y:sh.y+12.5,"text-anchor":"middle","font-size":5,fill:"#fff",stroke:"rgba(0,0,0,.72)","stroke-width":1.6,"paint-order":"stroke","font-weight":600});
-    tx.textContent=a?a.name:"Stronghold";
-    g.style.cursor="pointer";
-  } else { const [tag,at]=geo(); mk(tag,{...at,...halo,...(sh.t!=="arrow"?{fill:col,"fill-opacity":.12}:{})}); const e=mk(tag,{...at,...st});
-    if(sh.t==="arrow"){e.setAttribute("fill",col);} }
-  return g;
+  return {color:"#EC4441"};}
+function shapeFrom(tool,a,b){const pt=curPaint();
+  if(tool==="arrow"||tool==="line") return {type:tool,x:a.x,y:a.y,x2:b.x,y2:b.y,...pt};
+  if(tool==="circle") return {type:"circle",x:a.x,y:a.y,r:Math.max(4,Math.hypot(b.x-a.x,b.y-a.y)),...pt};
+  let w=b.x-a.x, h=b.y-a.y;
+  if(tool==="square"){const m=Math.max(Math.abs(w),Math.abs(h)); w=w<0?-m:m; h=h<0?-m:m;}
+  return {type:tool,x:Math.min(a.x,a.x+w),y:Math.min(a.y,a.y+h),w:Math.max(4,Math.abs(w)),h:Math.max(4,Math.abs(h)),...pt};}
+function addItem(it,focus){
+  commit(); it.id=uid(); it.label=it.label||""; S.shapes.push(it); MS.sel=it.id; MS.selOpen=!!focus;
+  changed(); mkRender(); renderSel(); renderAlliances();
+  if(focus){const inp=$("mk-label"); if(inp){inp.focus(); inp.select();}}}
+function deleteSel(){if(!findItem(MS.sel)) return; commit(); const id=MS.sel; const i=S.shapes.findIndex(x=>x.id===id); S.shapes.splice(i,1); MS.sel=null; changed(); mkRender(); renderSel(); renderAlliances();}
+
+/* pointer gestures while drawing */
+let mkG=null;
+function mkDown(e){
+  F=liveF(); const p=toMap(e), touch=e.pointerType!=="mouse", tol=(touch?22:9)/V.s;
+  const down={sx:e.clientX,sy:e.clientY,p,moved:false,V0:{x:V.x,y:V.y}};
+  const h=handleAt(p,(touch?26:12)/V.s); if(h){mkG={...down,kind:"handle",h}; return;}
+  const hit=itemAt(p,tol,S.tool==="select");
+  if(hit){
+    if(MS.sel!==hit){MS.sel=hit; MS.selOpen=false; mkRender(); renderSel();}
+    const hi=findItem(hit), lb=hi&&hi.ld?opsPill(hi):null, pad=tol*.6;
+    if(lb&&lb.leader&&p.x>=lb.x-pad&&p.x<=lb.x+lb.w+pad&&p.y>=lb.y-pad&&p.y<=lb.y+lb.h+pad){mkG={...down,kind:"label",lo:clone(hi.lo||LEADER_DEF)}; return;}
+    mkG={...down,kind:"move",orig:clone(hi)}; return;}
+  if(S.tool==="select"){mkG={...down,kind:"pan"}; return;}
+  if(DRAW[S.tool]){mkG={...down,kind:"draw"}; return;}
+  mkG={...down,kind:"tap"};
 }
-function pointAt(m){let best=-1,bd=1e9;
-  S.shapes.forEach((sh,i)=>{if(!POINT(sh.t)) return; const cx=sh.x, cy=isPin(sh.t)?sh.y-PIN_R*1.1:sh.y, rr=isPin(sh.t)?PIN_R*1.6:7.6;
-    const d=Math.hypot(m.x-cx,m.y-cy); if(d<=rr&&d<bd){bd=d; best=i;}}); return best;}
-function paintGhost(){const gh=$("gh"); gh.innerHTML="";
-  if(!S.ghost||S.ph===0) return; S.phases[S.ph-1].shapes.forEach(sh=>gh.appendChild(shapeEl(sh,-1)));}
-function paintShapes(){paintGhost(); dl.innerHTML=""; S.shapes.forEach((sh,i)=>dl.appendChild(shapeEl(sh,i))); if(draft) dl.appendChild(shapeEl(draft,-1));
-  dl.style.pointerEvents=(S.mode==="draw"&&S.tool==="erase")?"auto":"none";}
-let draft=null, drag=null;
+function mkMove(e){
+  if(!mkG) return;
+  const dx=e.clientX-mkG.sx, dy=e.clientY-mkG.sy;
+  if(!mkG.moved&&Math.hypot(dx,dy)>6){mkG.moved=true; $("tip").hidden=true;}
+  if(!mkG.moved) return;
+  const p=toMap(e);
+  if(mkG.kind==="pan"||mkG.kind==="tap"){wrap.classList.add("drag"); V.x=mkG.V0.x+dx; V.y=mkG.V0.y+dy; apply();}
+  else if(mkG.kind==="move"){const it=findItem(MS.sel); if(!it) return; if(!mkG.committed){commit(); mkG.committed=true;}
+    const ox=p.x-mkG.p.x, oy=p.y-mkG.p.y, o=mkG.orig; it.x=o.x+ox; it.y=o.y+oy;
+    if(o.x2!=null){it.x2=o.x2+ox; it.y2=o.y2+oy;} if(o.cx!=null){it.cx=o.cx+ox; it.cy=o.cy+oy;} mkRender();}
+  else if(mkG.kind==="label"){const il=findItem(MS.sel); if(!il) return; if(!mkG.committed){commit(); mkG.committed=true;}
+    il.lo={dx:Math.round(mkG.lo.dx+(p.x-mkG.p.x)/F),dy:Math.round(mkG.lo.dy+(p.y-mkG.p.y)/F)}; mkRender();}
+  else if(mkG.kind==="handle"){const h=findItem(MS.sel); if(!h) return; if(!mkG.committed){commit(); mkG.committed=true;}
+    if(mkG.h==="start"){h.x=p.x; h.y=p.y;} else if(mkG.h==="end"){h.x2=p.x; h.y2=p.y;}
+    else if(mkG.h==="bend"){h.cx=2*p.x-(h.x+h.x2)/2; h.cy=2*p.y-(h.y+h.y2)/2;}
+    else if(mkG.h==="radius") h.r=Math.max(4,Math.hypot(p.x-h.x,p.y-h.y));
+    else if(mkG.h==="corner"){let w=p.x-h.x, hh=p.y-h.y; if(h.type==="square"){const m=Math.max(Math.abs(w),Math.abs(hh)); w=m; hh=m;} h.w=Math.max(5,w); h.h=Math.max(5,hh);}
+    mkRender();}
+  else if(mkG.kind==="draw"){mkDraft=shapeFrom(S.tool,mkG.p,p); mkRender();}
+}
+function mkUp(e){
+  const g=mkG; mkG=null; wrap.classList.remove("drag"); if(!g) return;
+  const up=e.type==="pointerup";
+  if(g.kind==="move"||g.kind==="handle"||g.kind==="label"){if(g.committed){changed(); renderSel();} return;}
+  if(g.kind==="pan"){if(!g.moved&&up&&MS.sel){MS.sel=null; mkRender(); renderSel();} return;}
+  if(g.kind==="draw"){const d=mkDraft; mkDraft=null;
+    const big=up&&d&&g.moved&&(d.type==="arrow"||d.type==="line"?Math.hypot(d.x2-d.x,d.y2-d.y)*V.s>14:d.type==="circle"?d.r*V.s>8:(d.w*V.s>8&&d.h*V.s>8));
+    if(!big){mkRender(); return;} addItem(d); return;}
+  if(g.kind==="tap"&&!g.moved&&up){
+    if(S.tool==="hold"){const a=alById(S.active); if(!a){snapToast("Add an alliance first"); return;} addItem({type:"hold",al:a.id,x:g.p.x,y:g.p.y}); return;}
+    const it={type:S.tool,x:g.p.x,y:g.p.y,...curPaint()};
+    if(S.tool==="label"){it.label="Text"; it.size=1;}
+    addItem(it,S.tool==="label");}
+}
+function mkCancel(){mkG=null; mkDraft=null; mkRender();}
+function mkHover(e){if(e.pointerType!=="mouse") return; F=liveF(); const mp=toMap(e);
+  const oh=!!handleAt(mp,12/V.s), oi=!oh&&!!itemAt(mp,9/V.s,S.tool==="select");
+  wrap.classList.toggle("over-handle",oh); wrap.classList.toggle("over-item",oi);}
+
+/* toolbar */
 function renderTools(){
-  $("dtools").hidden=S.mode!=="draw"; wrap.classList.toggle("drawing",S.mode==="draw");
-  document.querySelectorAll("#dtools [data-tool]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.tool===S.tool)));
-  const dc=$("dcolors"); dc.hidden=S.tool==="hold"||S.tool==="erase"; dc.innerHTML="";
-  const cur=curPaint();
-  S.alliances.forEach(a=>{const b=document.createElement("button"); b.className="sw al"; b.style.background=a.color; b.title=a.name;
-    b.setAttribute("aria-label",a.name+" colour"); b.setAttribute("aria-pressed",String(cur.al===a.id)); b.onclick=()=>{S.dcol="al:"+a.id; save(); renderTools();}; dc.appendChild(b);});
-  if(S.alliances.length){const sp=document.createElement("span"); sp.className="sep"; dc.appendChild(sp);}
-  DCOLS.forEach(c=>{const b=document.createElement("button"); b.className="sw"; b.style.background=c;
-    b.setAttribute("aria-label","Colour "+c); b.setAttribute("aria-pressed",String(!cur.al&&cur.c===c)); b.onclick=()=>{S.dcol=c; save(); renderTools();}; dc.appendChild(b);});
+  $("dtools").hidden=S.mode!=="draw"; wrap.classList.toggle("drawing",S.mode==="draw"&&S.tool!=="select");
+  if(S.mode!=="draw"){if(MS.sel){MS.sel=null; renderSel();} mkRender(); return;}
+  $("mkTools").innerHTML=TOOLS.map(t=>t==="sep"?'<span class="sep"></span>':`<button data-tool="${t[0]}" aria-pressed="${S.tool===t[0]}" title="${t[1]} (${t[2]})">${mico(t[0])}<span>${t[1]}</span></button>`).join("");
+  const dc=$("dcolors"), cur=curPaint(); dc.hidden=S.tool==="select"||S.tool==="hold";
+  dc.innerHTML=S.alliances.map(a=>`<button class="sw" style="background:${a.color}" data-dal="${a.id}" title="${esc(a.name)}" aria-label="${esc(a.name)} colour" aria-pressed="${cur.al===a.id}"></button>`).join("")+(S.alliances.length?'<span class="sep"></span>':"")+
+    DCOLS.map(c=>`<button class="sw" style="background:${c}" data-dc="${c}" aria-label="Colour ${c}" aria-pressed="${!cur.al&&cur.color===c}"></button>`).join("");
   const a=alById(S.active), pa=cur.al?alById(cur.al):null, who=pa?` in ${esc(pa.name)}'s colour`:"";
-  const hint={hold:a?`Tap the map to place a stronghold for ${esc(a.name)}. Place as many as you need, and drag one to move it.`:"Add an alliance first, then tap the map to place its strongholds.",
-    city:`Tap to mark where a city moves${who}. Drag a marker to move it.`,reinf:`Tap to mark a reinforce point${who}. Drag a marker to move it.`,atk:`Tap to mark an attack target${who}. Drag a marker to move it.`,
-    arrow:`Drag from start to end${who}.`,circle:`Drag out from the centre${who}.`,rect:`Drag corner to corner${who}.`,tri:`Drag to size the triangle${who}.`,erase:"Tap a drawing or marker to remove it."}[S.tool];
-  $("dhint").innerHTML=`<span>${hint}<i class="pan" style="font-style:normal"> Two fingers or the scroll wheel move the map.</i></span>`;
-  /* on phones the hint shows briefly when a tool is picked, then gets out of the way */
+  const hint={select:"Tap a marking to edit it. Drag the map to pan.",hold:a?`Tap to place a stronghold for ${esc(a.name)}.`:"Add an alliance first, then tap to place its strongholds.",
+    arrow:`Drag from start to end${who}.`,line:`Drag from one end to the other${who}.`,city:`Tap where the city should move${who}.`,reinforce:`Tap the spot to reinforce${who}.`,attack:`Tap the target${who}.`,
+    label:"Tap to place text.",circle:`Drag out from the centre${who}.`,rect:`Drag corner to corner${who}.`,square:`Drag corner to corner${who}.`}[S.tool];
+  $("dhint").innerHTML=`<span>${hint}${S.tool!=="select"?'<i class="pan" style="font-style:normal"> Two fingers or the scroll wheel move the map.</i>':""}</span>`;
   const dh=$("dhint"); dh.classList.remove("faded"); clearTimeout(renderTools.t);
   if(matchMedia("(max-width:600px)").matches) renderTools.t=setTimeout(()=>dh.classList.add("faded"),3500);
-  paintShapes();
+  updUndo(); mkRender();
 }
-document.querySelectorAll("#dtools [data-tool]").forEach(b=>b.onclick=()=>{S.tool=b.dataset.tool; save(); renderTools();});
-let clearArm=false;
-$("dUndo").onclick=()=>{S.shapes.pop(); save(); paintShapes();};
-$("dClear").onclick=()=>{if(!S.shapes.length) return; if(!clearArm){clearArm=true; $("dClear").firstChild.textContent="Tap again to clear"; setTimeout(()=>{clearArm=false; $("dClear").firstChild.textContent="Clear";},2500); return;}
-  clearArm=false; $("dClear").firstChild.textContent="Clear"; S.shapes=[]; save(); paintShapes();};
-["dtools"].forEach(i=>$(i).addEventListener("pointerdown",e=>{if(e.target.closest(".dgrp")) e.stopPropagation();}));
+function setTool(t){S.tool=t; if(t!=="select"){MS.sel=null; renderSel();} save(); renderTools();}
+$("dtools").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; const ds=b.dataset;
+  if(ds.tool){setTool(ds.tool); return;}
+  if(ds.dal){S.dcol="al:"+ds.dal; save(); renderTools(); return;}
+  if(ds.dc){S.dcol=ds.dc; save(); renderTools(); return;}
+  if(b.id==="dUndo") undo(); else if(b.id==="dRedo") redo();});
+$("dtools").addEventListener("pointerdown",e=>{if(e.target.closest(".dgrp")) e.stopPropagation();});
+
+/* selected marking: edit card (desktop) or a compact bar that opens it (phone) */
+const PHONE=matchMedia("(max-width:600px)");
+function selCols(it){const c=[]; S.alliances.forEach(a=>c.push(["al",a.id,a.color,a.name])); DCOLS.forEach(x=>c.push(["c",x,x,x])); return c;}
+function renderSel(){
+  const it=MS.sel&&findItem(MS.sel), el=$("mksel");
+  $("mapkey").classList.toggle("hidesel",!!it);
+  if(!it||S.mode!=="draw"){el.hidden=true; el.innerHTML=""; return;}
+  el.hidden=false;
+  if(PHONE.matches&&!MS.selOpen){const tl=tagLine(it), sub=it.label||tl||(it.type==="hold"?(alById(it.al)||{}).name||"":"");
+    el.className="selbar"; el.innerHTML=`<span class="nm">${esc(TYPE_NAME[it.type])}${sub?`<small>${esc(sub)}</small>`:""}</span><button data-act="sel-edit">Edit</button><button class="danger" data-act="del-item">Delete</button><button data-act="desel" aria-label="Done">Done</button>`; return;}
+  el.className="selcard";
+  let h=`<div class="head"><b>${esc(TYPE_NAME[it.type])}</b><button class="x" data-act="desel" aria-label="Close">×</button></div>`;
+  h+=`<input class="input" id="mk-label" maxlength="48" placeholder="${it.type==="label"?"Text":it.type==="hold"?"Label (optional, defaults to the alliance)":"Label (optional), e.g. Squad 2 · 20:00"}" value="${esc(it.label||"")}" aria-label="Label">`;
+  if(it.type==="hold") h+=`<div class="row"><label class="note" for="mk-al">Alliance</label><select class="input" id="mk-al" style="flex:1;width:auto">${S.alliances.map(a=>`<option value="${a.id}"${it.al===a.id?" selected":""}>${esc(a.name)}</option>`).join("")}</select></div>`;
+  else{const cur=it.al&&alById(it.al)?"al:"+it.al:(it.color||"").toLowerCase();
+    h+=`<div class="cols">${selCols(it).map(([k,v,c,n])=>`<button style="background:${c}" data-icolor="${k}:${v}" title="${esc(n)}" aria-pressed="${(k==="al"?"al:"+v:v.toLowerCase())===cur}" aria-label="Colour ${esc(n)}"></button>`).join("")}</div>`;}
+  let opts="";
+  if(PIN[it.type]||it.type==="label") opts+=`<div class="sseg" title="Move the label away from the marker, joined by a line"><button data-leader="0" aria-pressed="${!it.ld}">Label beside</button><button data-leader="1" aria-pressed="${!!it.ld}">Leader line</button></div>`;
+  if(DRAW[it.type]) opts+=`<div class="sseg"><button data-dash="0" aria-pressed="${!it.dash}">Solid</button><button data-dash="1" aria-pressed="${!!it.dash}">Dashed</button></div>`;
+  if(it.type==="label") opts+=`<div class="sseg">${[[0.8,"S"],[1,"M"],[1.4,"L"],[2,"XL"]].map(z=>`<button data-size="${z[0]}" aria-pressed="${(it.size||1)===z[0]}">${z[1]}</button>`).join("")}</div>`;
+  if((it.type==="arrow"||it.type==="line")&&it.cx!=null) opts+='<button class="btn ghost" data-act="straighten">Straighten</button>';
+  if(RO().teams.length) h+=`<div class="row"><label class="note" for="mk-team">Team</label><select class="input" id="mk-team" style="flex:1;width:auto"><option value="">None</option>${RO().teams.map(t=>`<option value="${t.id}"${it.team===t.id?" selected":""}>${esc(t.name)}</option>`).join("")}</select></div>`;
+  if(RO().players.length){const tagged=taggedPlayers(it), tmS=it.team&&rteam(it.team);
+    h+=`<div class="ptags"><span class="note">Players</span>${tagged.length?tagged.map(p=>`<span class="chip">${esc(p.name)}<button data-untag="${p.id}" aria-label="Untag ${esc(p.name)}">×</button></span>`).join(""):'<span class="note">None tagged</span>'}</div>`;
+    h+='<div class="ptagadd"><input class="input" id="mk-ptag" placeholder="Tag a player…" autocomplete="off" aria-label="Tag a player"><div class="ptaglist" id="mk-ptaglist" hidden></div></div>';
+    if(tmS&&RO().players.some(p=>p.team===tmS.id&&(it.players||[]).indexOf(p.id)<0)) h+=`<div class="row"><button class="btn ghost" data-act="tag-team">+ Tag everyone in ${esc(tmS.name)}</button></div>`;}
+  h+=`<div class="row">${opts}<span style="flex:1"></span><button class="btn" data-act="dup-item">Duplicate</button><button class="btn danger" data-act="del-item">Delete</button></div>`;
+  el.innerHTML=h;
+}
+function tagPlayer(id){const it=findItem(MS.sel); if(!it) return; it.players=it.players||[]; if(it.players.includes(id)) return;
+  commit(); it.players.push(id); changed(); mkRender(); renderSel(); const inp=$("mk-ptag"); if(inp) inp.focus();}
+function renderTagList(){const inp=$("mk-ptag"), box=$("mk-ptaglist"), it=findItem(MS.sel); if(!inp||!box||!it) return;
+  const q=inp.value.trim().toLowerCase(), have=it.players||[];
+  let list=RO().players.filter(p=>!have.includes(p.id)&&(!q||p.name.toLowerCase().includes(q)));
+  list.sort((a,b)=>(a.name.toLowerCase().indexOf(q)===0?0:1)-(b.name.toLowerCase().indexOf(q)===0?0:1)||a.name.localeCompare(b.name)); list=list.slice(0,8);
+  if(!list.length){box.innerHTML=`<button disabled>${q?"No player matches":"Everyone is tagged"}</button>`; box.hidden=false; return;}
+  box.innerHTML=list.map((p,i)=>{const t=rteam(p.team); return `<button data-tag="${p.id}"${i===0?' class="on"':""}><span>${esc(p.name)}</span><small>${t?esc(t.name):""}${p.power!=null?(t?" · ":"")+fmtPower(p.power):""}</small></button>`;}).join(""); box.hidden=false;}
+const SELACT={
+  "sel-edit":()=>{MS.selOpen=true; renderSel();},
+  "desel":()=>{MS.sel=null; MS.selOpen=false; mkRender(); renderSel();},
+  "dup-item":()=>{const it=findItem(MS.sel); if(!it) return; const n=clone(it), o=14*F; n.x+=o; n.y+=o; if(n.x2!=null){n.x2+=o; n.y2+=o;} if(n.cx!=null){n.cx+=o; n.cy+=o;} delete n.id; addItem(n);},
+  "del-item":deleteSel,
+  "straighten":()=>{const it=findItem(MS.sel); if(!it) return; commit(); delete it.cx; delete it.cy; changed(); mkRender(); renderSel();},
+  "tag-team":()=>{const it=findItem(MS.sel), t=it&&it.team&&rteam(it.team); if(!t) return; commit(); it.players=it.players||[];
+    RO().players.forEach(p=>{if(p.team===t.id&&!it.players.includes(p.id)) it.players.push(p.id);}); changed(); mkRender(); renderSel();}};
+const ms=$("mksel");
+ms.addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; const ds=b.dataset, it=findItem(MS.sel);
+  if(ds.act&&SELACT[ds.act]){SELACT[ds.act](); return;}
+  if(!it) return;
+  if(ds.untag){commit(); it.players=(it.players||[]).filter(x=>x!==ds.untag); changed(); mkRender(); renderSel(); return;}
+  if(ds.tag){tagPlayer(ds.tag); return;}
+  if(ds.icolor){commit(); const [k,v]=[ds.icolor.slice(0,ds.icolor.indexOf(":")),ds.icolor.slice(ds.icolor.indexOf(":")+1)]; if(k==="al"){it.al=v; delete it.color;} else {it.color=v; delete it.al;} changed(); mkRender(); renderSel(); return;}
+  if(ds.leader!=null){commit(); it.ld=ds.leader==="1"; if(it.ld&&!it.lo) it.lo=clone(LEADER_DEF); changed(); mkRender(); renderSel(); if(it.ld) snapToast("Drag the label to move it"); return;}
+  if(ds.dash!=null){commit(); it.dash=ds.dash==="1"; changed(); mkRender(); renderSel(); return;}
+  if(ds.size){commit(); it.size=+ds.size; changed(); mkRender(); renderSel(); return;}});
+let mkTyping=null;
+ms.addEventListener("input",e=>{const t=e.target, it=findItem(MS.sel); if(!it) return;
+  if(t.id==="mk-label"){if(mkTyping!==it.id){commit(); mkTyping=it.id;} it.label=t.value; changed(); mkRender(); return;}
+  if(t.id==="mk-ptag") renderTagList();});
+ms.addEventListener("focusout",e=>{mkTyping=null; if(e.target.id==="mk-ptag") setTimeout(()=>{const b=$("mk-ptaglist"); if(b&&!ms.contains(document.activeElement)) b.hidden=true;},150);});
+ms.addEventListener("focusin",e=>{if(e.target.id==="mk-ptag") renderTagList();});
+ms.addEventListener("pointerdown",e=>{e.stopPropagation(); if(e.target.closest("#mk-ptaglist")) e.preventDefault();});
+ms.addEventListener("keydown",e=>{
+  if(e.target.id==="mk-label"&&(e.key==="Enter"||e.key==="Escape")){e.target.blur(); return;}
+  if(e.target.id!=="mk-ptag") return;
+  if(e.key==="Enter"){e.preventDefault(); const f=$("mk-ptaglist")&&$("mk-ptaglist").querySelector("[data-tag]"); if(f) tagPlayer(f.dataset.tag);}
+  if(e.key==="Escape"){e.stopPropagation(); e.target.blur();}});
+ms.addEventListener("change",e=>{const t=e.target, it=findItem(MS.sel); if(!it) return;
+  if(t.id==="mk-team"){commit(); it.team=t.value; const tm=rteam(it.team); if(tm&&it.type!=="hold"){it.color=tm.color; delete it.al;} changed(); mkRender(); renderSel();}
+  if(t.id==="mk-al"){commit(); it.al=t.value; changed(); mkRender(); renderSel(); renderAlliances();}});
+if(PHONE.addEventListener) PHONE.addEventListener("change",()=>renderSel());
+document.addEventListener("keydown",e=>{
+  const tag=(e.target.tagName||"").toLowerCase(), inField=tag==="input"||tag==="textarea"||tag==="select";
+  if(inField||S.mode!=="draw") return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="z"){e.preventDefault(); e.shiftKey?redo():undo(); return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="y"){e.preventDefault(); redo(); return;}
+  if(e.key==="Escape"&&MS.sel){MS.sel=null; mkRender(); renderSel(); return;}
+  if((e.key==="Delete"||e.key==="Backspace")&&MS.sel){e.preventDefault(); deleteSel(); return;}
+  if(e.ctrlKey||e.metaKey||e.altKey) return;
+  const t=TOOLS.find(x=>x!=="sep"&&x[2].toLowerCase()===e.key.toLowerCase()); if(t) setTool(t[0]);});
+
+/* key: markings section, with names you can change (like Grand Melee) */
+const MK_ROWS=[["hold","Stronghold"],["city","Move city"],["reinforce","Reinforce"],["attack","Attack"],["arrow","March"],["dash","Flank"],["line","Line"],["area","Area"],["text","Text"]];
+const mkName=(k,def)=>{const l=S.mkey.labels[k]; return (l!=null&&l!=="")?l:def;};
+function mkKeyIcon(kind,c){c=c||"#3E8CD7"; const o='<svg viewBox="0 0 22 22">', e="</svg>";
+  const g=(k,cx,cy,sz,ink)=>`<path transform="translate(${cx-sz/2} ${cy-sz/2}) scale(${sz/24})" d="${MG[k]||MG.note}" fill="none" stroke="${ink}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+  if(PIN[kind]) return o+`<circle cx="11" cy="11" r="8" fill="${c}" stroke="#0E1116" stroke-width="1.5"/>`+g(kind,11,11,10,isLight(c)?"#14181E":"#fff")+e;
+  if(kind==="arrow"||kind==="dash") return o+`<path d="M3 17 Q8 6 15 7" fill="none" stroke="${c}" stroke-width="2.2" stroke-linecap="round"${kind==="dash"?' stroke-dasharray="3.5 2.5"':""}/><path d="M20 7 L13.5 4 L15.3 7.2 L13.6 10.4Z" fill="${c}"/>`+e;
+  if(kind==="line") return o+`<path d="M3.5 17 18.5 5" stroke="${c}" stroke-width="2.2" stroke-linecap="round"/>`+e;
+  if(kind==="area") return o+`<circle cx="11" cy="11" r="7.5" fill="${c}" fill-opacity=".1" stroke="${c}" stroke-width="1.4" stroke-dasharray="3 2.4"/>`+e;
+  if(kind==="text") return o+'<rect x="2" y="6" width="18" height="10" rx="5" fill="#0E1116" stroke="rgba(255,255,255,.25)"/><rect x="2" y="6" width="2" height="10" rx="1" fill="#E8EAEE" fill-opacity=".6"/><path d="M7 11h9" stroke="#E8EAEE" stroke-width="1.4" stroke-linecap="round"/>'+e;
+  return "";}
+function renderMkKey(){
+  const box=$("mkkey"); if(!box) return; const c=itemCol(curPaint()), edit=MS.keyEdit;
+  let h=`<div class="kz kzrow"><span>Markings</span>${edit?'<span class="row" style="gap:4px"><button class="kbtn" data-kact="reset">Reset</button><button class="kbtn on" data-kact="done">Done</button></span>':'<button class="kbtn" data-kact="edit">Edit</button>'}</div>`;
+  MK_ROWS.forEach(r=>{const hid=!!S.mkey.hidden[r[0]];
+    if(!edit){if(!hid) h+=`<span>${mkKeyIcon(r[0],r[0]==="hold"?(alById(S.active)||{}).color||"#9aa3b2":c)}${esc(mkName(r[0],r[1]))}</span>`; return;}
+    h+=`<div class="krow${hid?" off":""}">${mkKeyIcon(r[0],c)}<input class="kin" data-mkey="${r[0]}" value="${esc(mkName(r[0],r[1]))}" placeholder="${esc(r[1])}" maxlength="24" aria-label="Key name for ${esc(r[1])}"><button class="kvis" data-mkvis="${r[0]}">${hid?"Show":"Hide"}</button></div>`;});
+  box.innerHTML=h; box.classList.toggle("editing",edit);
+}
+$("mkkey").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return;
+  if(b.dataset.kact==="edit"){MS.keyEdit=true; renderMkKey();} else if(b.dataset.kact==="done"){MS.keyEdit=false; renderMkKey();}
+  else if(b.dataset.kact==="reset"){commit(); S.mkey={labels:{},hidden:{}}; changed(); renderMkKey();}
+  else if(b.dataset.mkvis){commit(); const k=b.dataset.mkvis; if(S.mkey.hidden[k]) delete S.mkey.hidden[k]; else S.mkey.hidden[k]=true; changed(); renderMkKey();}});
+let keyTyping=null;
+$("mkkey").addEventListener("input",e=>{const k=e.target.dataset.mkey; if(!k) return; if(keyTyping!==k){commit(); keyTyping=k;}
+  if(e.target.value.trim()) S.mkey.labels[k]=e.target.value; else delete S.mkey.labels[k]; changed();});
+$("mkkey").addEventListener("focusout",()=>keyTyping=null);
+
+/* ---------- roster: teams and players to tag on markings (same as Grand Melee) ---------- */
+function parsePower(v){v=String(v==null?"":v).trim().replace(/[,\s]/g,"").toUpperCase(); if(!v) return null;
+  const m=/^(\d+(?:\.\d+)?)([KMB])?$/.exec(v); if(!m) return null; return parseFloat(m[1])*({K:1e3,M:1e6,B:1e9}[m[2]]||1);}
+function fmtPower(n){if(n==null||isNaN(n)) return ""; const a=Math.abs(n);
+  if(a>=1e9) return +(n/1e9).toFixed(2)+"B"; if(a>=1e6) return +(n/1e6).toFixed(1)+"M"; if(a>=1e3) return +(n/1e3).toFixed(1)+"K"; return String(+n.toFixed(2));}
+function nextTeamColor(){const used=RO().teams.map(t=>t.color.toLowerCase()); return RCOLS.find(c=>!used.includes(c.toLowerCase()))||RCOLS[RO().teams.length%RCOLS.length];}
+function teamStats(){const s={"":{n:0,p:0}}; RO().teams.forEach(t=>s[t.id]={n:0,p:0});
+  RO().players.forEach(p=>{const k=rteam(p.team)?p.team:""; s[k].n++; if(p.power!=null) s[k].p+=p.power;}); return s;}
+function parseRows(text){
+  text=String(text||"").replace(/^﻿/,"");
+  const d=text.includes("\t")?"\t":text.includes(",")?",":text.includes(";")?";":",";
+  const rows=[]; let row=[], f="", q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"'; i++;} else q=false;} else f+=c; continue;}
+    if(c==='"'&&f.trim()===""){q=true; f=""; continue;}
+    if(c===d){row.push(f); f=""; continue;}
+    if(c==="\n"||c==="\r"){if(c==="\r"&&text[i+1]==="\n") i++; row.push(f); rows.push(row); row=[]; f=""; continue;}
+    f+=c;}
+  if(f!==""||row.length){row.push(f); rows.push(row);}
+  return rows.map(r=>r.map(x=>x.trim())).filter(r=>r.some(x=>x));}
+function rowsToPlayers(rows){
+  if(!rows.length) return [];
+  const head=rows[0].map(x=>x.toLowerCase()); let ni=-1,pi=-1,ti=-1;
+  head.forEach((h,i)=>{if(ni<0&&/^(name|player|players|ign|player name|governor|member)$/.test(h)) ni=i;
+    else if(pi<0&&/^(power|might|cp|total power)$/.test(h)) pi=i; else if(ti<0&&/^(team|squad|group|team name)$/.test(h)) ti=i;});
+  const out=[];
+  if(ni>=0){rows.slice(1).forEach(r=>{const name=(r[ni]||"").trim(); if(!name) return; out.push({name,power:pi>=0?parsePower(r[pi]):null,teamName:ti>=0?(r[ti]||"").trim():""});}); return out;}
+  rows.forEach(r=>{const name=(r[0]||"").trim(); if(!name) return; let power=null, teamName="";
+    r.slice(1).forEach(x=>{if(!x) return; const pw=parsePower(x); if(pw!=null&&power==null) power=pw; else if(!teamName) teamName=x;});
+    out.push({name,power,teamName});});
+  return out;}
+function teamByName(name,create){const n=String(name||"").trim(); if(!n) return null;
+  let t=RO().teams.find(x=>x.name.toLowerCase()===n.toLowerCase());
+  if(!t&&create){t={id:uid(),name:n.slice(0,24),color:nextTeamColor()}; RO().teams.push(t);} return t||null;}
+function applyPlayers(list,mode){
+  commit();
+  if(mode==="replace"){const hasTeams=list.some(p=>p.teamName); RO().players=[]; if(hasTeams) RO().teams=[];}
+  const byName={}; RO().players.forEach(p=>byName[p.name.toLowerCase()]=p); let added=0, updated=0;
+  list.forEach(x=>{const t=x.teamName?teamByName(x.teamName,true):null, ex=byName[x.name.toLowerCase()];
+    if(ex){if(x.power!=null) ex.power=x.power; if(t) ex.team=t.id; if(x.src) ex.src=x.src; updated++;}
+    else{const p={id:uid(),name:x.name.slice(0,32),power:x.power,team:t?t.id:""}; if(x.src) p.src=x.src; RO().players.push(p); byName[x.name.toLowerCase()]=p; added++;}});
+  changed(); renderRoster(); renderSel(); mkRender();
+  return {added,updated};}
+function rosterCSV(){
+  const q=v=>{v=v==null?"":String(v); return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  const order={}; RO().teams.forEach((t,i)=>order[t.id]=i);
+  const ps=RO().players.slice().sort((a,b)=>(order[a.team]!=null?order[a.team]:999)-(order[b.team]!=null?order[b.team]:999));
+  const lines=["Name,Power,Team"];
+  ps.forEach(p=>{const t=rteam(p.team); lines.push([q(p.name),p.power==null?"":q(p.power),q(t?t.name:"")].join(","));});
+  RO().teams.forEach(t=>{if(!ps.some(p=>p.team===t.id)) lines.push(",,"+q(t.name));});
+  return lines.join("\r\n")+"\r\n";}
+function saveFile(name,blob,okMsg){const url=URL.createObjectURL(blob), a=document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); snapToast(okMsg);}
+function autoSplit(onlyUnassigned){
+  const teams=RO().teams; if(!teams.length) return; commit();
+  const tot={}; teams.forEach(t=>tot[t.id]={n:0,p:0}); const pool=[];
+  RO().players.forEach(p=>{if(onlyUnassigned&&rteam(p.team)){tot[p.team].n++; tot[p.team].p+=p.power||0;} else pool.push(p);});
+  pool.sort((a,b)=>(b.power||0)-(a.power||0)||a.name.localeCompare(b.name));
+  const mv={}; teams.forEach(t=>mv[t.id]=[]);
+  pool.forEach(p=>{let best=null; teams.forEach(t=>{const s=tot[t.id]; if(!best||s.n<tot[best].n||(s.n===tot[best].n&&s.p<tot[best].p)) best=t.id;}); p.team=best; tot[best].n++; tot[best].p+=p.power||0; mv[best].push(p);});
+  /* trade players between teams (sizes stay equal) until power totals are as close as possible */
+  const Gs=teams.map(t=>({id:t.id,p:tot[t.id].p,ps:mv[t.id]})), pw=p=>p.power||0, avg=Gs.reduce((a,g)=>a+g.p,0)/Gs.length;
+  for(let k=0;k<500;k++){let gain=0,bi=-1,bj=-1,ba=-1,bb=-1;
+    for(let i=0;i<Gs.length;i++) for(let j=i+1;j<Gs.length;j++){const A=Gs[i],B=Gs[j],before=Math.pow(A.p-avg,2)+Math.pow(B.p-avg,2);
+      for(let x=0;x<A.ps.length;x++) for(let y=0;y<B.ps.length;y++){const d=pw(A.ps[x])-pw(B.ps[y]); if(!d) continue;
+        const g=before-(Math.pow(A.p-d-avg,2)+Math.pow(B.p+d-avg,2)); if(g>gain+1e-6){gain=g; bi=i; bj=j; ba=x; bb=y;}}}
+    if(bi<0) break;
+    const A2=Gs[bi],B2=Gs[bj],pa=A2.ps[ba],pb=B2.ps[bb],dd=pw(pa)-pw(pb); A2.ps[ba]=pb; B2.ps[bb]=pa; pa.team=B2.id; pb.team=A2.id; A2.p-=dd; B2.p+=dd;}
+  changed(); renderRoster(); snapToast(`Split ${pool.length} player${pool.length===1?"":"s"} across ${teams.length} teams`);}
+function renderRoster(){
+  const r=RO(), s=teamStats(); let h="";
+  const rtot=r.players.reduce((a,p)=>a+(p.power||0),0);
+  $("gm-rsum").textContent=r.players.length+" player"+(r.players.length===1?"":"s")+(rtot?" · "+fmtPower(rtot):"");
+  h+='<div class="alli">';
+  r.teams.forEach(t=>{const on=MS.rfilter===t.id;
+    h+=`<div class="al rteam${on?" on":""}" data-rfilter="${t.id}"><button class="dot" style="background:${t.color}" data-rtcolor="${t.id}" aria-label="Change ${esc(t.name)} color"></button><input data-rtname="${t.id}" value="${esc(t.name)}" maxlength="24" aria-label="Team name"><div class="pts">${s[t.id].n}<small>${s[t.id].p?fmtPower(s[t.id].p):"—"}</small></div><button class="rx" data-rtdel="${t.id}" title="Delete team" aria-label="Delete ${esc(t.name)}">×</button></div>`;
+    if(MS.rpicker===t.id) h+=`<div class="swatches">${PALETTE.map(c=>`<button style="background:${c}" data-rtc="${c}" aria-pressed="${c.toLowerCase()===t.color.toLowerCase()}" aria-label="${c}"></button>`).join("")}</div>`;});
+  if(!r.teams.length) h+='<div class="empty">No teams yet. Add one, or upload a CSV with a Team column.</div>';
+  h+="</div>";
+  if(s[""].n&&r.teams.length) h+=`<p class="note">${s[""].n} unassigned</p>`;
+  h+=`<div class="row"><button class="btn" data-ract="addteam">+ Team</button><button class="btn" data-ract="split" ${r.players.length&&r.teams.length?"":"disabled"}>Auto-split</button><button class="btn ghost" data-ract="toggleadd">${MS.radd?"Hide add":"+ Add players"}</button>${dg.open?"":'<button class="btn ghost" data-ract="deng">+ From Deng’s Den</button>'}</div>`;
+  if(MS.rconfirm==="split") h+=`<div class="confirm">Split into ${r.teams.length} equal-size teams with power as even as possible. <button class="btn primary" data-ract="split-all">Split everyone</button>${s[""].n&&s[""].n<r.players.length?`<button class="btn" data-ract="split-un">Only unassigned (${s[""].n})</button>`:""}<button class="btn ghost" data-ract="cancel">Cancel</button></div>`;
+  if(MS.rconfirm==="clear") h+=`<div class="confirm">Remove all ${r.players.length} players and every team? <button class="btn danger" data-ract="clear-yes">Clear roster</button><button class="btn ghost" data-ract="cancel">Cancel</button></div>`;
+  if(MS.rimport){const im=MS.rimport, tn={}; im.list.forEach(p=>{if(p.teamName) tn[p.teamName.toLowerCase()]=1;}); const nt=Object.keys(tn).length;
+    h+=`<div class="confirm">Found ${im.list.length} player${im.list.length===1?"":"s"}${nt?` in ${nt} team${nt===1?"":"s"}`:""} in ${esc(im.file)}. <button class="btn primary" data-ract="imp-replace">Replace roster</button><button class="btn" data-ract="imp-merge">Add to roster</button><button class="btn ghost" data-ract="cancel">Cancel</button></div>`;}
+  if(MS.radd) h+='<div class="field"><label for="gm-radd">Paste players, one per line. Power and team are optional.</label><textarea id="gm-radd" placeholder="Zuko, 85M, Team 1&#10;Azula, 120M&#10;Mai"></textarea><div class="row"><button class="btn primary" data-ract="add">Add players</button><span class="note">Columns copied from a spreadsheet work too.</span></div></div>';
+  $("gm-rhead").innerHTML=h;
+  if(!$("gm-rfilters").dataset.built){$("gm-rfilters").dataset.built="1";
+    $("gm-rfilters").innerHTML='<input class="input" id="gm-rsearch" placeholder="Search players" aria-label="Search players"><select class="input" id="gm-rteamf" aria-label="Show team"></select>';}
+  const sel=$("gm-rteamf");
+  sel.innerHTML='<option value="">All teams</option><option value="-">Unassigned</option>'+r.teams.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join("");
+  sel.value=MS.rfilter||""; $("gm-rfilters").hidden=!r.players.length;
+  renderRosterList();
+  const fromDeng=r.players.filter(p=>p.src).length;
+  $("gm-rfoot").innerHTML=(fromDeng?`<button class="btn" data-ract="refresh" title="Update the power of the ${fromDeng} players added from Deng’s Den">Refresh power</button>`:"")+`<button class="btn" data-ract="upload">Upload CSV</button><button class="btn" data-ract="download" ${r.players.length||r.teams.length?"":"disabled"}>Download CSV</button>`+(r.players.length?'<button class="btn ghost danger" data-ract="clear">Clear</button>':"");
+}
+function renderRosterList(){
+  const r=RO(), q=(MS.rsearch||"").toLowerCase(), f=MS.rfilter||"";
+  const opts=cur=>'<option value="">No team</option>'+r.teams.map(t=>`<option value="${t.id}"${t.id===cur?" selected":""}>${esc(t.name)}</option>`).join("");
+  const list=r.players.filter(p=>{if(q&&!p.name.toLowerCase().includes(q)) return false; if(f==="-") return !rteam(p.team); if(f) return p.team===f; return true;});
+  let h="";
+  if(!r.players.length) h='<div class="empty">No players yet. Paste a list with <b>+ Add players</b>, or upload a CSV with columns Name, Power, Team. Then tag players on any marking.</div>';
+  else if(!list.length) h='<p class="note">No players match.</p>';
+  else list.forEach(p=>{const t=rteam(p.team);
+    h+=`<div class="prow" style="--tc:${t?t.color:"transparent"}"><input class="pin" data-pname="${p.id}" value="${esc(p.name)}" maxlength="32" aria-label="Player name"><input class="pin pw" data-ppow="${p.id}" value="${esc(fmtPower(p.power))}" placeholder="Power" aria-label="Power" inputmode="decimal"><select class="pin" data-pteam="${p.id}" aria-label="Team">${opts(t?t.id:"")}</select><button class="rx" data-pdel="${p.id}" aria-label="Remove ${esc(p.name)}">×</button></div>`;});
+  $("gm-rlist").innerHTML=h;
+}
+const rc=$("cardRoster");
+const rfile=document.createElement("input"); rfile.type="file"; rfile.accept=".csv,.tsv,.txt,text/csv,text/plain"; rfile.hidden=true; document.body.appendChild(rfile);
+rfile.addEventListener("change",()=>{const f=rfile.files&&rfile.files[0]; if(!f) return; const rd=new FileReader();
+  rd.onload=()=>{const list=rowsToPlayers(parseRows(rd.result)); rfile.value="";
+    if(!list.length){snapToast("No players found. The file needs a name in the first column, or a Name header."); return;}
+    if(!RO().players.length){const res=applyPlayers(list,"replace"); snapToast("Loaded "+res.added+" players"); return;}
+    MS.rimport={list,file:f.name}; MS.rconfirm=null; renderRoster();};
+  rd.onerror=()=>snapToast("That file couldn’t be read."); rd.readAsText(f);});
+const RACT={
+  addteam:()=>{commit(); const t={id:uid(),name:"Team "+(RO().teams.length+1),color:nextTeamColor()}; RO().teams.push(t); changed(); renderRoster(); const i=rc.querySelector(`[data-rtname="${t.id}"]`); if(i){i.focus(); i.select();}},
+  split:()=>{MS.rconfirm="split"; MS.rimport=null; renderRoster();},
+  "split-all":()=>{MS.rconfirm=null; autoSplit(false);}, "split-un":()=>{MS.rconfirm=null; autoSplit(true);},
+  cancel:()=>{MS.rconfirm=null; MS.rimport=null; renderRoster();},
+  toggleadd:()=>{MS.radd=!MS.radd; renderRoster(); if(MS.radd){const ta=$("gm-radd"); if(ta) ta.focus();}},
+  add:()=>{const list=rowsToPlayers(parseRows($("gm-radd").value)); if(!list.length){snapToast("Type or paste at least one player name."); return;}
+    const res=applyPlayers(list,"merge"); MS.radd=false; renderRoster(); snapToast(`Added ${res.added} player${res.added===1?"":"s"}${res.updated?", updated "+res.updated:""}`);},
+  upload:()=>rfile.click(),
+  download:()=>saveFile("glowworms-ruse-roster.csv",new Blob(["﻿"+rosterCSV()],{type:"text/csv"}),"Roster downloaded"),
+  "imp-replace":()=>{const im=MS.rimport; MS.rimport=null; const res=applyPlayers(im.list,"replace"); snapToast("Loaded "+res.added+" players");},
+  "imp-merge":()=>{const im=MS.rimport; MS.rimport=null; const res=applyPlayers(im.list,"merge"); snapToast("Added "+res.added+", updated "+res.updated);},
+  clear:()=>{MS.rconfirm="clear"; MS.rimport=null; renderRoster();},
+  "clear-yes":()=>{commit(); RO().players=[]; RO().teams=[]; MS.rconfirm=null; MS.rfilter=""; changed(); renderRoster(); mkRender(); renderSel();},
+  deng:()=>{dgOpen(); renderRoster();}, refresh:b=>refreshPower(b)};
+rc.addEventListener("click",e=>{const b=e.target.closest("button"), ds=b?b.dataset:{};
+  if(e.target.closest("#gm-deng")) return;
+  if(ds.ract&&RACT[ds.ract]){RACT[ds.ract](b); return;}
+  if(ds.rtcolor){MS.rpicker=MS.rpicker===ds.rtcolor?null:ds.rtcolor; renderRoster(); return;}
+  if(ds.rtc){const t=rteam(MS.rpicker); if(t){commit(); t.color=ds.rtc; changed();} MS.rpicker=null; renderRoster(); mkRender(); renderSel(); return;}
+  if(ds.rtdel){commit(); const id=ds.rtdel; RO().teams=RO().teams.filter(t=>t.id!==id); RO().players.forEach(p=>{if(p.team===id) p.team="";}); if(MS.rfilter===id) MS.rfilter=""; changed(); renderRoster(); mkRender(); renderSel(); return;}
+  if(ds.pdel){commit(); RO().players=RO().players.filter(p=>p.id!==ds.pdel); changed(); renderRoster(); return;}
+  if(b) return;
+  const row=e.target.closest("[data-rfilter]"); if(row&&e.target.tagName!=="INPUT"){MS.rfilter=MS.rfilter===row.dataset.rfilter?"":row.dataset.rfilter; renderRoster();}});
+rc.addEventListener("change",e=>{const t=e.target, ds=t.dataset;
+  if(t.id==="gm-rteamf"){MS.rfilter=t.value; renderRoster(); return;}
+  if(ds.pteam){const p=RO().players.find(x=>x.id===ds.pteam); if(!p) return; commit(); p.team=t.value; changed(); renderRoster(); return;}
+  if(ds.ppow){const p2=RO().players.find(x=>x.id===ds.ppow); if(!p2) return; const v=t.value.trim(), n=parsePower(v);
+    if(v&&n==null){t.value=fmtPower(p2.power); snapToast("Power should be a number like 85M, 1.2B or 850000"); return;}
+    commit(); p2.power=v?n:null; changed(); renderRoster();}});
+let rTyping=null;
+rc.addEventListener("input",e=>{const t=e.target, ds=t.dataset;
+  if(t.id==="gm-rsearch"){MS.rsearch=t.value; renderRosterList(); return;}
+  if(ds.pname){if(rTyping!=="pn"+ds.pname){commit(); rTyping="pn"+ds.pname;} const pl=RO().players.find(x=>x.id===ds.pname); if(pl&&t.value.trim()) pl.name=t.value.trim(); changed(); mkRender(); return;}
+  if(ds.rtname){if(rTyping!=="rt"+ds.rtname){commit(); rTyping="rt"+ds.rtname;} const rt=rteam(ds.rtname); if(rt){rt.name=t.value; renderRosterList(); const o=$("gm-rteamf")&&$("gm-rteamf").querySelector(`option[value="${rt.id}"]`); if(o) o.textContent=t.value; mkRender();} changed();}});
+rc.addEventListener("focusout",()=>rTyping=null);
+
+/* import players from Deng's Den (top 8 alliances per server, refreshed daily) */
+const DENG_BASE="https://raw.githubusercontent.com/zephyrus44/zephyrus44.github.io/deng-alliances/";
+const dg={open:false,index:null,loading:false,err:"",q:"",server:null,data:null,ally:-1,pq:"",sel:{},team:""};
+const dgFetch=path=>fetch(DENG_BASE+path,{cache:"no-cache"}).then(r=>{if(!r.ok) throw new Error(r.status); return r.json();});
+const dgDate=iso=>{const d=new Date(iso); return isNaN(d)?"":d.toLocaleDateString(undefined,{month:"short",day:"numeric"});};
+function dgOpen(){dg.open=true; renderDeng();
+  if(!dg.index&&!dg.loading){dg.loading=true; dg.err=""; renderDeng();
+    dgFetch("index.json").then(j=>{dg.index=j; dg.loading=false; renderDeng(); const i=$("gm-dq"); if(i) i.focus();})
+      .catch(()=>{dg.loading=false; dg.err="Couldn’t load the Deng’s Den data. Check your connection and try again."; renderDeng();});}}
+function dgPickServer(n,allyName){dg.server=n; dg.data=null; dg.ally=-1; dg.sel={}; dg.pq=""; dg.err=""; dg.loading=true; renderDeng();
+  dgFetch("servers/"+n+".json").then(j=>{if(dg.server!==n) return; dg.data=j; dg.loading=false; if(allyName) j.alliances.forEach((a,i)=>{if(a.name===allyName) dgPickAlly(i,true);}); renderDeng();})
+    .catch(()=>{dg.loading=false; dg.err="Couldn’t load server "+n+". Try again."; renderDeng();});}
+function dgPickAlly(i,quiet){dg.ally=i; dg.sel={}; dg.pq=""; dg.team=""; if(!quiet) renderDeng();}
+function dgMatches(){const q=dg.q.trim().toLowerCase(), out=[]; if(!dg.index) return out;
+  const servers=Object.keys(dg.index.servers).map(Number).sort((a,b)=>a-b); if(!q) return out;
+  if(/^\d+$/.test(q)) servers.filter(s=>String(s).indexOf(q)===0).slice(0,12).forEach(s=>{const al=dg.index.servers[s]||[]; out.push({server:s,label:"Server "+s,sub:al.slice(0,3).map(a=>a.name).join(", ")});});
+  if(q.length>=2) servers.forEach(s=>{(dg.index.servers[s]||[]).forEach(a=>{if(out.length>=30) return;
+    if((a.name||"").toLowerCase().includes(q)||(a.tag||"").toLowerCase().includes(q)) out.push({server:s,ally:a.name,label:(a.tag?"["+a.tag+"] ":"")+a.name,sub:"Server "+s+" · "+fmtPower(a.power)+" · "+a.n+" players"});});});
+  return out;}
+function dgSelected(){const a=dg.data&&dg.data.alliances[dg.ally]; if(!a) return []; return a.players.filter(p=>dg.sel[p[0]]);}
+function renderDengList(){const a=dg.data&&dg.data.alliances[dg.ally], box=$("gm-dlist"); if(!a||!box) return;
+  const q=dg.pq.trim().toLowerCase(), inRoster={}; RO().players.forEach(p=>inRoster[p.name.toLowerCase()]=1);
+  const rows=a.players.filter(p=>!q||p[0].toLowerCase().includes(q));
+  box.innerHTML=rows.length?rows.map(p=>{const id="dgp-"+encodeURIComponent(p[0]).replace(/[^a-zA-Z0-9]/g,"_");
+    return `<label class="dprow" for="${id}"><input type="checkbox" id="${id}" data-dgp="${esc(p[0])}"${dg.sel[p[0]]?" checked":""}><span class="dpn">${esc(p[0])}${inRoster[p[0].toLowerCase()]?" <small>in roster</small>":""}</span><span class="dpp">${fmtPower(p[1])}</span></label>`;}).join(""):'<p class="note">No player matches.</p>';
+  renderDengFoot();}
+function renderDengFoot(){const f=$("gm-dfoot"); if(!f) return;
+  const sel=dgSelected(), tot=sel.reduce((s,p)=>s+p[1],0), a=dg.data&&dg.data.alliances[dg.ally];
+  const opts='<option value="">No team</option>'+RO().teams.map(t=>`<option value="${t.id}"${dg.team===t.id?" selected":""}>${esc(t.name)}</option>`).join("")+(a?`<option value="@new"${dg.team==="@new"?" selected":""}>New team: ${esc(a.name)}</option>`:"");
+  f.innerHTML=`<div class="dtot"><b>${sel.length}</b> selected<span>${sel.length?fmtPower(tot)+" total power":"Tick players to add them"}</span></div><div class="row"><select class="input" id="gm-dteam" aria-label="Add to team" style="flex:1;width:auto">${opts}</select><button class="btn primary" data-dact="add"${sel.length?"":" disabled"}>Add to roster</button></div>`;}
+function renderDeng(){const el=$("gm-deng"); if(!el) return;
+  if(!dg.open){el.innerHTML=""; el.hidden=true; return;} el.hidden=false;
+  let h=`<div class="dhead"><b>Import from Deng’s Den</b>${dg.index?`<span class="note">Updated ${dgDate(dg.index.taken_at)}</span>`:""}<button class="rx" data-dact="close" aria-label="Close import">×</button></div>`;
+  if(dg.err) h+=`<p class="note" style="color:var(--danger)">${esc(dg.err)}</p>`;
+  if(dg.server==null){
+    h+=`<div class="ptagadd"><input class="input" id="gm-dq" placeholder="Server number or alliance name" autocomplete="off" value="${esc(dg.q)}" aria-label="Find a server or alliance"${dg.index?"":" disabled"}><div class="ptaglist dlist-pop" id="gm-dqlist" hidden></div></div>`;
+    h+=`<p class="note">${dg.loading?"Loading…":'Covers the 8 strongest alliances on every server, with each member’s power. From <a href="https://dengsden.com/avatar/rankings/" target="_blank" rel="noopener">Deng’s Den</a>, refreshed daily.'}</p>`;
+    el.innerHTML=h; return;}
+  h+=`<div class="row"><span class="chip">Server ${dg.server}<button data-dact="unserver" aria-label="Change server">×</button></span></div>`;
+  if(dg.loading||!dg.data){el.innerHTML=h+`<p class="note">Loading server ${dg.server}…</p>`; return;}
+  h+='<div class="dallies">'+dg.data.alliances.map((a,i)=>`<button data-dga="${i}" aria-pressed="${dg.ally===i}"${a.players.length?"":" disabled"}><span>${a.tag?`<small>[${esc(a.tag)}]</small> `:""}${esc(a.name)}</span><small>${fmtPower(a.power)} · ${a.players.length?a.players.length+" players":"no list"}</small></button>`).join("")+"</div>";
+  const a=dg.data.alliances[dg.ally];
+  if(a) h+=`<div class="dsearch"><input class="input" id="gm-dpq" placeholder="Search ${esc(a.name)}" autocomplete="off" value="${esc(dg.pq)}" aria-label="Search players"><button class="btn ghost" data-dact="all">All</button><button class="btn ghost" data-dact="none">None</button></div><div class="dplist" id="gm-dlist"></div><div class="dfoot" id="gm-dfoot"></div>`;
+  else h+='<p class="note">Pick an alliance to see its players.</p>';
+  el.innerHTML=h; if(a) renderDengList();}
+const dgEl=$("gm-deng");
+dgEl.addEventListener("input",e=>{
+  if(e.target.id==="gm-dq"){dg.q=e.target.value; const m=dgMatches(), box=$("gm-dqlist");
+    box.innerHTML=m.length?m.map((x,i)=>`<button data-dgs="${x.server}"${x.ally?` data-dgsa="${esc(x.ally)}"`:""}${i===0?' class="on"':""}><span>${esc(x.label)}</span><small>${esc(x.sub)}</small></button>`).join(""):(dg.q.trim()?"<button disabled>No server or alliance matches</button>":"");
+    box.hidden=!box.innerHTML;}
+  else if(e.target.id==="gm-dpq"){dg.pq=e.target.value; renderDengList();}});
+dgEl.addEventListener("keydown",e=>{if(e.target.id==="gm-dq"&&e.key==="Enter"){e.preventDefault(); const f=$("gm-dqlist")&&$("gm-dqlist").querySelector("[data-dgs]"); if(f) dgPickServer(+f.dataset.dgs,f.dataset.dgsa);}});
+dgEl.addEventListener("pointerdown",e=>{if(e.target.closest("#gm-dqlist")) e.preventDefault();});
+dgEl.addEventListener("change",e=>{if(e.target.dataset.dgp!=null){const n=e.target.dataset.dgp; if(e.target.checked) dg.sel[n]=1; else delete dg.sel[n]; renderDengFoot();} if(e.target.id==="gm-dteam") dg.team=e.target.value;});
+dgEl.addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return;
+  if(b.dataset.dgs){dgPickServer(+b.dataset.dgs,b.dataset.dgsa); return;}
+  if(b.dataset.dga!=null){dgPickAlly(+b.dataset.dga); return;}
+  const a=b.dataset.dact;
+  if(a==="close"){dg.open=false; renderDeng(); renderRoster();}
+  else if(a==="unserver"){dg.server=null; dg.data=null; dg.ally=-1; dg.sel={}; renderDeng(); const i=$("gm-dq"); if(i){i.focus(); i.select();}}
+  else if(a==="all"){const al=dg.data.alliances[dg.ally], q=dg.pq.trim().toLowerCase(); al.players.forEach(p=>{if(!q||p[0].toLowerCase().includes(q)) dg.sel[p[0]]=1;}); renderDengList();}
+  else if(a==="none"){dg.sel={}; renderDengList();}
+  else if(a==="add"){const sel=dgSelected(), al2=dg.data.alliances[dg.ally]; let tn=""; if(!sel.length) return;
+    if(dg.team==="@new") tn=al2.name; else if(dg.team){const t=rteam(dg.team); tn=t?t.name:"";}
+    const res=applyPlayers(sel.map(p=>({name:p[0],power:p[1],teamName:tn,src:dg.server})),"merge"); dg.sel={}; renderDengList(); renderRoster();
+    snapToast("Added "+res.added+(res.updated?", updated "+res.updated:"")+" from "+al2.name);}});
+function refreshPower(btn){
+  const bySrv={}; RO().players.forEach(p=>{if(p.src)(bySrv[p.src]=bySrv[p.src]||[]).push(p);}); const srvs=Object.keys(bySrv); if(!srvs.length) return;
+  if(btn){btn.disabled=true; btn.textContent="Refreshing…";}
+  Promise.all(srvs.map(n=>dgFetch("servers/"+n+".json").then(j=>({n,j}),()=>({n,j:null})))).then(res=>{
+    let missing=[],failed=0,when="",changes=[],same=0;
+    res.forEach(x=>{if(!x.j){failed+=bySrv[x.n].length; return;} when=x.j.taken_at||when;
+      const pw={}; x.j.alliances.forEach(a=>a.players.forEach(p=>pw[p[0].toLowerCase()]=p[1]));
+      bySrv[x.n].forEach(p=>{const v=pw[p.name.toLowerCase()]; if(v==null) missing.push(p.name); else if(v!==p.power) changes.push([p,v]); else same++;});});
+    if(changes.length){commit(); changes.forEach(c=>c[0].power=c[1]); changed();}
+    renderRoster();
+    let msg=changes.length?`Updated power for ${changes.length} player${changes.length===1?"":"s"}`:"Power is already up to date";
+    if(when) msg+=" (Deng’s Den, "+dgDate(when)+")";
+    if(missing.length) msg+=". Not found: "+missing.slice(0,3).join(", ")+(missing.length>3?" +"+(missing.length-3):"");
+    if(failed) msg+=`. Couldn’t reach the data for ${failed} player${failed===1?"":"s"}.`;
+    snapToast(msg);});
+}
 
 /* ---------- view: pan / zoom ---------- */
 const wrap=$("wrap"),vp=$("vp");
@@ -882,40 +1512,32 @@ function fit(mode){const r=wrap.getBoundingClientRect(), whole=Math.min(r.width,
 function apply(){vp.setAttribute("transform",`translate(${V.x} ${V.y}) scale(${V.s})`); rulers();
   /* labels by on-screen scale (px per map unit), so phones and desktops switch at the same apparent size */
   const m=$("map"), z=V.s; m.style.setProperty("--zs",V.s);
-  m.classList.toggle("lz1",z>=2.7&&z<5.4); m.classList.toggle("lz2",z>=5.4);}
+  m.classList.toggle("lz1",z>=2.7&&z<5.4); m.classList.toggle("lz2",z>=5.4);
+  if(Math.abs(liveF()-F)>1e-4) mkRender();}
 function zoomAt(f,cx,cy){const ns=Math.min(40,Math.max(.4,V.s*f)); f=ns/V.s; V.x=cx-(cx-V.x)*f; V.y=cy-(cy-V.y)*f; V.s=ns; apply();}
 wrap.addEventListener("wheel",e=>{e.preventDefault(); const r=wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top);},{passive:false});
 const ptrs=new Map(); let moved=0,last=null,pinch=null;
 const toMap=e=>{const r=wrap.getBoundingClientRect(); return {x:(e.clientX-r.left-V.x)/V.s, y:(e.clientY-r.top-V.y)/V.s};};
-const SHAPES=["arrow","circle","rect","tri"];
-wrap.addEventListener("pointerdown",e=>{ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); moved=0; last={x:e.clientX,y:e.clientY};
-  if(ptrs.size===2){draft=null; if(drag){drag=null; save();} paintShapes(); const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2}; return;}
-  if(S.mode==="draw"&&ptrs.size===1&&S.tool!=="erase"){const m=toMap(e), hit=pointAt(m);
-    if(hit>=0){const sh=S.shapes[hit]; drag={i:hit,dx:sh.x-m.x,dy:sh.y-m.y,moved:false}; try{wrap.setPointerCapture(e.pointerId);}catch(_){} return;}}
-  if(S.mode==="draw"&&SHAPES.includes(S.tool)&&ptrs.size===1){const m=toMap(e); draft={t:S.tool,...curPaint(),x0:m.x,y0:m.y,x1:m.x,y1:m.y}; try{wrap.setPointerCapture(e.pointerId);}catch(_){}}
+wrap.addEventListener("pointerdown",e=>{if(e.button>0) return; ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY}); moved=0; last={x:e.clientX,y:e.clientY};
+  if(ptrs.size===2){if(S.mode==="draw"){if(mkG&&mkG.committed) changed(); mkCancel();} const [a,b]=[...ptrs.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2}; return;}
+  if(S.mode==="draw"&&ptrs.size===1){const ae=document.activeElement; if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) ae.blur();
+    try{wrap.setPointerCapture(e.pointerId);}catch(_){} mkDown(e);}
 });
 wrap.addEventListener("pointermove",e=>{
-  if(!ptrs.has(e.pointerId)){hover(e);return;}
+  if(!ptrs.has(e.pointerId)){hover(e); if(S.mode==="draw") mkHover(e); return;}
   ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(ptrs.size===2&&pinch){const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y), mx=(a.x+b.x)/2, my=(a.y+b.y)/2, r=wrap.getBoundingClientRect();
     V.x+=mx-pinch.mx; V.y+=my-pinch.my; zoomAt(d/pinch.d,mx-r.left,my-r.top); pinch.d=d; pinch.mx=mx; pinch.my=my; moved=99; return;}
+  if(S.mode==="draw"){mkMove(e); return;}
   const dx=e.clientX-last.x,dy=e.clientY-last.y; moved+=Math.abs(dx)+Math.abs(dy); last={x:e.clientX,y:e.clientY};
-  if(drag){if(moved>4){const m=toMap(e), sh=S.shapes[drag.i]; sh.x=m.x+drag.dx; sh.y=m.y+drag.dy; drag.moved=true; paintShapes();} $("tip").hidden=true; return;}
-  if(draft){const m=toMap(e); draft.x1=m.x; draft.y1=m.y; paintShapes(); $("tip").hidden=true; return;}
-  if(S.mode==="draw") return;
   if(moved>5){wrap.classList.add("drag"); V.x+=dx; V.y+=dy; apply(); $("tip").hidden=true;}
 });
 const up=e=>{
   const had=ptrs.has(e.pointerId); ptrs.delete(e.pointerId); if(ptrs.size<2) pinch=null; wrap.classList.remove("drag");
+  try{wrap.releasePointerCapture(e.pointerId);}catch(_){}
   if(ptrs.size===1){const q=[...ptrs.values()][0]; last={x:q.x,y:q.y}; moved=99; return;}   // one finger still down after a pinch
-  if(drag){const d=drag; drag=null; if(d.moved) save(); return;}
-  if(draft){const d=draft; draft=null; if(e.type==="pointerup"&&Math.hypot(d.x1-d.x0,d.y1-d.y0)*V.s>8){S.shapes.push(d); save();} paintShapes(); return;}
+  if(S.mode==="draw"){if(had) mkUp(e); return;}
   if(!(had&&moved<=5&&e.type==="pointerup")) return;
-  if(S.mode==="draw"){
-    if(S.tool==="hold"){const a=alById(S.active); if(!a) return; const m=toMap(e); S.shapes.push({t:"hold",al:a.id,x:m.x,y:m.y}); save(); paintShapes(); renderAlliances();}
-    else if(isPin(S.tool)){const m=toMap(e); S.shapes.push({t:S.tool,...curPaint(),x:m.x,y:m.y}); save(); paintShapes();}
-    else if(S.tool==="erase"){const el=document.elementFromPoint(e.clientX,e.clientY); const i=el&&el.dataset&&el.dataset.sh; if(i!=null&&i!==""&&+i>=0){S.shapes.splice(+i,1); save(); paintShapes();}}
-    return;}
   const el=document.elementFromPoint(e.clientX,e.clientY); const id=el&&el.dataset&&el.dataset.id; if(id) act(id,e); else if(S.mode==="info"){$("infocard").hidden=true; updateModebar();}
 };
 wrap.addEventListener("pointerup",up); wrap.addEventListener("pointercancel",up);
@@ -985,7 +1607,7 @@ if(!S.active&&S.alliances[0]) S.active=S.alliances[0].id;
 /* ---------- plan phases ---------- */
 let phConfirm=null;
 function phMeta(p){const m=p.shapes.length, n=Object.keys(p.owner).length; return `${m} marking${m===1?"":"s"} · ${n} claimed`;}
-function goPhase(i){if(i<0||i>=S.phases.length) return; syncPh(); S.ph=i; S.owner=S.phases[i].owner; S.shapes=S.phases[i].shapes; phConfirm=null; draft=null; drag=null; save(); renderAll(); renderPhases();}
+function goPhase(i){if(i<0||i>=S.phases.length) return; syncPh(); S.ph=i; S.owner=S.phases[i].owner; S.shapes=S.phases[i].shapes; phConfirm=null; MS.sel=null; mkG=null; mkDraft=null; save(); renderAll(); renderPhases(); renderSel();}
 function renderPhases(){syncPh();
   $("phList").innerHTML=S.phases.map((p,i)=>`<button class="goal${i===S.ph?" sel":""}" data-ph="${i}"><span class="ch">Ph.${i+1}</span><span><div class="tt">${esc(p.name)}</div><div class="meta">${phMeta(p)}</div></span>${i===S.ph?'<span class="pill p-live">On map</span>':"<span></span>"}</button>`).join("");
   const p=S.phases[S.ph]; let h=`<div class="field"><label for="phNameIn">Phase name</label><input class="input" id="phNameIn" maxlength="40" value="${esc(p.name)}"></div>
@@ -1002,17 +1624,17 @@ function renderPhases(){syncPh();
   const on=(id,f)=>{const el=$(id); if(el) el.onclick=f;};
   on("phUp",()=>movePh(-1)); on("phDown",()=>movePh(1));
   on("phDel",()=>{phConfirm="del"; renderPhases();}); on("phClear",()=>{phConfirm="clear"; renderPhases();}); on("phNo",()=>{phConfirm=null; renderPhases();});
-  on("phDelYes",()=>{S.phases.splice(S.ph,1); const i=Math.max(0,S.ph-1); S.ph=-1; S.owner=S.phases[i].owner; S.shapes=S.phases[i].shapes; S.ph=i; phConfirm=null; save(); renderAll(); renderPhases();});
-  on("phClearYes",()=>{S.owner={}; S.shapes=[]; phConfirm=null; save(); renderAll(); renderPhases();});
+  on("phDelYes",()=>{commit(); S.phases.splice(S.ph,1); const i=Math.max(0,S.ph-1); S.ph=-1; S.owner=S.phases[i].owner; S.shapes=S.phases[i].shapes; S.ph=i; phConfirm=null; save(); renderAll(); renderPhases();});
+  on("phClearYes",()=>{commit(); S.owner={}; S.shapes.length=0; MS.sel=null; phConfirm=null; save(); renderAll(); renderPhases();});
 }
 function movePh(d){const i=S.ph,j=i+d; if(j<0||j>=S.phases.length) return; syncPh(); [S.phases[i],S.phases[j]]=[S.phases[j],S.phases[i]]; S.ph=j; save(); renderAll(); renderPhases();}
 function addPh(copy){syncPh(); const src=S.phases[S.ph];
-  const n=copy?{id:uid(),name:"Phase "+(S.phases.length+1),notes:"",owner:JSON.parse(JSON.stringify(src.owner)),shapes:JSON.parse(JSON.stringify(src.shapes))}
+  const n=copy?{id:uid(),name:"Phase "+(S.phases.length+1),notes:"",owner:JSON.parse(JSON.stringify(src.owner)),shapes:JSON.parse(JSON.stringify(src.shapes)).map(x=>({...x,id:uid()}))}
               :{id:uid(),name:"Phase "+(S.phases.length+1),notes:"",owner:{},shapes:[]};
   S.phases.splice(S.ph+1,0,n); goPhase(S.ph+1);}
 $("phDup").onclick=()=>addPh(true); $("phNew").onclick=()=>addPh(false);
 $("phPrev").onclick=()=>goPhase(S.ph-1); $("phNext").onclick=()=>goPhase(S.ph+1);
-$("ghChk").onchange=e=>{S.ghost=e.target.checked; save(); paintShapes();};
+$("ghChk").onchange=e=>{S.ghost=e.target.checked; save(); mkRender();};
 ["phPrev","phNext"].forEach(i=>$(i).addEventListener("pointerdown",e=>e.stopPropagation()));
 
 /* ---------- save image ---------- */
@@ -1080,7 +1702,7 @@ $("snapCancel").onclick=e=>{e.stopPropagation(); $("snapOv").hidden=true;};
   ov.addEventListener("wheel",e=>{e.preventDefault(); const r=wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top);},{passive:false});
 })();
 
-renderKey(); setMode(S.mode); renderAll(); renderTools(); renderPhases(); fit();
+renderKey(); renderMkKey(); renderRoster(); setMode(S.mode); renderAll(); renderTools(); renderPhases(); fit();
 })();
 </script>
 
