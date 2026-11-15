@@ -141,6 +141,7 @@ textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:8
 .p-up{background:var(--bg);color:var(--muted);border:1px solid var(--line)}
 .p-open{background:var(--warn-soft);color:var(--warn)}
 .step{display:flex;align-items:center;gap:4px;font-family:var(--f-mono);font-size:12px}
+.step button:disabled{opacity:.35;cursor:default}
 .step button{width:22px;height:22px;border-radius:6px;border:1px solid var(--line-strong);background:var(--panel);cursor:pointer;line-height:1;padding:0}
 .detail{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px}
 .detail .row{justify-content:space-between}
@@ -450,11 +451,12 @@ select.pin{border-color:var(--line);background:var(--bg);cursor:pointer;padding:
     <section class="card" id="cardShare">
       <div class="head"><h2>Share &amp; backup</h2></div>
       <div class="row">
-        <button class="btn" id="cpPlan">Copy full plan</button>
+        <button class="btn primary" id="cpPlan">Copy share link</button>
         <button class="btn ghost" id="showImp">Paste plan…</button>
       </div>
+      <p class="note">Anyone who opens the link sees the whole plan: every phase, claim, marking and the roster.</p>
       <div id="impBox" hidden>
-        <textarea id="impText" placeholder="Paste a copied plan here"></textarea>
+        <textarea id="impText" placeholder="Paste a share link or a copied plan here"></textarea>
         <div class="row"><button class="btn primary" id="doImp">Load</button><span id="impMsg" class="note"></span></div>
       </div>
       <span id="cpMsg" class="ok" hidden></span>
@@ -564,6 +566,8 @@ const typeOf=id=>items[id].ty;
 const alById=id=>S.alliances.find(a=>a.id===id);
 const $=s=>document.getElementById(s);
 const esc=v=>String(v).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+/* Domination progress from claims on the map (current phase): Alliance goals count the selected alliance, World goals count every alliance */
+const domAuto=d=>{let n=0; for(const id in S.owner){const it=items[id]; if(!it||!elig(d,id)) continue; if(d.m==="W"?!!alById(S.owner[id]):S.owner[id]===S.active) n++;} return n;};
 const elig=(g,id)=>g.ty===ANY?items[id].kind==="t":g.ty.includes(typeOf(id));
 const ST=["target","captured","restored"], STN={target:"Target",captured:"Captured",restored:"Restored"};
 const STC={target:"#ffffff",captured:"#f5a524",restored:"#22c55e"};
@@ -745,16 +749,19 @@ function renderGoals(){
     const b=document.createElement("button"); b.className="goal"+(S.goal===c.id?" sel":"")+(st.k==="done"?" done":"");
     b.innerHTML=`<span class="ch">Ch.${c.n}</span><span><div class="tt">${c.title}</div><div class="meta">${c.m==="W"?"World":"Alliance"} · ${st.meta}</div></span><span class="pill ${st.cls}">${st.pill}</span>`;
     b.onclick=()=>{S.goal=S.goal===c.id?null:c.id; save(); renderAll();}; box.appendChild(b);});
-  else DOM.forEach(d=>{const have=S.prog[d.id]||0, done=have>=d.need;
+  else {const yourAl=alById(S.active);
+  if(!S.alliances.length){const n=document.createElement("p"); n.className="note"; n.style.margin="0 2px 6px"; n.textContent="Add your alliance and claim territories on the map, and these count up on their own."; box.appendChild(n);}
+  DOM.forEach(d=>{const auto=domAuto(d), have=Math.max(auto,S.prog[d.id]||0), done=have>=d.need;
+    const who=d.m==="W"?"World · all alliances":(yourAl?"Alliance · "+esc(yourAl.name):"Alliance");
     const b=document.createElement("div"); b.className="goal"+(S.goal===d.id?" sel":"")+(done?" done":""); b.tabIndex=0;
-    b.innerHTML=`<span class="pill ${done?"p-done":"p-open"}" style="justify-self:center">${done?"✓":d.need-have}</span><span><div class="tt">${d.title}</div><div class="meta">${d.m==="W"?"World":"Alliance"}${d.req?" · needs "+d.req:""}</div></span>
-      <span class="step"><button aria-label="Less">−</button><span>${have}/${d.need}</span><button aria-label="More">+</button></span>`;
+    b.innerHTML=`<span class="pill ${done?"p-done":"p-open"}" style="justify-self:center">${done?"✓":d.need-have}</span><span><div class="tt">${d.title}</div><div class="meta">${who}${auto?` · ${auto} claimed on the map`:""}${d.req?" · needs "+d.req:""}</div></span>
+      <span class="step"><button aria-label="Less"${have<=auto?" disabled":""}>−</button><span>${have}/${d.need}</span><button aria-label="More">+</button></span>`;
     const [mi,pl]=b.querySelectorAll(".step button");
-    mi.onclick=e=>{e.stopPropagation(); S.prog[d.id]=Math.max(0,have-1); save(); renderGoals();};
+    mi.onclick=e=>{e.stopPropagation(); S.prog[d.id]=Math.max(auto,have-1); if(S.prog[d.id]<=auto) S.prog[d.id]=0; save(); renderGoals();};
     pl.onclick=e=>{e.stopPropagation(); S.prog[d.id]=have+1; save(); renderGoals();};
     b.onclick=()=>{S.goal=S.goal===d.id?null:d.id; save(); renderAll();};
     b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); b.onclick();}};
-    box.appendChild(b);});
+    box.appendChild(b);});}
   renderDetail();
 }
 function renderDetail(){
@@ -805,7 +812,7 @@ function renderAlliances(){
       <input id="an_${a.id}" value="${esc(a.name)}" aria-label="Alliance name">
       <div class="pts">${tot[a.id].n}<small>${S.shapes.some(x=>x.type==="hold"&&x.al===a.id)?"⌂ ":""}${tot[a.id].s} key sites</small></div>
       <div class="bar"><i style="width:${tot[a.id].n/max*100}%;background:${a.color}"></i></div>`;
-    d.onclick=e=>{if(e.target.tagName==="INPUT"||e.target.classList.contains("dot"))return; S.active=a.id; if(typeof S.dcol==="string"&&S.dcol.startsWith("al:")) S.dcol=null; save(); renderAlliances(); updateModebar(); if(S.mode==="draw") renderTools();};
+    d.onclick=e=>{if(e.target.tagName==="INPUT"||e.target.classList.contains("dot"))return; S.active=a.id; if(typeof S.dcol==="string"&&S.dcol.startsWith("al:")) S.dcol=null; save(); renderAlliances(); renderGoals(); updateModebar(); if(S.mode==="draw") renderTools();};
     d.querySelector(".dot").onclick=e=>{e.stopPropagation(); pickerFor=pickerFor===a.id?null:a.id; S.active=a.id; renderAlliances();};
     const inp=d.querySelector("input"); inp.onfocus=()=>{if(S.active!==a.id){S.active=a.id;save();box.querySelectorAll(".al").forEach(x=>x.classList.remove("on"));d.classList.add("on");}};
     inp.oninput=()=>{a.name=inp.value; save(); updateModebar(); paintShapes();};
@@ -868,21 +875,46 @@ function copyText(txt,msg){
   const fallback=()=>{$("impBox").hidden=false; $("impText").value=txt; $("impText").select(); show("Copy blocked here. The text is selected below.");};
   try{navigator.clipboard.writeText(txt).then(()=>show(msg),fallback);}catch(e){fallback();}
 }
-$("cpPlan").onclick=()=>{syncPh(); copyText(JSON.stringify({glowwormPlan:5,alliances:S.alliances,roster:S.roster,mkey:S.mkey,phases:S.phases,tgt:S.tgt,prog:S.prog,chDone:S.chDone,evStart:S.evStart||null}),"Plan copied");};
+/* share links: the whole plan, compressed into the address after #p= */
+const planObj=()=>{syncPh(); return {glowwormPlan:5,alliances:S.alliances,roster:S.roster,mkey:S.mkey,phases:S.phases,tgt:S.tgt,prog:S.prog,chDone:S.chDone,evStart:S.evStart||null};};
+const b64u=u=>{let t=""; for(let i=0;i<u.length;i++) t+=String.fromCharCode(u[i]); return btoa(t).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");};
+const unb64u=t=>{t=t.replace(/-/g,"+").replace(/_/g,"/"); while(t.length%4) t+="="; const b=atob(t), u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u;};
+function encodePlan(o){
+  const raw=new TextEncoder().encode(JSON.stringify(o,(k,v)=>typeof v==="number"&&!Number.isInteger(v)?Math.round(v*10)/10:v));
+  if(typeof CompressionStream==="undefined") return Promise.resolve("GR1.r."+b64u(raw));
+  return new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer().then(buf=>"GR1.z."+b64u(new Uint8Array(buf)));}
+function decodePlan(code){
+  const m=/^GR1\.([rz])\.([A-Za-z0-9_-]+)$/.exec(String(code).replace(/\s+/g,"")); if(!m) return Promise.reject(new Error("bad"));
+  let bytes; try{bytes=unb64u(m[2]);}catch(e){return Promise.reject(e);}
+  const pr=m[1]==="r"?Promise.resolve(bytes):new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer().then(b=>new Uint8Array(b));
+  return pr.then(u=>JSON.parse(new TextDecoder().decode(u)));}
+const shareBase=()=>location.origin+location.pathname.replace(/index\.html$/,"");
+$("cpPlan").onclick=()=>encodePlan(planObj()).then(c=>{const url=shareBase()+"#p="+c;
+  copyText(url,url.length>2000?"Link copied. It’s "+url.length.toLocaleString()+" characters, over Discord’s 2,000 limit, so share it as a file or a pin instead.":"Share link copied");});
 $("showImp").onclick=()=>{$("impBox").hidden=!$("impBox").hidden;};
+function loadPlan(o){
+  if(!o||!o.glowwormPlan) throw new Error("bad");
+  commit();
+  ["tgt","prog","chDone"].forEach(k=>{if(o[k]) S[k]=o[k];});
+  if(Array.isArray(o.phases)&&o.phases.length){S.phases=o.phases.map(normPh); S.ph=0;}
+  else S.phases=[normPh({name:"Phase 1",owner:o.owner,shapes:o.shapes})], S.ph=0;
+  S.phases.forEach(p=>{p.shapes=p.shapes.map(migrateShape).filter(Boolean);});
+  S.owner=S.phases[0].owner; S.shapes=S.phases[0].shapes; MS.sel=null;
+  if(o.roster) S.roster=normRoster(o.roster); if(o.mkey) S.mkey={labels:o.mkey.labels||{},hidden:o.mkey.hidden||{}};
+  if("evStart" in o){S.evStart=o.evStart||null; applySchedule(); renderEvent();}
+  if(o.alliances){S.alliances=o.alliances; S.active=S.alliances[0]?.id||null;}
+  save(); renderAll(); renderPhases(); renderRoster(); renderMkKey(); renderSel(); renderTools();
+  return S.phases.length;}
 $("doImp").onclick=()=>{
-  try{const o=JSON.parse($("impText").value); if(!o.glowwormPlan) throw 0;
-    ["tgt","prog","chDone"].forEach(k=>{if(o[k]) S[k]=o[k];});
-    if(Array.isArray(o.phases)&&o.phases.length){S.phases=o.phases.map(normPh); S.ph=0;}
-    else S.phases=[normPh({name:"Phase 1",owner:o.owner,shapes:o.shapes})], S.ph=0;
-    S.phases.forEach(p=>{p.shapes=p.shapes.map(migrateShape).filter(Boolean);});
-    S.owner=S.phases[0].owner; S.shapes=S.phases[0].shapes; MS.sel=null;
-    if(o.roster) S.roster=normRoster(o.roster); if(o.mkey) S.mkey={labels:o.mkey.labels||{},hidden:o.mkey.hidden||{}};
-    if("evStart" in o){S.evStart=o.evStart||null; applySchedule(); renderEvent();}
-    if(o.alliances){S.alliances=o.alliances; S.active=S.alliances[0]?.id||null;}
-    save(); renderAll(); renderPhases(); renderRoster(); renderMkKey(); renderSel(); $("impMsg").textContent="Loaded · "+S.phases.length+(S.phases.length===1?" phase":" phases");}
-  catch(e){$("impMsg").textContent="That text isn't a copied plan. Paste the whole thing.";}
+  const t=$("impText").value.trim(), msg=n=>$("impMsg").textContent="Loaded · "+n+(n===1?" phase":" phases"), bad=()=>$("impMsg").textContent="That isn’t a share link or a copied plan. Paste the whole thing.";
+  const code=(t.match(/#p=([^\s]+)/)||[])[1]||(/^GR1\./.test(t)?t:null);
+  if(code){decodePlan(code).then(o=>msg(loadPlan(o))).catch(bad); return;}
+  try{msg(loadPlan(JSON.parse(t)));}catch(e){bad();}
 };
+if(location.hash.indexOf("#p=")===0){
+  decodePlan(location.hash.slice(3)).then(o=>{loadPlan(o); snapToast("Shared plan loaded");
+    try{history.replaceState(null,"",location.pathname+location.search);}catch(e){}})
+  .catch(()=>snapToast("That share link is incomplete. Ask for it again."));}
 
 /* ---------- markings: same tools, editing and Night Ops look as Murong's Grand Melee ---------- */
 const dl=$("dl"), gh=$("gh");
@@ -1554,7 +1586,7 @@ function act(id,e){
     save(); paint(); renderGoals(); hover(e); return;}
   if(!S.active){updateModebar(); return;}
   if(S.owner[id]===S.active) delete S.owner[id]; else S.owner[id]=S.active;
-  save(); paint(); renderAlliances(); hover(e);
+  save(); paint(); renderAlliances(); renderGoals(); hover(e);
 }
 function hover(e){
   const el=document.elementFromPoint(e.clientX,e.clientY), id=el&&el.dataset&&el.dataset.id, tip=$("tip");
