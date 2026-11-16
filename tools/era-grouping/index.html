@@ -85,6 +85,10 @@
   .wz .w { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; padding: 2px 0; cursor: pointer; }
   .wz .w.me { color: var(--accent); font-weight: 600; }
   .wz .w .p { color: var(--muted); }
+  .vg { color: var(--arc-gold, #F4BF41); margin-left: 4px; cursor: help; }
+  .chip span.vg { color: var(--arc-gold, #F4BF41); margin-left: 3px; }
+  .won { color: var(--ok); font-size: 11px; font-weight: 600; margin-left: 6px; }
+  .legend { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
   .wz .w .m.ok { color: var(--ok); } .wz .w .m.bad { color: var(--bad); }
   .check { font-size: 13px; color: var(--muted); margin-top: 10px; }
   .check b { color: var(--text); font-weight: 600; }
@@ -142,6 +146,7 @@
       <tbody id="tbody"></tbody>
     </table>
   </div>
+  <div class="legend" id="vgLegend"></div>
 
   <div class="card" style="margin-top:14px">
     <details class="model" id="modelBox">
@@ -158,6 +163,7 @@
   <div class="note">
     <b>Ages.</b> Each world's age is its in-game Day counter on the era cutoff date (the round's first day, 00:00 UTC). The day offset moves the whole round, including its era cutoff and Matching day. Day counts for 1001–1111 were read from the Migration screen on Nov 1, 2026. New worlds open every Friday at 00:00 UTC and are marked <span class="acc">~</span> until they exist.<br><br>
     <b>Schedule.</b> Rounds run 4 weeks on, 4 weeks off from Oct 3, 2026, so ◀ ▶ step 56 days. Each round: Announcement (5 days), Matching (1 day), Matching Reveal &amp; Prelude (5 days), Land of the Abyss (14 days), Closing (3 days). Eras are set by world age at the start of the round; warzones are set from power on Matching day.<br><br>
+    <b>Vanguard.</b> <span class="vg" style="margin-left:0">★</span> marks Vanguard (Upper Ring) worlds, which take only a few migrants. The game picks them when each migration event opens; the list follows dengsden.com and is refreshed daily.<br><br>
     <b>Power.</b> Top-100 power comes from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>.
   </div>
 </div>
@@ -241,8 +247,18 @@ let model = (() => { try { return { ...DEFAULT_MODEL, ...JSON.parse(saved('model
 // ---------- Data (live files from your site, else built-in snapshot) ----------
 const DATA = { power: EMBED_POWER, powerSrc: 'built-in snapshot', svs: EMBED_SVS, history: { '2026-10-08': EMBED_MATCH } };
 const getJSON = (url) => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(r.status));
+// Vanguard (Upper Ring) worlds: picked by the game when each migration event opens,
+// published by dengsden.com and saved daily to /data/deng-vanguard.json.
+let VANGUARD = { picked: '2026-10-31', worlds: [1023, 1031, 1054, 1058, 1090] };
+const isVanguard = (s) => VANGUARD.worlds.includes(s);
+const vgStar = (s) => isVanguard(s) ? '<span class="vg" title="Vanguard (Upper Ring) world: takes only a few migrants">★</span>' : '';
+
 async function loadData() {
   await loadWorldDays();
+  try {
+    const g = await getJSON('/data/deng-vanguard.json');
+    if (g && Array.isArray(g.worlds)) VANGUARD = g;
+  } catch (e) {}
   try {
     const s = await getJSON('/data/deng-servers.json');
     const top100 = {}; s.rows.forEach(r => top100[r.server] = Number(r.top100_sum));
@@ -355,18 +371,21 @@ function render() {
       const z = wzOf[sv];
       const az = actualZ ? Object.values(actualZ).flat().find(x => x.servers.includes(sv)) : null;
       html = `<div class="card"><div class="find">
-        <div class="stat"><div class="k">World ${sv}</div><div class="v"><span class="dot" style="background:${e.color}"></span>${e.name}</div></div>
+        <div class="stat"><div class="k">World ${sv}${vgStar(sv)}</div><div class="v"><span class="dot" style="background:${e.color}"></span>${e.name}</div></div>
         <div class="stat"><div class="k">Age</div><div class="v">Day ${age}${sv > NEWEST_KNOWN ? ' <small>est.</small>' : ''}</div></div>
         <div class="stat"><div class="k">Era worlds</div><div class="v mono">${ids.length ? Math.min(...ids) + '–' + Math.max(...ids) : '—'} <small>(${ids.length})</small></div></div>
         <div class="stat"><div class="k">${e.none ? 'Eligible in' : 'Moves up in'}</div><div class="v">${daysUp != null ? daysUp + ' <small>days</small>' : '<small>Top era</small>'}</div></div>
         ${az ? `<div class="stat"><div class="k">Warzone</div><div class="v">${az.n}${az.winner === sv ? ' <small>· won</small>' : ''}</div></div>`
              : z ? `<div class="stat"><div class="k">Predicted</div><div class="v">Warzone ${z.n}</div></div>` : ''}
-      </div>${az ? `<div class="opp">Opponents: ${az.servers.filter(x => x !== sv).map(x => `<b>${x}</b> <span class="mono">${bil(power.top100[x - 1000])}</span>`).join(' · ')}</div>`
-             : z ? `<div class="opp">Predicted opponents: ${z.worlds.filter(w => w.s !== sv).map(w => `<b>${w.s}</b> <span class="mono">${bil(w.p)}</span>`).join(' · ')}</div>` : ''}</div>`;
+      </div>${az ? `<div class="opp">Opponents: ${az.servers.filter(x => x !== sv).map(x => `<b>${x}</b>${vgStar(x)} <span class="mono">${bil(power.top100[x - 1000])}</span>`).join(' · ')}</div>`
+             : z ? `<div class="opp">Predicted opponents: ${z.worlds.filter(w => w.s !== sv).map(w => `<b>${w.s}</b>${vgStar(w.s)} <span class="mono">${bil(w.p)}</span>`).join(' · ')}</div>` : ''}</div>`;
       open.add(e.name);
     }
   }
   $('findCard').innerHTML = html;
+  $('vgLegend').innerHTML = VANGUARD.worlds.length
+    ? `<span class="vg" style="margin-left:0">★</span> Vanguard worlds (picked ${fmtShort(Date.parse(VANGUARD.picked + 'T00:00:00Z'))}): ${VANGUARD.worlds.join(', ')}`
+    : '';
 
   $('tbody').innerHTML = groups.map(g => {
     const ids = g.list.map(w => w.s);
@@ -383,17 +402,17 @@ function render() {
       let body;
       if (mode === 'actual') {
         body = `<div class="wzs">${actualZ[g.name].map(z => `<div class="wz${z.servers.includes(sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.servers.reduce((a, x) => a + (power.top100[x - 1000] || 0), 0))}</span></h4>${
-          z.servers.map(x => `<div class="w${x === sv ? ' me' : ''}" data-s="${x}"><span>${x}${z.winner === x ? ' <span class="acc">★</span>' : ''}</span><span class="p">${bil(power.top100[x - 1000])}</span></div>`).join('')}</div>`).join('')}</div>
-          <div class="check">Actual warzones from dengsden.com. <span class="acc">★</span> = winner.</div>`;
+          z.servers.map(x => `<div class="w${x === sv ? ' me' : ''}" data-s="${x}"><span>${x}${vgStar(x)}${z.winner === x ? '<span class="won">Won</span>' : ''}</span><span class="p">${bil(power.top100[x - 1000])}</span></div>`).join('')}</div>`).join('')}</div>
+          <div class="check">Actual warzones from dengsden.com.</div>`;
       } else if (mode === 'ages') {
-        body = `<div class="chips">${g.list.map(w => `<span class="chip${w.s === sv ? ' hl' : ''}${w.est ? ' est' : ''}" data-s="${w.s}">${w.s}<span>d${w.age}</span></span>`).join('')}</div>`;
+        body = `<div class="chips">${g.list.map(w => `<span class="chip${w.s === sv ? ' hl' : ''}${w.est ? ' est' : ''}" data-s="${w.s}">${w.s}${vgStar(w.s)}<span>d${w.age}</span></span>`).join('')}</div>`;
       } else {
         let ok = 0, tot = 0;
         body = `<div class="wzs">${wz[g.name].map(z => `<div class="wz${z.worlds.some(w => w.s === sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.worlds.reduce((a, w) => a + w.p, 0))}</span></h4>${
           z.worlds.map(w => {
             let mark = '';
             if (actual) { const a = actual[w.s - 1000]; tot++; if (a === z.n) { ok++; mark = `<span class="m ok">✓</span>`; } else mark = `<span class="m bad">→${a ?? '?'}</span>`; }
-            return `<div class="w${w.s === sv ? ' me' : ''}" data-s="${w.s}"><span>${w.s}${w.est ? '<span class="acc">~</span>' : ''}</span><span><span class="p">${bil(w.p)}${w.bonus > 0.005 ? ` +${Math.round(w.bonus * 100)}%` : ''}</span> ${mark}</span></div>`;
+            return `<div class="w${w.s === sv ? ' me' : ''}" data-s="${w.s}"><span>${w.s}${w.est ? '<span class="acc">~</span>' : ''}${vgStar(w.s)}</span><span><span class="p">${bil(w.p)}${w.bonus > 0.005 ? ` +${Math.round(w.bonus * 100)}%` : ''}</span> ${mark}</span></div>`;
           }).join('')}</div>`).join('')}</div>`;
         if (actual) body += `<div class="check">Actual vs predicted: <b>${ok}/${tot}</b> worlds in the predicted warzone. <span style="color:var(--bad)">→n</span> shows a world's actual warzone.</div>`;
       }

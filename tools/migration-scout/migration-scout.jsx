@@ -123,6 +123,27 @@ function useShareParams(params) {
   }, [key]);
 }
 
+/* Upper Ring (vanguard) worlds take only a few migrants. The game picks them
+ * when each migration event opens; dengsden.com publishes the picks and the
+ * site's daily data job saves them to /data/deng-vanguard.json. */
+const EMBED_VANGUARD = { picked: "2026-10-31", worlds: [1023, 1031, 1054, 1058, 1090] };
+let vanguardPromise = null;
+function useVanguard() {
+  const [v, setV] = useState(EMBED_VANGUARD);
+  useEffect(() => {
+    let alive = true;
+    vanguardPromise = vanguardPromise || fetch("/data/deng-vanguard.json", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => (j && Array.isArray(j.worlds) ? j : null))
+      .catch(() => null);
+    vanguardPromise.then((j) => { if (alive && j) setV(j); });
+    return () => { alive = false; };
+  }, []);
+  return v;
+}
+const fmtPicked = (d) =>
+  new Date(d + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+
 /* The live table in /data/world-days.json is loaded once per page and shared
  * by every mount; `dataTick` bumps so hooks recompute once it lands. */
 let worldDaysPromise = null;
@@ -139,6 +160,8 @@ function useWorldDays() {
 
 export default function MigrationScout() {
   const dataTick = useWorldDays();
+  const vanguard = useVanguard();
+  const isVanguard = (s) => vanguard.worlds.includes(s);
   // Default event = live event if one is running, otherwise the next one
   const defaultEvent = useMemo(() => {
     const now = Date.now();
@@ -247,6 +270,7 @@ export default function MigrationScout() {
     .ms-warn { color: var(--arc-warn, #F0B35A); font-size: 14px; line-height: 1.6; }
     .ms-warn b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
     .ms-est { color: var(--arc-warn, #F0B35A); }
+    .ms-vg { color: var(--arc-gold, #F4BF41); margin-left: 5px; cursor: help; }
     .ms-row { display: flex; align-items: center; gap: 8px; }
     .ms-step { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px;
       border: 1px solid var(--arc-line-2, #2E3542); background: var(--arc-raise, #1C222B); color: var(--arc-text, #E8EAEE);
@@ -467,6 +491,12 @@ export default function MigrationScout() {
                       {isProjected(server) ? "~" : ""}{fmtDate(result.launch)}
                     </div>
                   </div>
+                  {isVanguard(server) && (
+                    <div className="ms-stat">
+                      <div className="k">Vanguard</div>
+                      <div className="v"><span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Upper Ring world</div>
+                    </div>
+                  )}
                   <div className="ms-stat">
                     <div className="k">SvS bracket</div>
                     <div className="v">
@@ -518,6 +548,9 @@ export default function MigrationScout() {
                 <b>{filtered.length}</b> compatible server
                 {filtered.length === 1 ? "" : "s"} in Group {result.group} for event{" "}
                 {eventN}
+                {vanguard.worlds.length > 0 && (
+                  <span> · <span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Vanguard world, few migrant spots (picked {fmtPicked(vanguard.picked)})</span>
+                )}
               </div>
               <div className="ms-scroll">
                 <table className="ms-table">
@@ -543,6 +576,7 @@ export default function MigrationScout() {
                           >
                             {r.s}
                           </a>
+                          {isVanguard(r.s) && <span className="ms-vg" title="Vanguard (Upper Ring) world: takes only a few migrants" aria-label="Vanguard world">★</span>}
                           {r.s === server ? "  ← you" : ""}
                         </td>
                         <td className="ms-mono">
@@ -579,7 +613,11 @@ export default function MigrationScout() {
           events 3+ assume a 28-day cycle from Aug 24, shiftable with the day
           offset control. Group is judged by age on the event's first day;
           SvS brackets are consecutive blocks of 4 anchored at 1097
-          (1097–1100, … 1997–2000). Per-world details link out to{" "}
+          (1097–1100, … 1997–2000).{" "}
+          <span className="ms-vg" style={{ marginLeft: 0 }}>★</span> marks Vanguard (Upper Ring) worlds,
+          which take only a few migrants. The game picks them when each migration
+          event opens, and the list here follows dengsden.com, refreshed daily.
+          Per-world details link out to{" "}
           <a href="https://dengsden.com/" target="_blank" rel="noopener">
             dengsden.com
           </a>.
