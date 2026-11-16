@@ -445,7 +445,7 @@ export default function MigrationScout() {
           {vg.worlds.length > 0 && (
             <div className="ms-eventmeta ms-vgline">
               {vg.kind === "next" ? (
-                <span><span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> Projected Vanguard worlds for this event (dengsden.com estimate, {fmtPicked(vg.as_of)}): <b className="ms-mono">{vg.worlds.join(", ")}</b></span>
+                <span><span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> Projected Vanguard worlds for this event (<a className="ms-link" href="https://dengsden.com/avatar/migration/vanguard/" target="_blank" rel="noopener">dengsden.com</a> estimate, {fmtPicked(vg.as_of)}): <b className="ms-mono">{vg.worlds.join(", ")}</b></span>
               ) : (
                 <span><span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Vanguard worlds for this event ({Date.parse(vg.picked + "T00:00:00Z") > start ? "earliest recorded picks, " : "picked "}{fmtPicked(vg.picked)}): <b className="ms-mono">{vg.worlds.join(", ")}</b></span>
               )}
@@ -657,7 +657,7 @@ export default function MigrationScout() {
           them when each migration event opens: the 5 worlds furthest above their
           era's average power. <span className="ms-vg" style={{ marginLeft: 0 }}>★</span> marks the actual
           picks for events that have opened;{" "}
-          <span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> marks dengsden.com's projected picks
+          <span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> marks <a className="ms-link" href="https://dengsden.com/avatar/migration/vanguard/" target="_blank" rel="noopener">dengsden.com</a>'s projected picks
           for the upcoming event and later ones, based on today's standings. Lists
           are refreshed daily.
           Per-world details link out to{" "}
