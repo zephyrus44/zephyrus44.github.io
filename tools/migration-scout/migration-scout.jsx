@@ -59,19 +59,24 @@ const launchOf = (s) =>
 const ageOn = (s, t) => Math.floor((t - launchOf(s)) / DAY) + 1;
 const groupOf = (age) => (age >= 162 ? 2 : age >= 78 ? 1 : 0);
 
-// Event 1: Jul 6–10, 2026. Event 2: Aug 24–28, 2026 (a 49-day gap, not 28).
-// Events 3+ assume the 28-day cycle continues from event 2, plus an optional
-// user-supplied day offset to correct for schedule drift.
-const EVENT_1 = Date.UTC(2026, 6, 6);
-const EVENT_2 = Date.UTC(2026, 7, 24);
+// Known migration events (first day, UTC). Event 1 ran Jul 6; events 2–5 match
+// the dates on dengsden.com. From event 5 on they repeat every 28 days, plus an
+// optional day offset for projected events in case the schedule drifts.
+const KNOWN_EVENTS = [
+  Date.UTC(2026, 6, 6),   // 1: Jul 6
+  Date.UTC(2026, 7, 24),  // 2: Aug 24
+  Date.UTC(2026, 9, 3),   // 3: Oct 3
+  Date.UTC(2026, 9, 31),  // 4: Oct 31
+  Date.UTC(2026, 10, 28), // 5: Nov 28
+];
+const LAST_KNOWN = KNOWN_EVENTS.length;
 const EVENT_CYCLE = 28 * DAY;
 const EVENT_LENGTH = 5 * DAY;
+const isKnownEvent = (n) => n <= LAST_KNOWN;
 const eventStart = (n, offset = 0) =>
-  n <= 1
-    ? EVENT_1
-    : n === 2
-    ? EVENT_2
-    : EVENT_2 + (n - 2) * EVENT_CYCLE + offset * DAY;
+  n < 1 ? KNOWN_EVENTS[0]
+  : isKnownEvent(n) ? KNOWN_EVENTS[n - 1]
+  : KNOWN_EVENTS[LAST_KNOWN - 1] + (n - LAST_KNOWN) * EVENT_CYCLE + offset * DAY;
 
 // SvS brackets: consecutive blocks of 4 anchored so 1097 opens a bracket
 // (1097–1100, 1101–1104, … 1997–2000, …)
@@ -131,6 +136,7 @@ function useShareParams(params) {
 const EMBED_VANGUARD = {
   picked: "2026-10-31", worlds: [1023, 1031, 1054, 1058, 1090],
   next: { event: "2026-11-28", as_of: "2026-11-15", worlds: [1023, 1018, 1081, 1073, 1031] },
+  history: { "2026-10-31": [1023, 1031, 1054, 1058, 1090] },
 };
 let vanguardPromise = null;
 function useVanguard() {
@@ -166,22 +172,11 @@ function useWorldDays() {
 export default function MigrationScout() {
   const dataTick = useWorldDays();
   const vanguard = useVanguard();
-  const isVanguard = (s) => vanguard.worlds.includes(s);
-  const nextVg = vanguard.next && Array.isArray(vanguard.next.worlds) ? vanguard.next : null;
-  const isNextVanguard = (s) => !!nextVg && nextVg.worlds.includes(s);
-  const vgMarks = (s) => (
-    <>
-      {isVanguard(s) && <span className="ms-vg" title="Vanguard (Upper Ring) world: takes only a few migrants" aria-label="Vanguard world">★</span>}
-      {isNextVanguard(s) && <span className="ms-vg next" title={`Projected Vanguard pick for the ${fmtPicked(nextVg.event)} migration`} aria-label="Projected Vanguard pick">☆</span>}
-    </>
-  );
   // Default event = live event if one is running, otherwise the next one
   const defaultEvent = useMemo(() => {
     const now = Date.now();
-    if (now < EVENT_1 + EVENT_LENGTH) return 1;
-    if (now < EVENT_2 + EVENT_LENGTH) return 2;
-    const n = 2 + Math.floor((now - EVENT_2) / EVENT_CYCLE);
-    return now < eventStart(n, 0) + EVENT_LENGTH ? n : n + 1;
+    for (let n = 1; n < 1000; n++) if (now < eventStart(n, 0) + EVENT_LENGTH) return n;
+    return 1;
   }, []);
 
   const num = (k) => { const v = parseInt(urlParam(k), 10); return Number.isFinite(v) ? v : null; };
@@ -200,6 +195,23 @@ export default function MigrationScout() {
   const validServer = Number.isFinite(server) && server >= 1001;
 
   const start = eventStart(eventN, offset);
+  // Which Vanguard list applies to this event: the next migration and later ones use
+  // dengsden.com's projected picks (☆); earlier ones use the actual picks (★), taking
+  // the latest pick made on or before the event from the saved history.
+  const vg = (() => {
+    const nx = vanguard.next;
+    if (nx && Array.isArray(nx.worlds) && start >= Date.parse(nx.event + "T00:00:00Z"))
+      return { kind: "next", worlds: nx.worlds, event: nx.event, as_of: nx.as_of };
+    const hist = Object.entries(vanguard.history || {})
+      .filter(([d]) => Date.parse(d + "T00:00:00Z") <= start)
+      .sort(([a], [b]) => (a < b ? -1 : 1));
+    if (hist.length) { const [picked, worlds] = hist[hist.length - 1]; return { kind: "now", worlds, picked }; }
+    return { kind: "now", worlds: vanguard.worlds || [], picked: vanguard.picked };
+  })();
+  const isVg = (s) => vg.worlds.includes(s);
+  const vgMark = (s, style) => !isVg(s) ? null : vg.kind === "next"
+    ? <span className="ms-vg next" style={style} title={`Projected Vanguard world for the ${fmtPicked(vg.event)} migration (dengsden.com estimate)`} aria-label="Projected Vanguard world">☆</span>
+    : <span className="ms-vg" style={style} title="Vanguard (Upper Ring) world: takes only a few migrants" aria-label="Vanguard world">★</span>;
   const lastDay = start + EVENT_LENGTH - DAY;
   const now = Date.now();
   const status =
@@ -420,7 +432,7 @@ export default function MigrationScout() {
             <span className={"ms-status" + (status === "Live now" ? " live" : "")}>
               {status}
             </span>
-            {eventN <= 2 ? (
+            {isKnownEvent(eventN) ? (
               <span className="ms-status">confirmed date</span>
             ) : offset !== 0 ? (
               <span className="ms-status" style={{ color: "var(--arc-warn, #F0B35A)", borderColor: "color-mix(in srgb, var(--arc-warn, #F0B35A) 45%, transparent)" }}>
@@ -430,18 +442,19 @@ export default function MigrationScout() {
               <span className="ms-status">projected</span>
             )}
           </div>
-          <div className="ms-eventmeta ms-vgline">
-            {vanguard.worlds.length > 0 && (
-              <span><span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Vanguard now (picked {fmtPicked(vanguard.picked)}): <b className="ms-mono">{vanguard.worlds.join(", ")}</b></span>
-            )}
-            {nextVg && nextVg.worlds.length > 0 && (
-              <span><span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> Projected for the {fmtPicked(nextVg.event)} migration: <b className="ms-mono">{nextVg.worlds.join(", ")}</b></span>
-            )}
-          </div>
-          {eventN <= 2 && offset !== 0 && (
+          {vg.worlds.length > 0 && (
+            <div className="ms-eventmeta ms-vgline">
+              {vg.kind === "next" ? (
+                <span><span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> Projected Vanguard worlds for this event (dengsden.com estimate, {fmtPicked(vg.as_of)}): <b className="ms-mono">{vg.worlds.join(", ")}</b></span>
+              ) : (
+                <span><span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Vanguard worlds for this event ({Date.parse(vg.picked + "T00:00:00Z") > start ? "earliest recorded picks, " : "picked "}{fmtPicked(vg.picked)}): <b className="ms-mono">{vg.worlds.join(", ")}</b></span>
+              )}
+            </div>
+          )}
+          {isKnownEvent(eventN) && offset !== 0 && (
             <div className="ms-eventmeta ms-est">
-              Offset is ignored for events 1–2 since their dates are known. It
-              applies from event 3 onward.
+              Offset is ignored for events 1–{LAST_KNOWN} since their dates are known. It
+              applies from event {LAST_KNOWN + 1} onward.
             </div>
           )}
         </div>
@@ -515,13 +528,11 @@ export default function MigrationScout() {
                       {isProjected(server) ? "~" : ""}{fmtDate(result.launch)}
                     </div>
                   </div>
-                  {(isVanguard(server) || isNextVanguard(server)) && (
+                  {isVg(server) && (
                     <div className="ms-stat">
                       <div className="k">Vanguard</div>
                       <div className="v">
-                        {isVanguard(server)
-                          ? <><span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Upper Ring world</>
-                          : <><span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> Projected pick</>}
+                        {vgMark(server, { marginLeft: 0 })} {vg.kind === "next" ? "Projected pick" : "Upper Ring world"}
                       </div>
                     </div>
                   )}
@@ -576,8 +587,8 @@ export default function MigrationScout() {
                 <b>{filtered.length}</b> compatible server
                 {filtered.length === 1 ? "" : "s"} in Group {result.group} for event{" "}
                 {eventN}
-                {(vanguard.worlds.length > 0 || nextVg) && (
-                  <span> · <span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Vanguard now · <span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> projected next</span>
+                {vg.worlds.length > 0 && (
+                  <span> · {vgMark(vg.worlds[0], { marginLeft: 0 })} {vg.kind === "next" ? "projected Vanguard world" : "Vanguard world"}</span>
                 )}
               </div>
               <div className="ms-scroll">
@@ -604,7 +615,7 @@ export default function MigrationScout() {
                           >
                             {r.s}
                           </a>
-                          {vgMarks(r.s)}
+                          {vgMark(r.s)}
                           {r.s === server ? "  ← you" : ""}
                         </td>
                         <td className="ms-mono">
@@ -637,17 +648,18 @@ export default function MigrationScout() {
           irregularly early on — 1007/1008 share an open day, as do 1009/1010/1011
           — so ages come from a table rather than a weekly formula. Worlds past{" "}
           {NEWEST_KNOWN} assume the current weekly Friday cadence and are marked
-          with <span className="ms-est">~</span>. Event 1 ran Jul 6–10 and event 2 ran Aug 24–28;
-          events 3+ assume a 28-day cycle from Aug 24, shiftable with the day
-          offset control. Group is judged by age on the event's first day;
+          with <span className="ms-est">~</span>. Event dates through Nov 28, 2026 are confirmed
+          (Jul 6, Aug 24, Oct 3, Oct 31, Nov 28); later events assume the 28-day
+          cycle continues, shiftable with the day offset control. Group is judged by age on the event's first day;
           SvS brackets are consecutive blocks of 4 anchored at 1097
           (1097–1100, … 1997–2000).{" "}
-          <span className="ms-vg" style={{ marginLeft: 0 }}>★</span> marks Vanguard (Upper Ring) worlds,
-          which take only a few migrants. The game picks them when each migration
-          event opens: the 5 worlds furthest above their era's average power.{" "}
-          <span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> marks the projected picks for the
-          next migration, based on today's standings. Both lists follow dengsden.com
-          and are refreshed daily.
+          Vanguard (Upper Ring) worlds take only a few migrants. The game picks
+          them when each migration event opens: the 5 worlds furthest above their
+          era's average power. <span className="ms-vg" style={{ marginLeft: 0 }}>★</span> marks the actual
+          picks for events that have opened;{" "}
+          <span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> marks dengsden.com's projected picks
+          for the upcoming event and later ones, based on today's standings. Lists
+          are refreshed daily.
           Per-world details link out to{" "}
           <a href="https://dengsden.com/" target="_blank" rel="noopener">
             dengsden.com

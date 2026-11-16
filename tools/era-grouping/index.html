@@ -165,7 +165,7 @@
   <div class="note">
     <b>Ages.</b> Each world's age is its in-game Day counter on the era cutoff date (the round's first day, 00:00 UTC). The day offset moves the whole round, including its era cutoff and Matching day. Day counts for 1001–1111 were read from the Migration screen on Nov 1, 2026. New worlds open every Friday at 00:00 UTC and are marked <span class="acc">~</span> until they exist.<br><br>
     <b>Schedule.</b> Rounds run 4 weeks on, 4 weeks off from Oct 3, 2026, so ◀ ▶ step 56 days. Each round: Announcement (5 days), Matching (1 day), Matching Reveal &amp; Prelude (5 days), Land of the Abyss (14 days), Closing (3 days). Eras are set by world age at the start of the round; warzones are set from power on Matching day.<br><br>
-    <b>Vanguard.</b> <span class="vg" style="margin-left:0">★</span> marks Vanguard (Upper Ring) worlds, which take only a few migrants. The game picks them when each migration event opens: the 5 worlds furthest above their era's average power. <span class="vg next" style="margin-left:0">☆</span> marks the projected picks for the next migration, based on today's standings. Both lists follow dengsden.com and are refreshed daily.<br><br>
+    <b>Vanguard.</b> Vanguard (Upper Ring) worlds take only a few migrants. The game picks them when each migration event opens: the 5 worlds furthest above their era's average power. <span class="vg" style="margin-left:0">★</span> marks the actual picks for rounds that have had their migration. <span class="vg next" style="margin-left:0">☆</span> marks dengsden.com's projected picks for the upcoming migration's round and later ones, based on today's standings. Lists are refreshed daily.<br><br>
     <b>Power.</b> Top-100 power comes from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>.
   </div>
 </div>
@@ -251,15 +251,30 @@ const DATA = { power: EMBED_POWER, powerSrc: 'built-in snapshot', svs: EMBED_SVS
 const getJSON = (url) => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(r.status));
 // Vanguard (Upper Ring) worlds: picked by the game when each migration event opens,
 // published by dengsden.com and saved daily to /data/deng-vanguard.json.
-// "next" = dengsden.com's projected picks for the upcoming migration (the 5 worlds furthest above their era average today).
+// Which Vanguard list applies to a round:
+//  - rounds before the next migration use the actual picks: the latest pick made on or
+//    before the round's start (from "history"), else the current picks;
+//  - the next migration's round and later ones use dengsden.com's projected picks.
+// When the next migration opens, its picks become "worlds", "next" moves on, and
+// this round flips from projected (☆) to actual (★) on its own.
 let VANGUARD = { picked: '2026-10-31', worlds: [1023, 1031, 1054, 1058, 1090],
-  next: { event: '2026-11-28', as_of: '2026-11-15', worlds: [1023, 1018, 1081, 1073, 1031] } };
-const isVanguard = (s) => VANGUARD.worlds.includes(s);
-const isNextVanguard = (s) => !!VANGUARD.next?.worlds?.includes(s);
+  next: { event: '2026-11-28', as_of: '2026-11-15', worlds: [1023, 1018, 1081, 1073, 1031] },
+  history: { '2026-10-31': [1023, 1031, 1054, 1058, 1090] } };
 const vgDate = (d) => fmtShort(Date.parse(d + 'T00:00:00Z'));
-const vgStar = (s) =>
-  (isVanguard(s) ? '<span class="vg" title="Vanguard (Upper Ring) world: takes only a few migrants">★</span>' : '') +
-  (isNextVanguard(s) ? `<span class="vg next" title="Projected Vanguard pick for the ${vgDate(VANGUARD.next.event)} migration">☆</span>` : '');
+function vanguardFor(start) {
+  const nx = VANGUARD.next;
+  if (nx && Array.isArray(nx.worlds) && start >= Date.parse(nx.event + 'T00:00:00Z'))
+    return { kind: 'next', worlds: nx.worlds, event: nx.event, as_of: nx.as_of };
+  const hist = Object.entries(VANGUARD.history || {})
+    .filter(([d]) => Date.parse(d + 'T00:00:00Z') <= start).sort(([a], [b]) => a < b ? -1 : 1);
+  if (hist.length) { const [picked, worlds] = hist[hist.length - 1]; return { kind: 'now', worlds, picked }; }
+  return { kind: 'now', worlds: VANGUARD.worlds || [], picked: VANGUARD.picked };
+}
+let ROUND_VG = vanguardFor(Date.now());
+const vgStar = (s) => !ROUND_VG.worlds.includes(s) ? ''
+  : ROUND_VG.kind === 'next'
+    ? `<span class="vg next" title="Projected Vanguard world for the ${vgDate(ROUND_VG.event)} migration (dengsden.com estimate)">☆</span>`
+    : '<span class="vg" title="Vanguard (Upper Ring) world: takes only a few migrants">★</span>';
 
 async function loadData() {
   await loadWorldDays();
@@ -352,6 +367,7 @@ function render() {
   const power = powerFor(start);
   const actual = actualFor(base) || actualFor(start);
   const actualZ = actualZones(base) || actualZones(start);
+  ROUND_VG = vanguardFor(start);
   $('eff').innerHTML = `${onCycle ? `Round ${n + 1} · ` : ''}Event <b>${fmt(start)} – ${fmt(start + 27 * DAY)}</b>` +
     `${onCycle ? '' : ' <span class="acc">(off the Oct 3 cycle)</span>'}` +
     (off ? ` <span class="acc">(${off > 0 ? '+' : ''}${off} day${Math.abs(off) === 1 ? '' : 's'} from ${fmtShort(base)})</span>` : '') +
@@ -391,10 +407,10 @@ function render() {
     }
   }
   $('findCard').innerHTML = html;
-  $('vgLegend').innerHTML = [
-    VANGUARD.worlds.length ? `<span class="vg" style="margin-left:0">★</span> Vanguard now (picked ${vgDate(VANGUARD.picked)}): <span class="mono">${VANGUARD.worlds.join(', ')}</span>` : '',
-    VANGUARD.next?.worlds?.length ? `<span class="vg next" style="margin-left:0">☆</span> Projected for the ${vgDate(VANGUARD.next.event)} migration: <span class="mono">${VANGUARD.next.worlds.join(', ')}</span>` : '',
-  ].filter(Boolean).join('<br>');
+  $('vgLegend').innerHTML = !ROUND_VG.worlds.length ? ''
+    : ROUND_VG.kind === 'next'
+      ? `<span class="vg next" style="margin-left:0">☆</span> Projected Vanguard worlds for this round (dengsden.com estimate, ${vgDate(ROUND_VG.as_of)}): <span class="mono">${ROUND_VG.worlds.join(', ')}</span>`
+      : `<span class="vg" style="margin-left:0">★</span> Vanguard worlds for this round (${Date.parse(ROUND_VG.picked + 'T00:00:00Z') > start ? 'earliest recorded picks, ' : 'picked '}${vgDate(ROUND_VG.picked)}): <span class="mono">${ROUND_VG.worlds.join(', ')}</span>`;
 
   $('tbody').innerHTML = groups.map(g => {
     const ids = g.list.map(w => w.s);
