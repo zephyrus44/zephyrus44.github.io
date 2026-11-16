@@ -126,7 +126,12 @@ function useShareParams(params) {
 /* Upper Ring (vanguard) worlds take only a few migrants. The game picks them
  * when each migration event opens; dengsden.com publishes the picks and the
  * site's daily data job saves them to /data/deng-vanguard.json. */
-const EMBED_VANGUARD = { picked: "2026-10-31", worlds: [1023, 1031, 1054, 1058, 1090] };
+// "next" = dengsden.com's projected picks for the upcoming migration (the 5 worlds
+// furthest above their era's average power today).
+const EMBED_VANGUARD = {
+  picked: "2026-10-31", worlds: [1023, 1031, 1054, 1058, 1090],
+  next: { event: "2026-11-28", as_of: "2026-11-15", worlds: [1023, 1018, 1081, 1073, 1031] },
+};
 let vanguardPromise = null;
 function useVanguard() {
   const [v, setV] = useState(EMBED_VANGUARD);
@@ -162,6 +167,14 @@ export default function MigrationScout() {
   const dataTick = useWorldDays();
   const vanguard = useVanguard();
   const isVanguard = (s) => vanguard.worlds.includes(s);
+  const nextVg = vanguard.next && Array.isArray(vanguard.next.worlds) ? vanguard.next : null;
+  const isNextVanguard = (s) => !!nextVg && nextVg.worlds.includes(s);
+  const vgMarks = (s) => (
+    <>
+      {isVanguard(s) && <span className="ms-vg" title="Vanguard (Upper Ring) world: takes only a few migrants" aria-label="Vanguard world">★</span>}
+      {isNextVanguard(s) && <span className="ms-vg next" title={`Projected Vanguard pick for the ${fmtPicked(nextVg.event)} migration`} aria-label="Projected Vanguard pick">☆</span>}
+    </>
+  );
   // Default event = live event if one is running, otherwise the next one
   const defaultEvent = useMemo(() => {
     const now = Date.now();
@@ -271,6 +284,9 @@ export default function MigrationScout() {
     .ms-warn b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
     .ms-est { color: var(--arc-warn, #F0B35A); }
     .ms-vg { color: var(--arc-gold, #F4BF41); margin-left: 5px; cursor: help; }
+    .ms-vg.next { opacity: .85; }
+    .ms-vg + .ms-vg { margin-left: 1px; }
+    .ms-vgline { display: flex; flex-wrap: wrap; gap: 4px 18px; }
     .ms-row { display: flex; align-items: center; gap: 8px; }
     .ms-step { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px;
       border: 1px solid var(--arc-line-2, #2E3542); background: var(--arc-raise, #1C222B); color: var(--arc-text, #E8EAEE);
@@ -414,6 +430,14 @@ export default function MigrationScout() {
               <span className="ms-status">projected</span>
             )}
           </div>
+          <div className="ms-eventmeta ms-vgline">
+            {vanguard.worlds.length > 0 && (
+              <span><span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Vanguard now (picked {fmtPicked(vanguard.picked)}): <b className="ms-mono">{vanguard.worlds.join(", ")}</b></span>
+            )}
+            {nextVg && nextVg.worlds.length > 0 && (
+              <span><span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> Projected for the {fmtPicked(nextVg.event)} migration: <b className="ms-mono">{nextVg.worlds.join(", ")}</b></span>
+            )}
+          </div>
           {eventN <= 2 && offset !== 0 && (
             <div className="ms-eventmeta ms-est">
               Offset is ignored for events 1–2 since their dates are known. It
@@ -491,10 +515,14 @@ export default function MigrationScout() {
                       {isProjected(server) ? "~" : ""}{fmtDate(result.launch)}
                     </div>
                   </div>
-                  {isVanguard(server) && (
+                  {(isVanguard(server) || isNextVanguard(server)) && (
                     <div className="ms-stat">
                       <div className="k">Vanguard</div>
-                      <div className="v"><span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Upper Ring world</div>
+                      <div className="v">
+                        {isVanguard(server)
+                          ? <><span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Upper Ring world</>
+                          : <><span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> Projected pick</>}
+                      </div>
                     </div>
                   )}
                   <div className="ms-stat">
@@ -548,8 +576,8 @@ export default function MigrationScout() {
                 <b>{filtered.length}</b> compatible server
                 {filtered.length === 1 ? "" : "s"} in Group {result.group} for event{" "}
                 {eventN}
-                {vanguard.worlds.length > 0 && (
-                  <span> · <span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Vanguard world, few migrant spots (picked {fmtPicked(vanguard.picked)})</span>
+                {(vanguard.worlds.length > 0 || nextVg) && (
+                  <span> · <span className="ms-vg" style={{ marginLeft: 0 }}>★</span> Vanguard now · <span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> projected next</span>
                 )}
               </div>
               <div className="ms-scroll">
@@ -576,7 +604,7 @@ export default function MigrationScout() {
                           >
                             {r.s}
                           </a>
-                          {isVanguard(r.s) && <span className="ms-vg" title="Vanguard (Upper Ring) world: takes only a few migrants" aria-label="Vanguard world">★</span>}
+                          {vgMarks(r.s)}
                           {r.s === server ? "  ← you" : ""}
                         </td>
                         <td className="ms-mono">
@@ -616,7 +644,10 @@ export default function MigrationScout() {
           (1097–1100, … 1997–2000).{" "}
           <span className="ms-vg" style={{ marginLeft: 0 }}>★</span> marks Vanguard (Upper Ring) worlds,
           which take only a few migrants. The game picks them when each migration
-          event opens, and the list here follows dengsden.com, refreshed daily.
+          event opens: the 5 worlds furthest above their era's average power.{" "}
+          <span className="ms-vg next" style={{ marginLeft: 0 }}>☆</span> marks the projected picks for the
+          next migration, based on today's standings. Both lists follow dengsden.com
+          and are refreshed daily.
           Per-world details link out to{" "}
           <a href="https://dengsden.com/" target="_blank" rel="noopener">
             dengsden.com

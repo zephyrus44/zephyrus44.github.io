@@ -87,6 +87,8 @@
   .wz .w .p { color: var(--muted); }
   .vg { color: var(--arc-gold, #F4BF41); margin-left: 4px; cursor: help; }
   .chip span.vg { color: var(--arc-gold, #F4BF41); margin-left: 3px; }
+  .vg.next { opacity: .85; }
+  .legend span.vg + span.vg { margin-left: 0; }
   .won { color: var(--ok); font-size: 11px; font-weight: 600; margin-left: 6px; }
   .legend { font-size: 13px; color: var(--muted); margin: 10px 2px 0; }
   .wz .w .m.ok { color: var(--ok); } .wz .w .m.bad { color: var(--bad); }
@@ -163,7 +165,7 @@
   <div class="note">
     <b>Ages.</b> Each world's age is its in-game Day counter on the era cutoff date (the round's first day, 00:00 UTC). The day offset moves the whole round, including its era cutoff and Matching day. Day counts for 1001–1111 were read from the Migration screen on Nov 1, 2026. New worlds open every Friday at 00:00 UTC and are marked <span class="acc">~</span> until they exist.<br><br>
     <b>Schedule.</b> Rounds run 4 weeks on, 4 weeks off from Oct 3, 2026, so ◀ ▶ step 56 days. Each round: Announcement (5 days), Matching (1 day), Matching Reveal &amp; Prelude (5 days), Land of the Abyss (14 days), Closing (3 days). Eras are set by world age at the start of the round; warzones are set from power on Matching day.<br><br>
-    <b>Vanguard.</b> <span class="vg" style="margin-left:0">★</span> marks Vanguard (Upper Ring) worlds, which take only a few migrants. The game picks them when each migration event opens; the list follows dengsden.com and is refreshed daily.<br><br>
+    <b>Vanguard.</b> <span class="vg" style="margin-left:0">★</span> marks Vanguard (Upper Ring) worlds, which take only a few migrants. The game picks them when each migration event opens: the 5 worlds furthest above their era's average power. <span class="vg next" style="margin-left:0">☆</span> marks the projected picks for the next migration, based on today's standings. Both lists follow dengsden.com and are refreshed daily.<br><br>
     <b>Power.</b> Top-100 power comes from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>.
   </div>
 </div>
@@ -249,9 +251,15 @@ const DATA = { power: EMBED_POWER, powerSrc: 'built-in snapshot', svs: EMBED_SVS
 const getJSON = (url) => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(r.status));
 // Vanguard (Upper Ring) worlds: picked by the game when each migration event opens,
 // published by dengsden.com and saved daily to /data/deng-vanguard.json.
-let VANGUARD = { picked: '2026-10-31', worlds: [1023, 1031, 1054, 1058, 1090] };
+// "next" = dengsden.com's projected picks for the upcoming migration (the 5 worlds furthest above their era average today).
+let VANGUARD = { picked: '2026-10-31', worlds: [1023, 1031, 1054, 1058, 1090],
+  next: { event: '2026-11-28', as_of: '2026-11-15', worlds: [1023, 1018, 1081, 1073, 1031] } };
 const isVanguard = (s) => VANGUARD.worlds.includes(s);
-const vgStar = (s) => isVanguard(s) ? '<span class="vg" title="Vanguard (Upper Ring) world: takes only a few migrants">★</span>' : '';
+const isNextVanguard = (s) => !!VANGUARD.next?.worlds?.includes(s);
+const vgDate = (d) => fmtShort(Date.parse(d + 'T00:00:00Z'));
+const vgStar = (s) =>
+  (isVanguard(s) ? '<span class="vg" title="Vanguard (Upper Ring) world: takes only a few migrants">★</span>' : '') +
+  (isNextVanguard(s) ? `<span class="vg next" title="Projected Vanguard pick for the ${vgDate(VANGUARD.next.event)} migration">☆</span>` : '');
 
 async function loadData() {
   await loadWorldDays();
@@ -383,9 +391,10 @@ function render() {
     }
   }
   $('findCard').innerHTML = html;
-  $('vgLegend').innerHTML = VANGUARD.worlds.length
-    ? `<span class="vg" style="margin-left:0">★</span> Vanguard worlds (picked ${fmtShort(Date.parse(VANGUARD.picked + 'T00:00:00Z'))}): ${VANGUARD.worlds.join(', ')}`
-    : '';
+  $('vgLegend').innerHTML = [
+    VANGUARD.worlds.length ? `<span class="vg" style="margin-left:0">★</span> Vanguard now (picked ${vgDate(VANGUARD.picked)}): <span class="mono">${VANGUARD.worlds.join(', ')}</span>` : '',
+    VANGUARD.next?.worlds?.length ? `<span class="vg next" style="margin-left:0">☆</span> Projected for the ${vgDate(VANGUARD.next.event)} migration: <span class="mono">${VANGUARD.next.worlds.join(', ')}</span>` : '',
+  ].filter(Boolean).join('<br>');
 
   $('tbody').innerHTML = groups.map(g => {
     const ids = g.list.map(w => w.s);
