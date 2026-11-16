@@ -30,6 +30,11 @@ jobs:
           DAY=$(jq -r '.taken_at[0:10]' /tmp/servers.json)
           jq -c '{taken_at, top100: (.rows | map({key: (.server|tostring), value: (.top100_sum|tonumber)}) | from_entries)}' \
             /tmp/servers.json > "data/history/servers-$DAY.json"
+          # Upper Ring (vanguard) worlds, picked by the game when each migration event opens
+          if curl -fsS -A "$UA" https://dengsden.com/avatar/api/migration/vanguard -o /tmp/vanguard.json \
+             && jq -e '.upperNow.worlds | type == "array"' /tmp/vanguard.json > /dev/null; then
+            jq '{picked: .upperNow.picked, worlds: (.upperNow.worlds | map(. + 1000) | sort)}' /tmp/vanguard.json > data/deng-vanguard.json
+          fi
           # Keep each round's actual warzones once they appear
           START=$(jq -r '.start // empty | todate | .[0:10]' /tmp/svs.json)
           if [ -n "$START" ] && [ "$(jq '.worlds | length' /tmp/svs.json)" -gt 0 ]; then
