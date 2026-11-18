@@ -438,11 +438,15 @@ function applyMoves() {
 
 function moveWarnings(m, res, t, vgList, intoCount) {
   const out = [];
-  if (!(launchOf(m.to) < launchOf(m.from))) out.push(`${m.to} isn't older than ${m.from}. Players can only migrate to older worlds.`);
+  // Same rules as Migration Scout: worlds migrate freely, either direction, within their
+  // migration group (78–161 days or 162+), judged by age on the migration's first day,
+  // which is this round's first day.
   const grp = (w) => { const a = ageOn(w, t); return a >= 162 ? 2 : a >= 78 ? 1 : 0; };
   const gf = grp(m.from), gt = grp(m.to);
-  if (gf === 0) out.push(`${m.from} is too young to migrate from (worlds need 78+ days).`);
-  else if (gf !== gt) out.push(`${m.from} and ${m.to} are in different migration groups (78–161 days vs 162+), so this move isn't possible.`);
+  const gName = (g) => g === 2 ? 'Group 2 (162+ days)' : 'Group 1 (78–161 days)';
+  if (gf === 0) out.push(`${m.from} is too young to migrate (worlds need 78+ days).`);
+  else if (gt === 0) out.push(`${m.to} is too young to take migrants (worlds need 78+ days).`);
+  else if (gf !== gt) out.push(`${m.from} is in ${gName(gf)} and ${m.to} is in ${gName(gt)}. Players can only move between worlds in the same group.`);
   if (vgList.includes(m.to) && intoCount[m.to] > 5) out.push(`${m.to} is a Vanguard world: it takes only 5 migrants, and this scenario moves ${intoCount[m.to]} in.`);
   return out;
 }
@@ -502,7 +506,10 @@ function renderEditor(ctx) {
     const dest = eff.worlds[m.to];
     let info = '';
     if (r.pending) info = (PLAYERS[m.from] === 'missing' || PLAYERS[m.to] === 'missing') ? 'Player lists for these worlds aren\'t available yet.' : 'Loading player lists…';
-    else if (!r.moved.length) info = 'Nobody left to move: they were already moved by an earlier step.';
+    else if (!r.moved.length) {
+      const earlier = eff.results.slice(0, i).some(e => e.m.from === m.from && e.moved.some(x => m.tag != null ? x.t === m.tag : m.names.includes(x.n)));
+      info = earlier ? 'Nobody left to move: an earlier move already took them.' : `No matching players in ${m.from}'s top 200.`;
+    }
     else if (dest) {
       const cutoff = dest.list.slice().sort((a, b) => b.p - a.p)[99];
       const inTop = cutoff ? r.moved.filter(x => x.p >= cutoff.p).length : r.moved.length;
