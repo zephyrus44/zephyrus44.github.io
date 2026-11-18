@@ -1,0 +1,44 @@
+name: Update player lists
+
+# Top 200 players on every server (name, alliance tag, power), from dengsden.com.
+# Used by Era Grouping's warzone editor. The data lives on its own branch
+# (deng-players), replaced each run, so main's history doesn't grow.
+
+on:
+  schedule:
+    - cron: "53 12 */3 * *"   # every 3 days, after Deng's Den's morning snapshot
+  workflow_dispatch:          # run by hand from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency: deng-players
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load the current data
+        run: |
+          mkdir -p out
+          if git fetch -q --depth=1 origin deng-players; then
+            git archive FETCH_HEAD | tar -x -C out
+          fi
+
+      - name: Download from Deng's Den
+        run: python3 .github/scripts/deng_players.py out
+
+      - name: Publish to the deng-players branch
+        run: |
+          cd out
+          [ -f .changed ] || { echo "No new snapshot, nothing to publish"; exit 0; }
+          rm .changed
+          git init -q
+          git checkout -q -b deng-players
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Player lists $(jq -r .taken_at index.json)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" deng-players

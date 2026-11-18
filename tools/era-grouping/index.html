@@ -103,10 +103,47 @@
   .mgrid input[type=range] { height: auto; width: 100%; accent-color: var(--accent); padding: 0; border: 0; background: none; box-shadow: none; }
   .muted { color: var(--muted); }
   .warn { color: var(--warn); font-size: 14px; }
+  /* Warzone editor */
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; }
+  .seg button { border: 0; background: none; border-radius: 999px; padding: 6px 14px; color: var(--muted); font-weight: 500; }
+  .seg button.on { background: var(--text); color: var(--bg); }
+  .ed h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+  .ed .lead { color: var(--muted); font-size: 13.5px; line-height: 1.55; margin: 0 0 14px; }
+  .ed .build { display: grid; grid-template-columns: auto 1fr; gap: 12px 14px; align-items: start; }
+  .ed .build > .lbl { padding-top: 9px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .ed .pick { max-height: 300px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+  .ed .pick .it { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 10px; border-bottom: 1px solid var(--line2); cursor: pointer; font-size: 13.5px; }
+  .ed .pick .it:last-child { border-bottom: 0; }
+  .ed .pick .it:hover { background: var(--card2, rgba(255,255,255,.03)); }
+  .ed .pick .it.sel { background: var(--accent-soft); }
+  .ed .pick .it .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ed .pick .it .sub2 { color: var(--muted); font-size: 12px; }
+  .ed .pick .it .pw { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12.5px; text-align: right; }
+  .ed .pick .it input { margin: 0; }
+  .ed .search { width: 100%; margin-bottom: 8px; }
+  .ed .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ed .primary { background: var(--accent); color: var(--arc-accent-ink, #0B1020); border-color: var(--accent); font-weight: 600; }
+  .ed .primary:disabled { opacity: .45; cursor: default; }
+  .ed .sec { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line2); }
+  .ed .sec h4 { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .ed .mv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; padding: 8px 0; border-bottom: 1px solid var(--line2); font-size: 13.5px; }
+  .ed .mv:last-child { border-bottom: 0; }
+  .ed .mv .x { background: none; border: 0; color: var(--muted); font-size: 18px; padding: 0 6px; line-height: 1; align-self: start; }
+  .ed .mv .w8 { grid-column: 1 / -1; color: var(--warn); font-size: 12.5px; }
+  .ed .mv .inf { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; }
+  .ed .fx { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 0; }
+  .ed .fx td, .ed .fx th { padding: 6px 8px; border-bottom: 1px solid var(--line2); text-align: left; white-space: nowrap; }
+  .ed .fx .up { color: var(--ok); } .ed .fx .down { color: var(--bad); }
+  .ed .fx, .ed .fx th, .ed .fx td { table-layout: auto; width: auto !important; overflow: visible !important; text-overflow: clip !important; }
+  .ed .fx .dl { display: block; font-size: 12px; }
+  .ed .empty { color: var(--muted); font-size: 13.5px; }
+  .wz .w .chg { color: var(--warn); font-size: 11.5px; margin-left: 6px; }
+  .wz .w .dp { font-size: 11.5px; margin-left: 4px; } .wz .w .dp.up { color: var(--ok); } .wz .w .dp.down { color: var(--bad); }
+  .wz.changed { border-color: var(--warn); }
   .note { color: var(--muted); font-size: 13px; line-height: 1.65; max-width: 72ch; margin-top: 24px; }
   .note b { color: var(--text); font-weight: 600; }
   .note a { color: var(--accent); }
-  @media (max-width: 600px) { .wrap { padding: 28px 16px 56px; } h1 { font-size: 26px; } .card { padding: 16px; } table { min-width: 0; table-layout: fixed; } th, td { padding: 10px 8px; } th:first-child, td:first-child { width: 34%; } th:nth-child(2) { width: 22%; } th:nth-child(3) { width: 30%; } th:last-child, td:last-child { width: 14%; } td:first-child, td.mono { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } tr.detail td { white-space: normal; overflow: visible; } .wzs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; } .check { overflow-wrap: anywhere; } .wz { padding: 8px 9px; } .wz .w { font-size: 12.5px; } .mgrid { grid-template-columns: 90px 1fr; } .mgrid .sel { grid-column: 2; } }
+  @media (max-width: 600px) { .ed .build { grid-template-columns: 1fr; gap: 6px; } .ed .build > .lbl { padding-top: 6px; } .ed .fx td, .ed .fx th { padding: 6px 4px; font-size: 12.5px; } .wrap { padding: 28px 16px 56px; } h1 { font-size: 26px; } .card { padding: 16px; } table { min-width: 0; table-layout: fixed; } th, td { padding: 10px 8px; } th:first-child, td:first-child { width: 34%; } th:nth-child(2) { width: 22%; } th:nth-child(3) { width: 30%; } th:last-child, td:last-child { width: 14%; } td:first-child, td.mono { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } tr.detail td { white-space: normal; overflow: visible; } .wzs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; } .check { overflow-wrap: anywhere; } .wz { padding: 8px 9px; } .wz .w { font-size: 12.5px; } .mgrid { grid-template-columns: 90px 1fr; } .mgrid .sel { grid-column: 2; } }
 </style>
 </head>
 <body>
@@ -137,11 +174,16 @@
         <label for="server">Find world</label>
         <input id="server" class="srv" inputmode="numeric" placeholder="e.g. 1097">
       </div>
+      <div class="field">
+        <span class="lbl">Mode</span>
+        <div class="seg" id="modeSeg"><button data-mode="view">Warzones</button><button data-mode="edit">Editor</button></div>
+      </div>
     </div>
     <div class="eff" id="eff"></div>
   </div>
 
   <div id="findCard"></div>
+  <div class="card ed" id="editor" hidden></div>
 
   <div class="scroll">
     <table>
@@ -167,6 +209,7 @@
     <b>Ages.</b> Each world's age is its in-game Day counter on the era cutoff date (the round's first day, 00:00 UTC). The day offset moves the whole round, including its era cutoff and Matching day. Day counts for 1001–1111 were read from the Migration screen on Nov 1, 2026. New worlds open every Friday at 00:00 UTC and are marked <span class="acc">~</span> until they exist.<br><br>
     <b>Schedule.</b> Rounds run 4 weeks on, 4 weeks off from Oct 3, 2026, so ◀ ▶ step 56 days. Each round: Announcement (5 days), Matching (1 day), Matching Reveal &amp; Prelude (5 days), Land of the Abyss (14 days), Closing (3 days). Eras are set by world age at the start of the round; warzones are set from power on Matching day.<br><br>
     <b>Vanguard.</b> Vanguard (Upper Ring) worlds take only a few migrants. The game picks them when each migration event opens: the 5 worlds furthest above their era's average power. <span class="vg" style="margin-left:0">★</span> marks the actual picks for rounds that have had their migration. <span class="vg next" style="margin-left:0">☆</span> marks <a href="https://dengsden.com/avatar/migration/vanguard/" target="_blank" rel="noopener">dengsden.com</a>'s projected picks for the upcoming migration's round and later ones, based on today's standings. Lists are refreshed daily.<br><br>
+    <b>Editor.</b> The editor moves players or whole alliances between worlds and recalculates each world's top-100 power from its top 200 players, so the players who move up to replace anyone leaving are counted. A moved player only counts in their new world if they make its top 100. Migration rules are shown as warnings, not enforced.<br><br>
     <b>Power.</b> Top-100 power comes from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>.
   </div>
 </div>
@@ -351,6 +394,185 @@ function warzones(groups, power) {
   return out;
 }
 
+
+// ---------- Warzone editor ----------
+// Player lists (top 200 per world: [name, alliance tag, power]) are built every few
+// days by .github/workflows/deng-players.yml and kept on the deng-players branch.
+const PLAYERS_BASE = 'https://raw.githubusercontent.com/zephyrus44/zephyrus44.github.io/deng-players/';
+const PLAYERS = {};          // world -> { players: [{n, t, p}], taken_at } | 'loading' | 'missing'
+let MODE = saved('mode', 'view');
+let MOVES = (() => { try { return JSON.parse(saved('moves', '[]')) || []; } catch (e) { return []; } })();
+const ED = { from: '', to: '', kind: 'alliance', tag: null, names: new Set(), q: '' };
+
+function loadPlayers(w) {
+  if (PLAYERS[w]) return;
+  PLAYERS[w] = 'loading';
+  fetch(`${PLAYERS_BASE}servers/${w - 1000}.json`, { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(d => { PLAYERS[w] = { taken_at: d.taken_at, players: d.players.map(([n, t, p]) => ({ n, t: t || '', p: +p })) }; render(); })
+    .catch(() => { PLAYERS[w] = 'missing'; render(); });
+}
+const listOf = (w) => (PLAYERS[w] && PLAYERS[w].players) || null;
+const top100 = (list) => list.slice().sort((a, b) => b.p - a.p).slice(0, 100).reduce((a, x) => a + x.p, 0);
+
+// Apply every move in order. Returns per-world { before, after, list } plus per-move results.
+function applyMoves() {
+  const cur = {}, results = [];
+  const get = (w) => cur[w] || (listOf(w) ? (cur[w] = listOf(w).map(x => ({ ...x, home: w }))) : null);
+  for (const m of MOVES) {
+    const from = get(m.from), to = get(m.to);
+    if (!from || !to) { results.push({ m, pending: true, moved: [] }); continue; }
+    const pickIt = m.tag != null ? (x) => x.t === m.tag : (x) => m.names.includes(x.n);
+    const moved = from.filter(pickIt);
+    cur[m.from] = from.filter(x => !pickIt(x));
+    cur[m.to] = to.concat(moved.map(x => ({ ...x })));
+    results.push({ m, moved });
+  }
+  const worlds = {};
+  for (const w of Object.keys(cur)) {
+    const before = top100(listOf(+w)), after = top100(cur[w]);
+    worlds[w] = { before, after, delta: after - before, list: cur[w] };
+  }
+  return { worlds, results };
+}
+
+function moveWarnings(m, res, t, vgList, intoCount) {
+  const out = [];
+  if (!(launchOf(m.to) < launchOf(m.from))) out.push(`${m.to} isn't older than ${m.from}. Players can only migrate to older worlds.`);
+  const grp = (w) => { const a = ageOn(w, t); return a >= 162 ? 2 : a >= 78 ? 1 : 0; };
+  const gf = grp(m.from), gt = grp(m.to);
+  if (gf === 0) out.push(`${m.from} is too young to migrate from (worlds need 78+ days).`);
+  else if (gf !== gt) out.push(`${m.from} and ${m.to} are in different migration groups (78–161 days vs 162+), so this move isn't possible.`);
+  if (vgList.includes(m.to) && intoCount[m.to] > 5) out.push(`${m.to} is a Vanguard world: it takes only 5 migrants, and this scenario moves ${intoCount[m.to]} in.`);
+  return out;
+}
+
+const encMoves = () => MOVES.length ? btoa(unescape(encodeURIComponent(JSON.stringify(MOVES.map(m => [m.from, m.to, m.tag != null ? m.tag : null, m.names || null]))))).replace(/=+$/, '') : '';
+function decMoves(v) {
+  try { return JSON.parse(decodeURIComponent(escape(atob(v)))).map(([from, to, tag, names]) => ({ from, to, ...(tag != null ? { tag } : { names }) })); }
+  catch (e) { return null; }
+}
+const saveMoves = () => save('moves', JSON.stringify(MOVES));
+
+function renderEditor(ctx) {
+  const box = $('editor');
+  box.hidden = MODE !== 'edit';
+  document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.mode === MODE));
+  if (MODE !== 'edit') return;
+  const { t, start, eff, worldsInRound, wzOf0, wzOf1 } = ctx;
+  const from = parseInt(ED.from, 10), to = parseInt(ED.to, 10);
+  const fromOk = from >= 1001 && worldsInRound.has(from), toOk = to >= 1001 && worldsInRound.has(to) && to !== from;
+  if (fromOk) loadPlayers(from);
+  const fl = fromOk ? PLAYERS[from] : null;
+  const esc = (x) => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const isPast = start + MATCH_OFFSET * DAY < Date.now();
+
+  // picker for the source world
+  let picker = '';
+  if (ED.from && !fromOk) picker = `<div class="empty">Enter a world that's in this round.</div>`;
+  else if (fl === 'loading') picker = `<div class="empty">Loading ${from}'s players…</div>`;
+  else if (fl === 'missing') picker = `<div class="empty">Player list for ${from} isn't available yet.</div>`;
+  else if (fl && fl.players) {
+    const ps = fl.players;
+    const cut = ps.length >= 100 ? ps[99].p : 0;
+    if (ED.kind === 'alliance') {
+      const al = {};
+      ps.forEach((x, i) => { if (!x.t) return; const a = al[x.t] = al[x.t] || { t: x.t, n: 0, n100: 0, p: 0, p100: 0 }; a.n++; a.p += x.p; if (i < 100) { a.n100++; a.p100 += x.p; } });
+      const rows = Object.values(al).sort((a, b) => b.p100 - a.p100 || b.p - a.p);
+      picker = rows.length ? `<div class="pick">${rows.map(a => `<label class="it${ED.tag === a.t ? ' sel' : ''}"><input type="radio" name="edAlly" value="${esc(a.t)}"${ED.tag === a.t ? ' checked' : ''}><span class="nm">${esc(a.t)} <span class="sub2">· ${a.n100} in top 100${a.n > a.n100 ? `, ${a.n} in top 200` : ''}</span></span><span class="pw">${bil(a.p100)}</span></label>`).join('')}</div>`
+        : `<div class="empty">No alliances in ${from}'s top 200.</div>`;
+    } else {
+      const q = ED.q.trim().toLowerCase();
+      const rows = ps.map((x, i) => ({ ...x, r: i + 1 })).filter(x => !q || x.n.toLowerCase().includes(q) || x.t.toLowerCase().includes(q));
+      picker = `<input class="search" id="edQ" placeholder="Search name or alliance" value="${esc(ED.q)}">
+        <div class="pick">${rows.map(x => `<label class="it${ED.names.has(x.n) ? ' sel' : ''}"><input type="checkbox" data-name="${esc(x.n)}"${ED.names.has(x.n) ? ' checked' : ''}><span class="nm">${x.r}. ${esc(x.n)}${x.t ? ` <span class="sub2">[${esc(x.t)}]</span>` : ''}</span><span class="pw">${(x.p / 1e6).toFixed(1)}M</span></label>`).join('') || '<div class="it"><span></span><span class="sub2">No matches</span><span></span></div>'}</div>`;
+    }
+  }
+  const canAdd = fromOk && toOk && fl && fl.players && (ED.kind === 'alliance' ? !!ED.tag : ED.names.size > 0);
+
+  // moves + effects
+  const vgList = ROUND_VG.worlds || [];
+  const intoCount = {};
+  eff.results.forEach(r => { intoCount[r.m.to] = (intoCount[r.m.to] || 0) + r.moved.length; });
+  const movesHtml = MOVES.length ? MOVES.map((m, i) => {
+    const r = eff.results[i];
+    const what = m.tag != null ? `<b>${esc(m.tag)}</b>` : (m.names.length === 1 ? `<b>${esc(m.names[0])}</b>` : `<b>${esc(m.names.slice(0, 2).join(', '))}${m.names.length > 2 ? ` +${m.names.length - 2}` : ''}</b>`);
+    const pw = r.moved.reduce((a, x) => a + x.p, 0);
+    const warns = moveWarnings(m, r, t, vgList, intoCount);
+    const dest = eff.worlds[m.to];
+    let info = '';
+    if (r.pending) info = (PLAYERS[m.from] === 'missing' || PLAYERS[m.to] === 'missing') ? 'Player lists for these worlds aren\'t available yet.' : 'Loading player lists…';
+    else if (!r.moved.length) info = 'Nobody left to move: they were already moved by an earlier step.';
+    else if (dest) {
+      const cutoff = dest.list.slice().sort((a, b) => b.p - a.p)[99];
+      const inTop = cutoff ? r.moved.filter(x => x.p >= cutoff.p).length : r.moved.length;
+      info = `${r.moved.length} player${r.moved.length === 1 ? '' : 's'}, ${bil(pw)}. ${inTop} land${inTop === 1 ? 's' : ''} in ${m.to}'s top 100.`;
+    }
+    return `<div class="mv"><div>${what} · ${m.from} → ${m.to}</div><button class="x" data-del="${i}" title="Remove this move" aria-label="Remove move">×</button>
+      ${info ? `<div class="inf">${info}</div>` : ''}${warns.map(w => `<div class="w8">⚠ ${w}</div>`).join('')}</div>`;
+  }).join('') : `<div class="empty">No moves yet. Pick a world above, choose an alliance or players, and where they go.</div>`;
+
+  const changed = Object.entries(eff.worlds).filter(([, v]) => Math.abs(v.delta) > 0).sort(([a], [b]) => a - b);
+  const fx = changed.length ? `<div style="overflow-x:auto"><table class="fx"><thead><tr><th>World</th><th>Top-100 power</th><th>Warzone</th></tr></thead><tbody>${changed.map(([w, v]) => {
+      const z0 = wzOf0[w], z1 = wzOf1[w];
+      return `<tr><td>${w}</td><td>${bil(ctx.basePower(+w))} → ${bil(ctx.basePower(+w) + v.delta)}<span class="dl ${v.delta > 0 ? 'up' : 'down'}">${v.delta > 0 ? '+' : '−'}${bil(Math.abs(v.delta))}</span></td><td>${z0 ? z0.n : '—'}${z1 && z0 && z1.n !== z0.n ? ` → <b>${z1.n}</b>` : ''}</td></tr>`;
+    }).join('')}</tbody></table></div>` : `<div class="empty">No changes yet.</div>`;
+
+  const taken = Object.values(PLAYERS).find(v => v && v.taken_at);
+  box.innerHTML = `<h3>Warzone editor</h3>
+    <p class="lead">Move players or alliances between worlds and see how this round's predicted warzones change. Warzones still use each world's top 100.${isPast ? ' This round has already been matched, so the results show what the current player lists would do.' : ''}</p>
+    <div class="build">
+      <div class="lbl">From world</div>
+      <div><input id="edFrom" class="srv" inputmode="numeric" placeholder="e.g. 1074" value="${esc(ED.from)}"></div>
+      <div class="lbl">Move</div>
+      <div><div class="seg" id="edKind" style="margin-bottom:10px"><button data-kind="alliance" class="${ED.kind === 'alliance' ? 'on' : ''}">Alliance</button><button data-kind="players" class="${ED.kind === 'players' ? 'on' : ''}">Players</button></div>${picker}</div>
+      <div class="lbl">To world</div>
+      <div class="actions"><input id="edTo" class="srv" inputmode="numeric" placeholder="e.g. 1058" value="${esc(ED.to)}"><button class="primary" id="edAdd"${canAdd ? '' : ' disabled'}>Add move</button></div>
+    </div>
+    <div class="sec"><h4>Moves</h4>${movesHtml}</div>
+    <div class="sec"><h4>Effect</h4>${fx}</div>
+    <div class="sec actions">
+      <button id="edCopy"${MOVES.length ? '' : ' disabled'}>Copy link</button>
+      <button id="edClear"${MOVES.length ? '' : ' disabled'}>Clear all</button>
+      <span class="muted" style="font-size:12.5px">${taken ? `Player lists from <a href="https://dengsden.com/avatar/rankings/" target="_blank" rel="noopener" style="color:var(--accent)">dengsden.com</a>, ${fmtShort(Date.parse(taken.taken_at))}.` : ''}</span>
+    </div>`;
+}
+
+$('modeSeg').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-mode]'); if (!b) return;
+  MODE = b.dataset.mode; save('mode', MODE); render();
+});
+$('editor').addEventListener('click', (ev) => {
+  const k = ev.target.closest('[data-kind]');
+  if (k) { ED.kind = k.dataset.kind; render(); return; }
+  const del = ev.target.closest('[data-del]');
+  if (del) { MOVES.splice(+del.dataset.del, 1); saveMoves(); render(); return; }
+  if (ev.target.id === 'edAdd') {
+    const from = parseInt(ED.from, 10), to = parseInt(ED.to, 10);
+    MOVES.push(ED.kind === 'alliance' ? { from, to, tag: ED.tag } : { from, to, names: [...ED.names] });
+    loadPlayers(to); ED.tag = null; ED.names = new Set(); saveMoves(); render(); return;
+  }
+  if (ev.target.id === 'edClear') { MOVES = []; saveMoves(); render(); return; }
+  if (ev.target.id === 'edCopy') {
+    syncURL();
+    let url = location.href; try { if (window.top !== window) url = window.top.location.href; } catch (e) {}
+    const done = () => { ev.target.textContent = 'Copied'; setTimeout(() => { ev.target.textContent = 'Copy link'; }, 1500); };
+    try { navigator.clipboard.writeText(url).then(done, () => prompt('Copy this link', url)); } catch (e) { prompt('Copy this link', url); }
+  }
+});
+$('editor').addEventListener('change', (ev) => {
+  const el = ev.target;
+  if (el.name === 'edAlly') { ED.tag = el.value; render(); }
+  else if (el.dataset.name != null) { el.checked ? ED.names.add(el.dataset.name) : ED.names.delete(el.dataset.name); render(); }
+});
+$('editor').addEventListener('input', (ev) => {
+  const el = ev.target;
+  const keep = () => { const n = $(el.id); if (n) { n.focus(); const L = n.value.length; try { n.setSelectionRange(L, L); } catch (e) {} } };
+  if (el.id === 'edFrom') { ED.from = el.value.replace(/\D/g, ''); ED.tag = null; ED.names = new Set(); ED.q = ''; render(); keep(); }
+  else if (el.id === 'edTo') { ED.to = el.value.replace(/\D/g, ''); render(); keep(); }
+  else if (el.id === 'edQ') { ED.q = el.value; render(); keep(); }
+});
+
 const open = new Set(JSON.parse(saved('open', '["Frontier"]')));
 const view = JSON.parse(saved('view', '{}')); // era -> 'wz' | 'ages'
 
@@ -379,8 +601,23 @@ function render() {
   const worlds = [];
   for (let s = 1001; launchOf(s) <= t; s++) worlds.push({ s, age: ageOn(s, t), est: s > NEWEST_KNOWN });
   const groups = ERAS.map(e => ({ ...e, list: worlds.filter(w => w.age >= e.min && w.age <= e.max) }));
-  const wz = warzones(groups, power);
+  // Editor: moves change top-100 power for the worlds involved (delta from the player lists)
+  const editing = MODE === 'edit';
+  if (editing) MOVES.forEach(m => { loadPlayers(m.from); loadPlayers(m.to); });
+  const eff = editing ? applyMoves() : { worlds: {}, results: [] };
+  const basePower = (w) => power.top100[w - 1000] || 0;
+  const usePower = editing && Object.keys(eff.worlds).length
+    ? { ...power, top100: Object.assign({}, power.top100, ...Object.entries(eff.worlds).map(([w, v]) => ({ [w - 1000]: basePower(+w) + v.delta }))) }
+    : power;
+  const wz0 = editing ? warzones(groups, power) : null;
+  const wz = warzones(groups, usePower);
   const wzOf = {}; Object.values(wz).flat().forEach(z => z.worlds.forEach(w => wzOf[w.s] = z));
+  const wzOf0 = {}; if (wz0) Object.values(wz0).flat().forEach(z => z.worlds.forEach(w => wzOf0[w.s] = z));
+  if (editing) {
+    // open the eras the moves touch
+    Object.keys(eff.worlds).forEach(w => { const g = groups.find(g => g.list.some(x => x.s === +w)); if (g) open.add(g.name); });
+    renderEditor({ t, start, eff, basePower, wzOf0, wzOf1: wzOf, worldsInRound: new Set(worlds.map(w => w.s)) });
+  } else renderEditor({});
 
   // Find world
   const sv = parseInt($('server').value, 10);
@@ -422,9 +659,9 @@ function render() {
     if (open.has(g.name) && g.list.length) {
       const hasActual = !!(actualZ && actualZ[g.name]);
       let mode = g.none ? 'ages' : (view[g.name] || (hasActual ? 'actual' : 'wz'));
-      if (mode === 'actual' && !hasActual) mode = 'wz';
+      if (mode === 'actual' && (!hasActual || editing)) mode = 'wz';
       const tab = (k, label) => `<button data-view="${k}" data-era="${g.name}" class="${mode === k ? 'on' : ''}">${label}</button>`;
-      const tabs = g.none ? '' : `<div class="tabs">${hasActual ? tab('actual', 'Actual') + tab('wz', 'Predicted') : tab('wz', 'Warzones')}${tab('ages', 'World ages')}</div>`;
+      const tabs = g.none ? '' : `<div class="tabs">${hasActual && !editing ? tab('actual', 'Actual') + tab('wz', 'Predicted') : tab('wz', editing ? 'Edited warzones' : 'Warzones')}${tab('ages', 'World ages')}</div>`;
       let body;
       if (mode === 'actual') {
         body = `<div class="wzs">${actualZ[g.name].map(z => `<div class="wz${z.servers.includes(sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.servers.reduce((a, x) => a + (power.top100[x - 1000] || 0), 0))}</span></h4>${
@@ -434,13 +671,17 @@ function render() {
         body = `<div class="chips">${g.list.map(w => `<span class="chip${w.s === sv ? ' hl' : ''}${w.est ? ' est' : ''}" data-s="${w.s}">${w.s}${vgStar(w.s)}<span>d${w.age}</span></span>`).join('')}</div>`;
       } else {
         let ok = 0, tot = 0;
-        body = `<div class="wzs">${wz[g.name].map(z => `<div class="wz${z.worlds.some(w => w.s === sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.worlds.reduce((a, w) => a + w.p, 0))}</span></h4>${
+        body = `<div class="wzs">${wz[g.name].map(z => `<div class="wz${z.worlds.some(w => w.s === sv) ? ' hl' : ''}${editing && z.worlds.some(w => wzOf0[w.s] && wzOf0[w.s].n !== z.n) ? ' changed' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.worlds.reduce((a, w) => a + w.p, 0))}</span></h4>${
           z.worlds.map(w => {
             let mark = '';
-            if (actual) { const a = actual[w.s - 1000]; tot++; if (a === z.n) { ok++; mark = `<span class="m ok">✓</span>`; } else mark = `<span class="m bad">→${a ?? '?'}</span>`; }
+            if (editing) {
+              const d = eff.worlds[w.s] ? eff.worlds[w.s].delta : 0;
+              if (d) mark += `<span class="dp ${d > 0 ? 'up' : 'down'}">${d > 0 ? '+' : '−'}${bil(Math.abs(d))}</span>`;
+              if (wzOf0[w.s] && wzOf0[w.s].n !== z.n) mark += `<span class="chg">was ${wzOf0[w.s].n}</span>`;
+            } else if (actual) { const a = actual[w.s - 1000]; tot++; if (a === z.n) { ok++; mark = `<span class="m ok">✓</span>`; } else mark = `<span class="m bad">→${a ?? '?'}</span>`; }
             return `<div class="w${w.s === sv ? ' me' : ''}" data-s="${w.s}"><span>${w.s}${w.est ? '<span class="acc">~</span>' : ''}${vgStar(w.s)}</span><span><span class="p">${bil(w.p)}${w.bonus > 0.005 ? ` +${Math.round(w.bonus * 100)}%` : ''}</span> ${mark}</span></div>`;
           }).join('')}</div>`).join('')}</div>`;
-        if (actual) body += `<div class="check">Actual vs predicted: <b>${ok}/${tot}</b> worlds in the predicted warzone. <span style="color:var(--bad)">→n</span> shows a world's actual warzone.</div>`;
+        if (actual && !editing) body += `<div class="check">Actual vs predicted: <b>${ok}/${tot}</b> worlds in the predicted warzone. <span style="color:var(--bad)">→n</span> shows a world's actual warzone.</div>`;
       }
       detail = `<tr class="detail"><td colspan="4">${tabs}${body}</td></tr>`;
     }
@@ -500,6 +741,7 @@ function syncURL() {
   if ($('date').value) q.set('date', $('date').value);
   const off = parseInt($('offset').value, 10) || 0; if (off) q.set('offset', off);
   if ($('server').value) q.set('server', $('server').value);
+  if (MODE === 'edit') { q.set('mode', 'edit'); const mv = encMoves(); if (mv) q.set('moves', mv); }
   const s = q.toString() ? '?' + q : '';
   try { if (location.search !== s) history.replaceState(history.state, '', location.pathname + s + location.hash); } catch (e) {}
   // inside the site's frame, mirror it into the address bar
@@ -513,6 +755,8 @@ try { if (window.top !== window) window.top.addEventListener('arc:route', syncUR
 $('date').value = okDate(urlQ.get('date')) ? urlQ.get('date') : saved('date', '2026-11-28');
 $('offset').value = /^-?\d+$/.test(urlQ.get('offset') || '') ? urlQ.get('offset') : (urlQ.get('date') ? '0' : saved('offset', '0'));
 $('server').value = /^\d+$/.test(urlQ.get('server') || '') ? urlQ.get('server') : (urlQ.toString() ? '' : saved('server', ''));
+if (urlQ.get('mode') === 'edit') MODE = 'edit';
+if (urlQ.get('moves')) { const m = decMoves(urlQ.get('moves')); if (m) { MOVES = m; MODE = 'edit'; saveMoves(); } }
 $('fitStat').textContent = '72 of 96 worlds in their exact warzone and 95 of 96 within one';
 renderModel();
 render();
