@@ -70,8 +70,10 @@
   .mono { font-variant-numeric: tabular-nums; }
   .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
   .caret { color: var(--muted); font-size: 11px; margin-left: 6px; }
-  .tabs { display: flex; gap: 6px; margin: 2px 0 12px; }
-  .tabs button { height: 30px; padding: 0 12px; font-size: 12.5px; border-radius: 999px; background: transparent; color: var(--muted); }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 12px; }
+  .tabs .sm { display: none; }
+  .wz .w .dp, .wz .w .chg, .wz .w .m { white-space: nowrap; }
+  .tabs button { flex: 0 0 auto; white-space: nowrap; height: 30px; padding: 0 12px; font-size: 12.5px; border-radius: 999px; background: transparent; color: var(--muted); }
   .tabs button.on { background: var(--text); border-color: var(--text); color: var(--bg); font-weight: 600; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0; }
   .chip { font-size: 12.5px; font-weight: 500; font-variant-numeric: tabular-nums; background: var(--card); border: 1px solid var(--line-strong); border-radius: 7px; padding: 4px 8px; cursor: pointer; }
@@ -82,7 +84,7 @@
   .wz { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
   .wz.hl { border-color: var(--accent); background: var(--accent-soft); }
   .wz h4 { margin: 0 0 6px; font-size: 12.5px; font-weight: 500; color: var(--muted); display: flex; justify-content: space-between; }
-  .wz .w { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-variant-numeric: tabular-nums; padding: 2px 0; cursor: pointer; }
+  .wz .w { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 8px; font-size: 13px; font-variant-numeric: tabular-nums; padding: 2px 0; cursor: pointer; }
   .wz .w.me { color: var(--accent); font-weight: 600; }
   .wz .w .p { color: var(--muted); }
   .vg { color: var(--arc-gold, #F4BF41); margin-left: 4px; cursor: help; }
@@ -143,7 +145,7 @@
   .note { color: var(--muted); font-size: 13px; line-height: 1.65; max-width: 72ch; margin-top: 24px; }
   .note b { color: var(--text); font-weight: 600; }
   .note a { color: var(--accent); }
-  @media (max-width: 600px) { .ed .build { grid-template-columns: 1fr; gap: 6px; } .ed .build > .lbl { padding-top: 6px; } .ed .fx td, .ed .fx th { padding: 6px 4px; font-size: 12.5px; } .wrap { padding: 28px 16px 56px; } h1 { font-size: 26px; } .card { padding: 16px; } table { min-width: 0; table-layout: fixed; } th, td { padding: 10px 8px; } th:first-child, td:first-child { width: 34%; } th:nth-child(2) { width: 22%; } th:nth-child(3) { width: 30%; } th:last-child, td:last-child { width: 14%; } td:first-child, td.mono { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } tr.detail td { white-space: normal; overflow: visible; } .wzs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; } .check { overflow-wrap: anywhere; } .wz { padding: 8px 9px; } .wz .w { font-size: 12.5px; } .mgrid { grid-template-columns: 90px 1fr; } .mgrid .sel { grid-column: 2; } }
+  @media (max-width: 600px) { .tabs .lg { display: none; } .tabs .sm { display: inline; } .tabs button { padding: 0 14px; } .ed .build { grid-template-columns: 1fr; gap: 6px; } .ed .build > .lbl { padding-top: 6px; } .ed .fx td, .ed .fx th { padding: 6px 4px; font-size: 12.5px; } .wrap { padding: 28px 16px 56px; } h1 { font-size: 26px; } .card { padding: 16px; } table { min-width: 0; table-layout: fixed; } th, td { padding: 10px 8px; } th:first-child, td:first-child { width: 34%; } th:nth-child(2) { width: 22%; } th:nth-child(3) { width: 30%; } th:last-child, td:last-child { width: 14%; } td:first-child, td.mono { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } tr.detail td { white-space: normal; overflow: visible; } .wzs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; } .check { overflow-wrap: anywhere; } .wz { padding: 8px 9px; } .wz .w { font-size: 12.5px; } .mgrid { grid-template-columns: 90px 1fr; } .mgrid .sel { grid-column: 2; } }
 </style>
 </head>
 <body>
@@ -668,8 +670,8 @@ function render() {
       let mode = g.none ? 'ages' : (view[g.name] || (hasActual ? 'actual' : 'wz'));
       if (mode === 'actual' && (!hasActual || editing)) mode = 'wz';
       if (mode === 'orig' && !editing) mode = 'wz';
-      const tab = (k, label) => `<button data-view="${k}" data-era="${g.name}" class="${mode === k ? 'on' : ''}">${label}</button>`;
-      const tabs = g.none ? '' : `<div class="tabs">${hasActual && !editing ? tab('actual', 'Actual') + tab('wz', 'Predicted') : (editing ? tab('wz', 'Edited warzones') + tab('orig', 'Current warzones') : tab('wz', 'Warzones'))}${tab('ages', 'World ages')}</div>`;
+      const tab = (k, label, short) => `<button data-view="${k}" data-era="${g.name}" class="${mode === k ? 'on' : ''}">${short ? `<span class="lg">${label}</span><span class="sm">${short}</span>` : label}</button>`;
+      const tabs = g.none ? '' : `<div class="tabs">${hasActual && !editing ? tab('actual', 'Actual') + tab('wz', 'Predicted') : (editing ? tab('wz', 'Edited warzones', 'Edited') + tab('orig', 'Current warzones', 'Current') : tab('wz', 'Warzones'))}${tab('ages', 'World ages', 'Ages')}</div>`;
       let body;
       if (mode === 'actual') {
         body = `<div class="wzs">${actualZ[g.name].map(z => `<div class="wz${z.servers.includes(sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.servers.reduce((a, x) => a + (power.top100[x - 1000] || 0), 0))}</span></h4>${
