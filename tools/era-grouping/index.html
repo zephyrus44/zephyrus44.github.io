@@ -667,13 +667,22 @@ function render() {
       const hasActual = !!(actualZ && actualZ[g.name]);
       let mode = g.none ? 'ages' : (view[g.name] || (hasActual ? 'actual' : 'wz'));
       if (mode === 'actual' && (!hasActual || editing)) mode = 'wz';
+      if (mode === 'orig' && !editing) mode = 'wz';
       const tab = (k, label) => `<button data-view="${k}" data-era="${g.name}" class="${mode === k ? 'on' : ''}">${label}</button>`;
-      const tabs = g.none ? '' : `<div class="tabs">${hasActual && !editing ? tab('actual', 'Actual') + tab('wz', 'Predicted') : tab('wz', editing ? 'Edited warzones' : 'Warzones')}${tab('ages', 'World ages')}</div>`;
+      const tabs = g.none ? '' : `<div class="tabs">${hasActual && !editing ? tab('actual', 'Actual') + tab('wz', 'Predicted') : (editing ? tab('wz', 'Edited warzones') + tab('orig', 'Current warzones') : tab('wz', 'Warzones'))}${tab('ages', 'World ages')}</div>`;
       let body;
       if (mode === 'actual') {
         body = `<div class="wzs">${actualZ[g.name].map(z => `<div class="wz${z.servers.includes(sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.servers.reduce((a, x) => a + (power.top100[x - 1000] || 0), 0))}</span></h4>${
           z.servers.map(x => `<div class="w${x === sv ? ' me' : ''}" data-s="${x}"><span>${x}${vgStar(x)}${z.winner === x ? '<span class="won">Won</span>' : ''}</span><span class="p">${bil(power.top100[x - 1000])}</span></div>`).join('')}</div>`).join('')}</div>
           <div class="check">Actual warzones from dengsden.com.</div>`;
+      } else if (mode === 'orig') {
+        // the prediction before any edits; worlds the edits would move show where they'd go
+        body = `<div class="wzs">${wz0[g.name].map(z => `<div class="wz${z.worlds.some(w => w.s === sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.worlds.reduce((a, w) => a + w.p, 0))}</span></h4>${
+          z.worlds.map(w => {
+            const to = wzOf[w.s] && wzOf[w.s].n !== z.n ? `<span class="chg">→ ${wzOf[w.s].n}</span>` : '';
+            return `<div class="w${w.s === sv ? ' me' : ''}" data-s="${w.s}"><span>${w.s}${w.est ? '<span class="acc">~</span>' : ''}${vgStar(w.s)}</span><span><span class="p">${bil(w.p)}${w.bonus > 0.005 ? ` +${Math.round(w.bonus * 100)}%` : ''}</span> ${to}</span></div>`;
+          }).join('')}</div>`).join('')}</div>
+          <div class="check">Predicted warzones before your edits. <span class="chg" style="margin-left:0">→ n</span> shows where a world moves with the edits.</div>`;
       } else if (mode === 'ages') {
         body = `<div class="chips">${g.list.map(w => `<span class="chip${w.s === sv ? ' hl' : ''}${w.est ? ' est' : ''}" data-s="${w.s}">${w.s}${vgStar(w.s)}<span>d${w.age}</span></span>`).join('')}</div>`;
       } else {
