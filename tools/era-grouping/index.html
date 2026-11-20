@@ -211,8 +211,8 @@
     <b>Ages.</b> Each world's age is its in-game Day counter on the era cutoff date (the round's first day, 00:00 UTC). The day offset moves the whole round, including its era cutoff and Matching day. Day counts for 1001–1111 were read from the Migration screen on Nov 1, 2026. New worlds open every Friday at 00:00 UTC and are marked <span class="acc">~</span> until they exist.<br><br>
     <b>Schedule.</b> Rounds run 4 weeks on, 4 weeks off from Oct 3, 2026, so ◀ ▶ step 56 days. Each round: Announcement (5 days), Matching (1 day), Matching Reveal &amp; Prelude (5 days), Land of the Abyss (14 days), Closing (3 days). Eras are set by world age at the start of the round; warzones are set from power on Matching day.<br><br>
     <b>Vanguard.</b> Vanguard (Upper Ring) worlds take only a few migrants. The game picks them when each migration event opens: the 5 worlds furthest above their era's average power. <span class="vg" style="margin-left:0">★</span> marks the actual picks for rounds that have had their migration. <span class="vg next" style="margin-left:0">☆</span> marks <a href="https://dengsden.com/avatar/migration/vanguard/" target="_blank" rel="noopener">dengsden.com</a>'s projected picks for the upcoming migration's round and later ones, based on today's standings. Lists are refreshed daily.<br><br>
-    <b>Editor.</b> The editor moves players or whole alliances between worlds and recalculates each world's top-200 power from its top 400 players, so the players who move up to replace anyone leaving are counted. A moved player only counts in their new world if they make its top 200. Migration rules are shown as warnings, not enforced.<br><br>
-    <b>Power.</b> Warzones are matched on each world's top-200 power; the October round used top 100. Top-100 totals come from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>, and top-200 totals are added up weekly from its player rankings, on Thursdays, the weekday Matching falls on. Inactive players are counted in each world's power here, because there's no public information on who is inactive. The game leaves inactive players out of the actual warzone matchups, so a world with many inactive players in its top 200 may be matched lower than predicted.
+    <b>Editor.</b> The editor moves players or whole alliances between worlds and recalculates each world's top-200 power from its top 400 players, so the players who move up to replace anyone leaving are counted. A moved player only counts in their new world if they make its top 200. Players marked inactive stop counting toward their world's power, and the next players move up. Migration rules are shown as warnings, not enforced.<br><br>
+    <b>Power.</b> Warzones are matched on each world's top-200 power; the October round used top 100. Top-100 totals come from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>, and top-200 totals are added up weekly from its player rankings, on Thursdays, the weekday Matching falls on. Inactive players are counted in each world's power here, because there's no public information on who is inactive. The game leaves inactive players out of the actual warzone matchups, so a world with many inactive players in its top 200 may be matched lower than predicted. If you know who's inactive, mark them in the editor.
   </div>
 </div>
 
@@ -446,12 +446,13 @@ function applyMoves() {
   const cur = {}, results = [];
   const get = (w) => cur[w] || (listOf(w) ? (cur[w] = listOf(w).map(x => ({ ...x, home: w }))) : null);
   for (const m of MOVES) {
-    const from = get(m.from), to = get(m.to);
+    const inactive = !m.to;   // to = 0: mark inactive (drop from the world's power)
+    const from = get(m.from), to = inactive ? [] : get(m.to);
     if (!from || !to) { results.push({ m, pending: true, moved: [] }); continue; }
     const pickIt = m.tag != null ? (x) => x.t === m.tag : (x) => m.names.includes(x.n);
     const moved = from.filter(pickIt);
     cur[m.from] = from.filter(x => !pickIt(x));
-    cur[m.to] = to.concat(moved.map(x => ({ ...x })));
+    if (!inactive) cur[m.to] = to.concat(moved.map(x => ({ ...x })));
     results.push({ m, moved });
   }
   const worlds = {};
@@ -464,6 +465,7 @@ function applyMoves() {
 
 function moveWarnings(m, res, t, vgList, intoCount) {
   const out = [];
+  if (!m.to) return out;
   // Same rules as Migration Scout: worlds migrate freely, either direction, within their
   // migration group (78–161 days or 162+), judged by age on the migration's first day,
   // which is this round's first day.
@@ -497,6 +499,10 @@ function renderEditor(ctx) {
   const esc = (x) => String(x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const isPast = start + MATCH_OFFSET * DAY < Date.now();
 
+  // players already marked inactive in this world (shown in the picker)
+  const inactiveHere = new Set();
+  if (fl && fl.players) MOVES.forEach(m => { if (!m.to && m.from === from) fl.players.forEach(x => { if (m.tag != null ? x.t === m.tag : m.names.includes(x.n)) inactiveHere.add(x.n); }); });
+
   // picker for the source world
   let picker = '';
   if (ED.from && !fromOk) picker = `<div class="empty">Enter a world that's in this round.</div>`;
@@ -515,15 +521,16 @@ function renderEditor(ctx) {
       const q = ED.q.trim().toLowerCase();
       const rows = ps.map((x, i) => ({ ...x, r: i + 1 })).filter(x => !q || x.n.toLowerCase().includes(q) || x.t.toLowerCase().includes(q));
       picker = `<input class="search" id="edQ" placeholder="Search name or alliance" value="${esc(ED.q)}">
-        <div class="pick">${rows.map(x => `<label class="it${ED.names.has(x.n) ? ' sel' : ''}"><input type="checkbox" data-name="${esc(x.n)}"${ED.names.has(x.n) ? ' checked' : ''}><span class="nm">${x.r}. ${esc(x.n)}${x.t ? ` <span class="sub2">[${esc(x.t)}]</span>` : ''}</span><span class="pw">${(x.p / 1e6).toFixed(1)}M</span></label>`).join('') || '<div class="it"><span></span><span class="sub2">No matches</span><span></span></div>'}</div>`;
+        <div class="pick">${rows.map(x => `<label class="it${ED.names.has(x.n) ? ' sel' : ''}"><input type="checkbox" data-name="${esc(x.n)}"${ED.names.has(x.n) ? ' checked' : ''}><span class="nm">${x.r}. ${esc(x.n)}${x.t ? ` <span class="sub2">[${esc(x.t)}]</span>` : ''}${inactiveHere.has(x.n) ? ' <span class="sub2">· inactive</span>' : ''}</span><span class="pw">${(x.p / 1e6).toFixed(1)}M</span></label>`).join('') || '<div class="it"><span></span><span class="sub2">No matches</span><span></span></div>'}</div>`;
     }
   }
-  const canAdd = fromOk && toOk && fl && fl.players && (ED.kind === 'alliance' ? !!ED.tag : ED.names.size > 0);
+  const hasPick = fromOk && fl && fl.players && (ED.kind === 'alliance' ? !!ED.tag : ED.names.size > 0);
+  const canAdd = hasPick && toOk;
 
   // moves + effects
   const vgList = ROUND_VG.worlds || [];
   const intoCount = {};
-  eff.results.forEach(r => { intoCount[r.m.to] = (intoCount[r.m.to] || 0) + r.moved.length; });
+  eff.results.forEach(r => { if (r.m.to) intoCount[r.m.to] = (intoCount[r.m.to] || 0) + r.moved.length; });
   const movesHtml = MOVES.length ? MOVES.map((m, i) => {
     const r = eff.results[i];
     const what = m.tag != null ? `<b>${esc(m.tag)}</b>` : (m.names.length === 1 ? `<b>${esc(m.names[0])}</b>` : `<b>${esc(m.names.slice(0, 2).join(', '))}${m.names.length > 2 ? ` +${m.names.length - 2}` : ''}</b>`);
@@ -531,19 +538,23 @@ function renderEditor(ctx) {
     const warns = moveWarnings(m, r, t, vgList, intoCount);
     const dest = eff.worlds[m.to];
     let info = '';
-    if (r.pending) info = (PLAYERS[m.from] === 'missing' || PLAYERS[m.to] === 'missing') ? 'Player lists for these worlds aren\'t available yet.' : 'Loading player lists…';
+    if (r.pending) info = (PLAYERS[m.from] === 'missing' || (m.to && PLAYERS[m.to] === 'missing')) ? 'Player lists for these worlds aren\'t available yet.' : 'Loading player lists…';
     else if (!r.moved.length) {
       const earlier = eff.results.slice(0, i).some(e => e.m.from === m.from && e.moved.some(x => m.tag != null ? x.t === m.tag : m.names.includes(x.n)));
       info = earlier ? 'Nobody left to move: an earlier move already took them.' : `No matching players in ${m.from}'s player list.`;
+    }
+    else if (!m.to) {
+      const inTop = r.moved.filter(x => listOf(m.from).indexOf(listOf(m.from).find(y => y.n === x.n && y.p === x.p)) < TOPN).length;
+      info = `${r.moved.length} player${r.moved.length === 1 ? '' : 's'}, ${bil(pw)}, no longer counted. ${inTop} ${inTop === 1 ? 'was' : 'were'} in ${m.from}'s top ${TOPN}; the next players move up.`;
     }
     else if (dest) {
       const cutoff = dest.list.slice().sort((a, b) => b.p - a.p)[TOPN - 1];
       const inTop = cutoff ? r.moved.filter(x => x.p >= cutoff.p).length : r.moved.length;
       info = `${r.moved.length} player${r.moved.length === 1 ? '' : 's'}, ${bil(pw)}. ${inTop} land${inTop === 1 ? 's' : ''} in ${m.to}'s top ${TOPN}.`;
     }
-    return `<div class="mv"><div>${what} · ${m.from} → ${m.to}</div><button class="x" data-del="${i}" title="Remove this move" aria-label="Remove move">×</button>
+    return `<div class="mv"><div>${what} · ${m.from} → ${m.to ? m.to : '<span class="muted">inactive</span>'}</div><button class="x" data-del="${i}" title="Remove this move" aria-label="Remove move">×</button>
       ${info ? `<div class="inf">${info}</div>` : ''}${warns.map(w => `<div class="w8">⚠ ${w}</div>`).join('')}</div>`;
-  }).join('') : `<div class="empty">No moves yet. Pick a world above, choose an alliance or players, and where they go.</div>`;
+  }).join('') : `<div class="empty">No moves yet. Pick a world above, choose an alliance or players, then where they go, or mark them inactive.</div>`;
 
   const changed = Object.entries(eff.worlds).filter(([, v]) => Math.abs(v.delta) > 0).sort(([a], [b]) => a - b);
   const fx = changed.length ? `<div style="overflow-x:auto"><table class="fx"><thead><tr><th>World</th><th>Top-${TOPN} power</th><th>Warzone</th></tr></thead><tbody>${changed.map(([w, v]) => {
@@ -553,14 +564,14 @@ function renderEditor(ctx) {
 
   const taken = Object.values(PLAYERS).find(v => v && v.taken_at);
   box.innerHTML = `<h3>Warzone editor</h3>
-    <p class="lead">Move players or alliances between worlds and see how this round's predicted warzones change. Warzones use each world's top-${TOPN} power.${isPast ? ' This round has already been matched, so the results show what the current player lists would do.' : ''}</p>
+    <p class="lead">Move players or alliances between worlds, or mark them inactive, and see how this round's predicted warzones change. Warzones use each world's top-${TOPN} power.${isPast ? ' This round has already been matched, so the results show what the current player lists would do.' : ''}</p>
     <div class="build">
       <div class="lbl">From world</div>
       <div><input id="edFrom" class="srv" inputmode="numeric" placeholder="e.g. 1074" value="${esc(ED.from)}"></div>
       <div class="lbl">Move</div>
       <div><div class="seg" id="edKind" style="margin-bottom:10px"><button data-kind="alliance" class="${ED.kind === 'alliance' ? 'on' : ''}">Alliance</button><button data-kind="players" class="${ED.kind === 'players' ? 'on' : ''}">Players</button></div>${picker}</div>
       <div class="lbl">To world</div>
-      <div class="actions"><input id="edTo" class="srv" inputmode="numeric" placeholder="e.g. 1058" value="${esc(ED.to)}"><button class="primary" id="edAdd"${canAdd ? '' : ' disabled'}>Add move</button></div>
+      <div class="actions"><input id="edTo" class="srv" inputmode="numeric" placeholder="e.g. 1058" value="${esc(ED.to)}"><button class="primary" id="edAdd"${canAdd ? '' : ' disabled'}>Add move</button><button id="edInactive"${hasPick ? '' : ' disabled'} title="Stop counting the selected players in this world's power">Mark inactive</button></div>
     </div>
     <div class="sec"><h4>Moves</h4>${movesHtml}</div>
     <div class="sec"><h4>Effect</h4>${fx}</div>
@@ -584,6 +595,11 @@ $('editor').addEventListener('click', (ev) => {
     const from = parseInt(ED.from, 10), to = parseInt(ED.to, 10);
     MOVES.push(ED.kind === 'alliance' ? { from, to, tag: ED.tag } : { from, to, names: [...ED.names] });
     loadPlayers(to); ED.tag = null; ED.names = new Set(); saveMoves(); render(); return;
+  }
+  if (ev.target.id === 'edInactive') {
+    const from = parseInt(ED.from, 10);
+    MOVES.push(ED.kind === 'alliance' ? { from, to: 0, tag: ED.tag } : { from, to: 0, names: [...ED.names] });
+    ED.tag = null; ED.names = new Set(); saveMoves(); render(); return;
   }
   if (ev.target.id === 'edClear') { MOVES = []; saveMoves(); render(); return; }
   if (ev.target.id === 'edCopy') {
@@ -637,7 +653,7 @@ function render() {
   const groups = ERAS.map(e => ({ ...e, list: worlds.filter(w => w.age >= e.min && w.age <= e.max) }));
   // Editor: moves change top-N power for the worlds involved (delta from the player lists)
   const editing = MODE === 'edit';
-  if (editing) MOVES.forEach(m => { loadPlayers(m.from); loadPlayers(m.to); });
+  if (editing) MOVES.forEach(m => { loadPlayers(m.from); if (m.to) loadPlayers(m.to); });
   const eff = editing ? applyMoves() : { worlds: {}, results: [] };
   const basePower = (w) => power.vals[w - 1000] || 0;
   const usePower = editing && Object.keys(eff.worlds).length
