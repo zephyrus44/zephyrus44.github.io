@@ -206,7 +206,7 @@
       </div>
       <div class="mgrid" id="mgrid"></div>
       <div class="tog"><div><label for="idleDays"><b>Leave out inactive players</b></label><br><span class="muted" id="inactiveInfo"></span></div>
-        <select id="idleDays" class="sel"><option value="0">Off</option><option value="7">No gain in 7 days</option><option value="14">No gain in 14 days</option><option value="21">No gain in 21 days</option><option value="28">No gain in 28 days</option></select></div>
+        <select id="idleDays" class="sel"><option value="0">Off (count everyone)</option><option value="7">No change in 7 days</option><option value="14">No change in 14 days</option><option value="30">No change in 30 days</option></select></div>
       <div style="margin-top:12px"><button id="resetModel">Reset to defaults</button></div>
     </details>
   </div>
@@ -216,7 +216,7 @@
     <b>Schedule.</b> Rounds run 4 weeks on, 4 weeks off from Oct 3, 2026, so ◀ ▶ step 56 days. Each round: Announcement (5 days), Matching (1 day), Matching Reveal &amp; Prelude (5 days), Land of the Abyss (14 days), Closing (3 days). Eras are set by world age at the start of the round; warzones are set from power on Matching day.<br><br>
     <b>Vanguard.</b> Vanguard (Upper Ring) worlds take only a few migrants. The game picks them when each migration event opens: the 5 worlds furthest above their era's average power. <span class="vg" style="margin-left:0">★</span> marks the actual picks for rounds that have had their migration. <span class="vg next" style="margin-left:0">☆</span> marks <a href="https://dengsden.com/avatar/migration/vanguard/" target="_blank" rel="noopener">dengsden.com</a>'s projected picks for the upcoming migration's round and later ones, based on today's standings. Lists are refreshed daily.<br><br>
     <b>Editor.</b> The editor moves players or whole alliances between worlds and recalculates each world's top-200 power from its top 400 players, so the players who move up to replace anyone leaving are counted. A moved player only counts in their new world if they make its top 200. Players marked inactive stop counting toward their world's power, and the next players move up. Migration rules are shown as warnings, not enforced.<br><br>
-    <b>Power.</b> Warzones are matched on each world's top-200 power; the October round used top 100. Top-100 totals come from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>, and top-200 totals are added up weekly from its player rankings, on Thursdays, the weekday Matching falls on. By default, inactive players are counted in each world's power here, because the game doesn't publish who is inactive. The <b>Leave out inactive players</b> option in Matchup model estimates it instead: a player whose power hasn't gone up in a chosen time (7 to 28 days), based on the weekly player lists. The totals for each choice are worked out ahead of time, so switching is instant. The game leaves inactive players out of the actual warzone matchups, so a world with many inactive players in its top 200 may be matched lower than predicted. If you know who's inactive, mark them in the editor.
+    <b>Power.</b> Warzones are matched on each world's top-200 power; the October round used top 100. Top-100 totals come from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>, and top-200 totals are added up weekly from its player rankings, on Thursdays, the weekday Matching falls on. By default, inactive players are counted in each world's power here, because the game doesn't publish who is inactive. The <b>Leave out inactive players</b> option in Matchup model estimates it instead: a player whose power hasn't changed at all in 7, 14 or 30 days (14 by default), using dengsden.com's power-change lists, refreshed weekly. The totals for each choice are worked out ahead of time, so switching is instant. The game leaves inactive players out of the actual warzone matchups, so a world with many inactive players in its top 200 may be matched lower than predicted. If you know who's inactive, mark them in the editor.
   </div>
 </div>
 
@@ -296,7 +296,9 @@ const saved = (k, d) => { try { return store?.getItem('egr2-' + k) ?? d; } catch
 const save = (k, v) => { try { store?.setItem('egr2-' + k, v); } catch (e) {} };
 
 // inactive cutoff in days (0 = off): players whose power hasn't gone up in that long don't count
-let IDLE_DAYS = [0, 7, 14, 21, 28].includes(+saved('idleDays', '0')) ? +saved('idleDays', '0') : 0;
+// default 14 days (new key so earlier visitors pick up the new default)
+let IDLE_DAYS = [0, 7, 14, 30].includes(+saved('idleDays14', '14')) ? +saved('idleDays14', '14') : 14;
+let EFF_DAYS = 0; // the cutoff actually in use (falls back to a longer list until the chosen one exists)
 let model = (() => { try { return { ...DEFAULT_MODEL, ...JSON.parse(saved('model', '{}')) }; } catch (e) { return { ...DEFAULT_MODEL }; } })();
 
 // ---------- Data (live files from your site, else built-in snapshot) ----------
@@ -369,10 +371,14 @@ function powerFor(start) {
   if (mday >= TOP200_FROM && DATA.top200) {
     // optionally leave out inactive players (no power gained in 14 days)
     const pick = (src) => {
+      EFF_DAYS = 0;
       if (!IDLE_DAYS) return { vals: src.top200, tag: '' };
-      const a = src.top200_active && src.top200_active[IDLE_DAYS];
-      if (a && Object.keys(a).length) return { vals: a, tag: ` · no gain in ${IDLE_DAYS}d left out` };
-      return { vals: src.top200, tag: ` <span class="acc">(no ${IDLE_DAYS}-day data yet)</span>` };
+      const has = (k) => src.top200_active && src.top200_active[k] && Object.keys(src.top200_active[k]).length;
+      // no change in 30 days implies no change in 14 or 7, so a longer list is a safe stand-in
+      const k = [7, 14, 30].find(k => k >= IDLE_DAYS && has(k));
+      if (!k) return { vals: src.top200, tag: ` <span class="acc">(inactive data not available)</span>` };
+      EFF_DAYS = k;
+      return { vals: src.top200_active[k], tag: ` · no change in ${IDLE_DAYS}d left out` + (k !== IDLE_DAYS ? ` <span class="acc">(using the ${k}-day list until ${IDLE_DAYS}-day data is ready)</span>` : '') };
     };
     if (mday <= Date.parse(DATA.top200.taken_at)) {
       const h = DATA.history200[day];
@@ -448,15 +454,15 @@ function loadPlayers(w) {
   PLAYERS[w] = 'loading';
   fetch(`${PLAYERS_BASE}servers/${w - 1000}.json`, { cache: 'no-store' })
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
-    .then(d => { PLAYERS[w] = { taken_at: d.taken_at, players: d.players.map(([n, t, p, ...was]) => ({ n, t: t || '', p: +p,
-      // power 7/14/21/28 days earlier (older 4-value rows only had 14 days)
-      was: was.length === 1 ? { 14: was[0] } : { 7: was[0], 14: was[1], 21: was[2], 28: was[3] } })) }; render(); })
+    .then(d => { PLAYERS[w] = { taken_at: d.taken_at, players: d.players.map(([n, t, p, ...f]) => ({ n, t: t || '', p: +p,
+      // inactive flags for 7/14/30 days: 1, 0 or null (older lists had other values here: ignored)
+      idle: f.length === 3 && f.every(v => v === null || v === 0 || v === 1) ? { 7: f[0], 14: f[1], 30: f[2] } : {} })) }; render(); })
     .catch(() => { PLAYERS[w] = 'missing'; render(); });
 }
 const listOf = (w) => (PLAYERS[w] && PLAYERS[w].players) || null;
 let TOPN = 200; // the round's matchmaking depth (200, or 100 for October), set in render()
-// inactive = power no higher than IDLE_DAYS ago (known once that much weekly history exists)
-const isIdle = (x) => { const w = IDLE_DAYS && x.was ? x.was[IDLE_DAYS] : null; return w != null && x.p <= w; };
+// inactive = power unchanged for the cutoff in use (flags come from the weekly player job)
+const isIdle = (x) => !!EFF_DAYS && x.idle && x.idle[EFF_DAYS] === 1;
 const topN = (list) => list.filter(x => !(TOPN === 200 && isIdle(x))).sort((a, b) => b.p - a.p).slice(0, TOPN).reduce((a, x) => a + x.p, 0);
 
 // Apply every move in order. Returns per-world { before, after, list } plus per-move results.
@@ -539,7 +545,7 @@ function renderEditor(ctx) {
       const q = ED.q.trim().toLowerCase();
       const rows = ps.map((x, i) => ({ ...x, r: i + 1 })).filter(x => !q || x.n.toLowerCase().includes(q) || x.t.toLowerCase().includes(q));
       picker = `<input class="search" id="edQ" placeholder="Search name or alliance" value="${esc(ED.q)}">
-        <div class="pick">${rows.map(x => `<label class="it${ED.names.has(x.n) ? ' sel' : ''}"><input type="checkbox" data-name="${esc(x.n)}"${ED.names.has(x.n) ? ' checked' : ''}><span class="nm">${x.r}. ${esc(x.n)}${x.t ? ` <span class="sub2">[${esc(x.t)}]</span>` : ''}${inactiveHere.has(x.n) ? ' <span class="sub2">· inactive</span>' : isIdle(x) ? ` <span class="sub2">· no gain in ${IDLE_DAYS} days</span>` : ''}</span><span class="pw">${(x.p / 1e6).toFixed(1)}M</span></label>`).join('') || '<div class="it"><span></span><span class="sub2">No matches</span><span></span></div>'}</div>`;
+        <div class="pick">${rows.map(x => `<label class="it${ED.names.has(x.n) ? ' sel' : ''}"><input type="checkbox" data-name="${esc(x.n)}"${ED.names.has(x.n) ? ' checked' : ''}><span class="nm">${x.r}. ${esc(x.n)}${x.t ? ` <span class="sub2">[${esc(x.t)}]</span>` : ''}${inactiveHere.has(x.n) ? ' <span class="sub2">· inactive</span>' : isIdle(x) ? ` <span class="sub2">· no change in ${IDLE_DAYS} days</span>` : ''}</span><span class="pw">${(x.p / 1e6).toFixed(1)}M</span></label>`).join('') || '<div class="it"><span></span><span class="sub2">No matches</span><span></span></div>'}</div>`;
     }
   }
   const hasPick = fromOk && fl && fl.players && (ED.kind === 'alliance' ? !!ED.tag : ED.names.size > 0);
@@ -657,9 +663,9 @@ function render() {
   const power = powerFor(start);
   TOPN = power.n;
   const since = (DATA.top200 && DATA.top200.active_since) || {};
-  const avail = [7, 14, 21, 28].filter(k => typeof since === 'object' && since[k]);
-  $('inactiveInfo').textContent = "Players whose power hasn't gone up in the chosen time don't count, and the next players move up into the top 200. " +
-    (avail.length ? `Available now: ${avail.join(', ')} days.` : 'Uses the weekly player lists: 7 days works from Thursday, Nov 26, and 14 days from Dec 3.') +
+  const avail = [7, 14, 30].filter(k => typeof since === 'object' && since[k]);
+  $('inactiveInfo').textContent = "Players whose power hasn't changed at all in the chosen time don't count, and the next players move up into the top 200. " +
+    (avail.length ? `Available: ${avail.join(', ')} days.${avail.includes(14) ? '' : ' 14 days starts with the Thursday, Nov 26 update; until then it uses the 30-day list.'}` : 'Inactive data isn\'t available right now.') +
     (power.n === 100 ? ' Not used for the October round, which was matched on top 100.' : '');
   const actual = actualFor(base) || actualFor(start);
   const actualZ = actualZones(base) || actualZones(start);
@@ -795,7 +801,7 @@ $('mgrid').addEventListener('input', (ev) => {
   render();
 });
 $('idleDays').value = String(IDLE_DAYS);
-$('idleDays').addEventListener('change', (ev) => { IDLE_DAYS = +ev.target.value; save('idleDays', String(IDLE_DAYS)); render(); });
+$('idleDays').addEventListener('change', (ev) => { IDLE_DAYS = +ev.target.value; save('idleDays14', String(IDLE_DAYS)); render(); });
 $('resetModel').onclick = () => { model = JSON.parse(JSON.stringify(DEFAULT_MODEL)); save('model', JSON.stringify(model)); renderModel(); render(); };
 
 $('tbody').addEventListener('click', (ev) => {

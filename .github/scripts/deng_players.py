@@ -8,22 +8,21 @@ Writes:
   <out>/servers/<n>.json              {"server", "taken_at", "players": [[name, tag, power], ...]}
                                       top 400, sorted by power, highest first (for the editor)
   <out>/top200.json                   {"taken_at", "top200": {"<n>": sum},
-                                       "active_since": {"<days>": compared-with date},
+                                       "active_since": {"<days>": start of that window},
                                        "top200_active": {"<days>": {"<n>": sum without inactive}}}
   <out>/history/top200-<date>.json    the same, kept for every run so past rounds
                                       can use their Matching-day numbers
   <out>/history/players-<date>.json   {"taken_at", "power": {"<n>": {"<player id>": power}}}
-                                      used to spot inactive players; pruned after 5 weeks
+                                      pruned after 5 weeks
+  <out>/history/idle7-<date>.json     {"<n>": [player ids with no change in the 7 days to <date>]}
 
-Inactive: a player whose power hasn't gone up in N days (N = 7, 14, 21 or 28),
-i.e. is no higher than in the newest saved run at least N-1 days older than
-this one. Totals for every N are worked out here, so the page just picks one.
-Rows in servers/<n>.json are [name, tag, power, p7, p14, p21, p28], where pN is
-the player's power N days earlier (null when unknown).
-
-Deng's board returns 50 players per request, so each server takes 8 requests.
-Runs weekly from .github/workflows/deng-players.yml; requests are sequential
-and spaced out.
+Inactive = power exactly unchanged for N days (N = 7, 14 or 30). Deng's Den lists
+every player whose power changed over the last 7 or 30 days (its "hustlers" board
+with days=7 / days=30), so anyone missing from that list had no change. 14 days =
+no change in this run's 7-day window and in the previous weekly run's. Totals for
+every N are worked out here, so the page just picks one.
+Rows in servers/<n>.json are [name, tag, power, idle7, idle14, idle30], each
+1 (inactive), 0 (active) or null (not known).
 """
 import glob, json, os, re, sys, time, urllib.request
 from datetime import datetime, timedelta
@@ -73,21 +72,36 @@ def main():
     os.makedirs(os.path.join(OUT, "servers"), exist_ok=True)
     os.makedirs(os.path.join(OUT, "history"), exist_ok=True)
     day = datetime.strptime(taken[:10], "%Y-%m-%d")
-    # for each cutoff, the newest saved player snapshot at least N-1 days older than this one
-    CUTOFFS = (7, 14, 21, 28)
-    snaps = sorted(datetime.strptime(os.path.basename(f)[8:18], "%Y-%m-%d")
-                   for f in glob.glob(os.path.join(OUT, "history", "players-*.json")))
-    olds, old_dates, cache = {}, {}, {}
-    for k in CUTOFFS:
-        ok = [d0 for d0 in snaps if d0 <= day - timedelta(days=k - 1)]
-        if ok:
-            d0 = ok[-1]
-            if d0 not in cache:
-                cache[d0] = json.load(open(os.path.join(OUT, "history", f"players-{d0:%Y-%m-%d}.json")))["power"]
-            olds[k], old_dates[k] = cache[d0], d0
-    print("comparing:", {k: str(v.date()) for k, v in old_dates.items()} or "no older runs yet", flush=True)
-    done, top200, power_now = [], {}, {}
-    top200_active = {k: {} for k in olds}
+    CUTOFFS = (7, 14, 30)
+    # previous weekly run's 7-day inactive list (6-8 days back) for the 14-day check
+    prev7, prev7_date = None, None
+    for f in sorted(glob.glob(os.path.join(OUT, "history", "idle7-*.json"))):
+        d0 = datetime.strptime(os.path.basename(f)[6:16], "%Y-%m-%d")
+        if day - timedelta(days=8) <= d0 <= day - timedelta(days=6):
+            prev7, prev7_date = json.load(open(f)), d0
+    print("14-day check uses", prev7_date.date() if prev7_date else "nothing yet", flush=True)
+    windows = {}
+
+    def changed(server, days):
+        """ids of players whose power changed over the last `days` days (None if unavailable)"""
+        ids, page = set(), 0
+        try:
+            while True:
+                d = get(f"board?board=hustlers&server={server}&page={page}&days={days}")
+                w = d.get("window") or {}
+                if str(w.get("from", ""))[:10] > (day - timedelta(days=days - 2)).strftime("%Y-%m-%d"):
+                    return None  # Deng fell back to a shorter window
+                windows[days] = str(w.get("from", ""))[:10]
+                ids |= {str(r["player_id"]) for r in d["rows"] if r.get("player_id")}
+                page += 1
+                if len(d["rows"]) < d.get("per", 50) or page * d.get("per", 50) >= int(d.get("total") or 0):
+                    return ids
+        except RuntimeError as e:
+            print(e, flush=True)
+            return None
+
+    done, top200, power_now, idle7_now = [], {}, {}, {}
+    top200_active = {k: {} for k in CUTOFFS}
     for server in meta["servers"]:
         rows = []
         try:
@@ -100,9 +114,16 @@ def main():
             print(e, flush=True)
             continue  # keep the previous file for this server
         rows.sort(key=lambda r: -int(r["value"]))
-        was = {k: olds[k].get(str(server), {}) for k in olds}
-        players = [[clean(r["name"]), r.get("ally_tag") or "", int(r["value"])] +
-                   [was[k].get(str(r.get("player_id"))) if k in was else None for k in CUTOFFS] for r in rows]
+        ch7, ch30 = changed(server, 7), changed(server, 30)
+        p7 = set((prev7 or {}).get(str(server), [])) if prev7 is not None else None
+        players = []
+        for r in rows:
+            pid = str(r.get("player_id"))
+            i7 = None if ch7 is None else int(pid not in ch7)
+            i30 = None if ch30 is None else int(pid not in ch30)
+            i14 = None if (i7 is None or p7 is None) else int(i7 == 1 and pid in p7)
+            players.append([clean(r["name"]), r.get("ally_tag") or "", int(r["value"]), i7, i14, i30])
+        idle7_now[str(server)] = [str(r.get("player_id")) for r, p in zip(rows, players) if p[3] == 1]
         power_now[str(server)] = {str(r["player_id"]): int(r["value"]) for r in rows if r.get("player_id")}
         json.dump({"server": server, "taken_at": taken, "players": players},
                   open(os.path.join(OUT, "servers", f"{server}.json"), "w"),
@@ -111,8 +132,8 @@ def main():
         if len(players) >= 200:
             top200[str(server)] = sum(p[2] for p in players[:200])
             for i, k in enumerate(CUTOFFS):
-                if k in olds:
-                    active = [p for p in players if not (p[3 + i] is not None and p[2] <= p[3 + i])]
+                if any(p[3 + i] is not None for p in players):
+                    active = [p for p in players if p[3 + i] != 1]
                     top200_active[k][str(server)] = sum(p[2] for p in active[:200])
         print(f"server {server}: {len(players)} players", flush=True)
     json.dump({"taken_at": taken, "source": "https://dengsden.com/avatar/rankings/", "servers": done},
@@ -122,9 +143,16 @@ def main():
     for f in glob.glob(os.path.join(OUT, "history", "players-*.json")):
         if datetime.strptime(os.path.basename(f)[8:18], "%Y-%m-%d") < day - timedelta(days=35):
             os.remove(f)
-    t200 = {"taken_at": taken, "top200": top200,
-            "active_since": {str(k): f"{d0:%Y-%m-%d}" for k, d0 in old_dates.items()},
-            "top200_active": {str(k): v for k, v in top200_active.items()}}
+    json.dump(idle7_now, open(os.path.join(OUT, "history", f"idle7-{taken[:10]}.json"), "w"), separators=(",", ":"))
+    for f in glob.glob(os.path.join(OUT, "history", "idle7-*.json")):
+        if datetime.strptime(os.path.basename(f)[6:16], "%Y-%m-%d") < day - timedelta(days=35):
+            os.remove(f)
+    since = {}
+    if 7 in windows and top200_active[7]: since["7"] = windows[7]
+    if 30 in windows and top200_active[30]: since["30"] = windows[30]
+    if prev7_date and top200_active[14]: since["14"] = f"{prev7_date - timedelta(days=7):%Y-%m-%d}"
+    t200 = {"taken_at": taken, "top200": top200, "active_since": since,
+            "top200_active": {str(k): v for k, v in top200_active.items() if str(k) in since}}
     json.dump(t200, open(os.path.join(OUT, "top200.json"), "w"), separators=(",", ":"))
     json.dump(t200, open(os.path.join(OUT, "history", f"top200-{taken[:10]}.json"), "w"), separators=(",", ":"))
     open(os.path.join(OUT, ".changed"), "w").write(taken)
