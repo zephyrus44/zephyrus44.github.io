@@ -206,7 +206,7 @@
       </div>
       <div class="mgrid" id="mgrid"></div>
       <div class="tog"><div><label for="idleDays"><b>Leave out inactive players</b></label><br><span class="muted" id="inactiveInfo"></span></div>
-        <select id="idleDays" class="sel"><option value="0">Off</option><option value="7">No gain in 7 days</option><option value="14">No gain in 14 days</option><option value="21">No gain in 21 days</option><option value="28">No gain in 28 days</option></select></div>
+        <select id="idleDays" class="sel"><option value="0">Off (count everyone)</option><option value="7">No gain in 7 days</option><option value="14">No gain in 14 days</option><option value="21">No gain in 21 days</option><option value="28">No gain in 28 days</option></select></div>
       <div style="margin-top:12px"><button id="resetModel">Reset to defaults</button></div>
     </details>
   </div>
@@ -296,7 +296,10 @@ const saved = (k, d) => { try { return store?.getItem('egr2-' + k) ?? d; } catch
 const save = (k, v) => { try { store?.setItem('egr2-' + k, v); } catch (e) {} };
 
 // inactive cutoff in days (0 = off): players whose power hasn't gone up in that long don't count
-let IDLE_DAYS = [0, 7, 14, 21, 28].includes(+saved('idleDays', '0')) ? +saved('idleDays', '0') : 0;
+// default 14 days (new key so earlier visitors pick up the new default)
+let IDLE_DAYS = [0, 7, 14, 21, 28].includes(+saved('idleDays14', '14')) ? +saved('idleDays14', '14') : 14;
+// first weekly player list with player IDs; each cutoff works once a list that old exists
+const IDLE_SEED = Date.UTC(2026, 10, 19);
 let model = (() => { try { return { ...DEFAULT_MODEL, ...JSON.parse(saved('model', '{}')) }; } catch (e) { return { ...DEFAULT_MODEL }; } })();
 
 // ---------- Data (live files from your site, else built-in snapshot) ----------
@@ -372,7 +375,7 @@ function powerFor(start) {
       if (!IDLE_DAYS) return { vals: src.top200, tag: '' };
       const a = src.top200_active && src.top200_active[IDLE_DAYS];
       if (a && Object.keys(a).length) return { vals: a, tag: ` · no gain in ${IDLE_DAYS}d left out` };
-      return { vals: src.top200, tag: ` <span class="acc">(no ${IDLE_DAYS}-day data yet)</span>` };
+      return { vals: src.top200, tag: ` <span class="acc">(inactive players counted until ${fmtShort(IDLE_SEED + IDLE_DAYS * DAY)}, when ${IDLE_DAYS}-day data is ready)</span>` };
     };
     if (mday <= Date.parse(DATA.top200.taken_at)) {
       const h = DATA.history200[day];
@@ -659,7 +662,7 @@ function render() {
   const since = (DATA.top200 && DATA.top200.active_since) || {};
   const avail = [7, 14, 21, 28].filter(k => typeof since === 'object' && since[k]);
   $('inactiveInfo').textContent = "Players whose power hasn't gone up in the chosen time don't count, and the next players move up into the top 200. " +
-    (avail.length ? `Available now: ${avail.join(', ')} days.` : 'Uses the weekly player lists: 7 days works from Thursday, Nov 26, and 14 days from Dec 3.') +
+    (avail.length ? `Available now: ${avail.join(', ')} days.` : 'Uses the weekly player lists, so each choice starts working once there are lists that far back: 7 days from Thursday, Nov 26, 14 days from Dec 3, 21 days from Dec 10 and 28 days from Dec 17.') +
     (power.n === 100 ? ' Not used for the October round, which was matched on top 100.' : '');
   const actual = actualFor(base) || actualFor(start);
   const actualZ = actualZones(base) || actualZones(start);
@@ -795,7 +798,7 @@ $('mgrid').addEventListener('input', (ev) => {
   render();
 });
 $('idleDays').value = String(IDLE_DAYS);
-$('idleDays').addEventListener('change', (ev) => { IDLE_DAYS = +ev.target.value; save('idleDays', String(IDLE_DAYS)); render(); });
+$('idleDays').addEventListener('change', (ev) => { IDLE_DAYS = +ev.target.value; save('idleDays14', String(IDLE_DAYS)); render(); });
 $('resetModel').onclick = () => { model = JSON.parse(JSON.stringify(DEFAULT_MODEL)); save('model', JSON.stringify(model)); renderModel(); render(); };
 
 $('tbody').addEventListener('click', (ev) => {
