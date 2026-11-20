@@ -1,12 +1,14 @@
 name: Update player lists
 
-# Top 200 players on every server (name, alliance tag, power), from dengsden.com.
-# Used by Era Grouping's warzone editor. The data lives on its own branch
+# Top 400 players on every server (name, alliance tag, power), from dengsden.com,
+# plus each world's top-200 power, which warzone matchmaking uses. Used by Era
+# Grouping's predictions and warzone editor. The data lives on its own branch
 # (deng-players), replaced each run, so main's history doesn't grow.
 
 on:
   schedule:
-    - cron: "53 12 */3 * *"   # every 3 days, after Deng's Den's morning snapshot
+    - cron: "17 9 * * 4"   # Thursdays 09:17 UTC, after Deng's Den's 08:00 snapshot.
+                           # Matching day is always a Thursday, so rounds get same-day numbers.
   workflow_dispatch:          # run by hand from the Actions tab
 
 permissions:

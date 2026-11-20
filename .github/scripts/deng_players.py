@@ -1,20 +1,25 @@
-"""Download each server's top 200 players (name, alliance tag, power) from dengsden.com.
+"""Download each server's top 400 players (name, alliance tag, power) from dengsden.com.
+
+Warzone matchmaking uses each world's top-200 power. Deng's Den only publishes
+top-100 totals, so the top 200 is added up here from the player board.
 
 Writes:
-  <out>/index.json          snapshot time and the servers included
-  <out>/servers/<n>.json    {"server", "taken_at", "players": [[name, tag, power], ...]}
-                            sorted by power, highest first
+  <out>/index.json                    snapshot time and the servers included
+  <out>/servers/<n>.json              {"server", "taken_at", "players": [[name, tag, power], ...]}
+                                      top 400, sorted by power, highest first (for the editor)
+  <out>/top200.json                   {"taken_at", "top200": {"<n>": sum}} (latest)
+  <out>/history/top200-<date>.json    the same, kept for every run so past rounds
+                                      can use their Matching-day numbers
 
-Used by Era Grouping's warzone editor to see how moving players or alliances
-between worlds changes each world's top-100 power. Deng's board returns 50
-players per request, so each server takes 4 requests. Runs every few days from
-.github/workflows/deng-players.yml; requests are sequential and spaced out.
+Deng's board returns 50 players per request, so each server takes 8 requests.
+Runs weekly from .github/workflows/deng-players.yml; requests are sequential
+and spaced out.
 """
 import json, os, re, sys, time, urllib.request
 
 API = "https://dengsden.com/avatar/api/"
-UA = "Mozilla/5.0 (ARC Tools warzone editor; every few days)"
-PAGES = 4          # 4 x 50 = top 200
+UA = "Mozilla/5.0 (ARC Tools warzone tools; weekly)"
+PAGES = 8          # 8 x 50 = top 400
 PAUSE = 0.5
 OUT = sys.argv[1] if len(sys.argv) > 1 else "out"
 FORCE = "--force" in sys.argv
@@ -55,7 +60,7 @@ def main():
         except Exception:
             pass
     os.makedirs(os.path.join(OUT, "servers"), exist_ok=True)
-    done = []
+    done, top200 = [], {}
     for server in meta["servers"]:
         rows = []
         try:
@@ -73,9 +78,15 @@ def main():
                   open(os.path.join(OUT, "servers", f"{server}.json"), "w"),
                   ensure_ascii=False, separators=(",", ":"))
         done.append(server)
+        if len(players) >= 200:
+            top200[str(server)] = sum(p[2] for p in players[:200])
         print(f"server {server}: {len(players)} players", flush=True)
     json.dump({"taken_at": taken, "source": "https://dengsden.com/avatar/rankings/", "servers": done},
               open(idx_path, "w"), ensure_ascii=False, separators=(",", ":"))
+    os.makedirs(os.path.join(OUT, "history"), exist_ok=True)
+    t200 = {"taken_at": taken, "top200": top200}
+    json.dump(t200, open(os.path.join(OUT, "top200.json"), "w"), separators=(",", ":"))
+    json.dump(t200, open(os.path.join(OUT, "history", f"top200-{taken[:10]}.json"), "w"), separators=(",", ":"))
     open(os.path.join(OUT, ".changed"), "w").write(taken)
     print("requests:", calls)
     return 0

@@ -199,7 +199,7 @@
     <details class="model" id="modelBox">
       <summary>Matchup model</summary>
       <div class="note" style="margin-top:8px">
-        Each world's score is its <b>top-100 power</b> × (1 + <b>age bonus</b>). The youngest world in the era gets no bonus and the oldest gets the full amount. Worlds are ranked by score and split into groups of 4, strongest first.
+        Each world's score is its <b>top-200 power</b> (top 100 for the October round) × (1 + <b>age bonus</b>). The youngest world in the era gets no bonus and the oldest gets the full amount. Worlds are ranked by score and split into groups of 4, strongest first.
         The defaults reproduce October with <span id="fitStat"></span>.
       </div>
       <div class="mgrid" id="mgrid"></div>
@@ -211,8 +211,8 @@
     <b>Ages.</b> Each world's age is its in-game Day counter on the era cutoff date (the round's first day, 00:00 UTC). The day offset moves the whole round, including its era cutoff and Matching day. Day counts for 1001–1111 were read from the Migration screen on Nov 1, 2026. New worlds open every Friday at 00:00 UTC and are marked <span class="acc">~</span> until they exist.<br><br>
     <b>Schedule.</b> Rounds run 4 weeks on, 4 weeks off from Oct 3, 2026, so ◀ ▶ step 56 days. Each round: Announcement (5 days), Matching (1 day), Matching Reveal &amp; Prelude (5 days), Land of the Abyss (14 days), Closing (3 days). Eras are set by world age at the start of the round; warzones are set from power on Matching day.<br><br>
     <b>Vanguard.</b> Vanguard (Upper Ring) worlds take only a few migrants. The game picks them when each migration event opens: the 5 worlds furthest above their era's average power. <span class="vg" style="margin-left:0">★</span> marks the actual picks for rounds that have had their migration. <span class="vg next" style="margin-left:0">☆</span> marks <a href="https://dengsden.com/avatar/migration/vanguard/" target="_blank" rel="noopener">dengsden.com</a>'s projected picks for the upcoming migration's round and later ones, based on today's standings. Lists are refreshed daily.<br><br>
-    <b>Editor.</b> The editor moves players or whole alliances between worlds and recalculates each world's top-100 power from its top 200 players, so the players who move up to replace anyone leaving are counted. A moved player only counts in their new world if they make its top 100. Migration rules are shown as warnings, not enforced.<br><br>
-    <b>Power.</b> Top-100 power comes from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>. Inactive players are counted in each world's top-100 power here, because there's no public information on who is inactive. The game leaves inactive players out of the actual warzone matchups, so a world with many inactive players in its top 100 may be matched lower than predicted.
+    <b>Editor.</b> The editor moves players or whole alliances between worlds and recalculates each world's top-200 power from its top 400 players, so the players who move up to replace anyone leaving are counted. A moved player only counts in their new world if they make its top 200. Migration rules are shown as warnings, not enforced.<br><br>
+    <b>Power.</b> Warzones are matched on each world's top-200 power; the October round used top 100. Top-100 totals come from <a href="https://dengsden.com/" target="_blank" rel="noopener">dengsden.com</a>, and top-200 totals are added up weekly from its player rankings, on Thursdays, the weekday Matching falls on. Inactive players are counted in each world's power here, because there's no public information on who is inactive. The game leaves inactive players out of the actual warzone matchups, so a world with many inactive players in its top 200 may be matched lower than predicted.
   </div>
 </div>
 
@@ -258,6 +258,7 @@ async function loadWorldDays() {
   } catch (e) {}
 }
 
+const EMBED_TOP200 = {"taken_at":"2026-11-19T08:00:03.000Z","top200":{"1":7007877945,"2":4433044578,"3":13087943609,"4":4957639800,"5":11876414481,"6":16306895990,"7":5651754866,"8":5058944838,"9":16096845617,"10":18243595969,"11":21336843312,"12":8655763828,"13":9396421757,"14":9530311589,"15":10571693488,"16":18022731844,"17":11761310162,"18":28187472369,"19":7673395459,"20":7080966323,"21":9602748682,"22":6781824494,"23":31170631361,"24":9630416379,"25":22432191348,"26":15864006138,"27":7404114574,"28":8796400824,"29":12563261158,"30":6904090018,"31":24847442167,"32":7014845666,"33":7843854399,"34":22384550736,"35":9823225816,"36":8808426738,"37":8542084401,"38":5855967397,"39":5555309695,"40":14587287090,"41":23708034831,"42":8495796531,"43":12573248557,"44":4993926643,"45":7932008262,"46":11543983149,"47":6547744332,"48":17952351829,"49":5027838990,"50":21364489459,"51":11987466825,"52":4225352597,"53":8017980852,"54":22460345984,"55":4064390252,"56":3646663861,"57":11945369748,"58":13056552383,"59":3973267417,"60":5171797540,"61":4377893599,"62":2816639376,"63":3765421153,"64":4903490282,"65":9781160055,"66":9027427844,"67":3891773638,"68":9267604331,"69":10978759926,"70":8536066735,"71":13175513182,"72":10786689223,"73":17387570742,"74":11305263138,"75":3090912935,"76":3059000729,"77":3469474516,"78":3144233232,"79":3876634342,"80":7494135972,"81":13047332108,"82":9615513938,"83":3208900960,"84":7134610583,"85":2798287657,"86":10094300456,"87":2165282552,"88":5369749612,"89":5933657854,"90":8426876200,"91":3328293935,"92":1981738138,"93":4172628186,"94":3659251264,"95":6060251278,"96":3586927194,"97":3621506505,"98":3614600179,"99":3463095881,"100":3819484246,"101":3064650763,"102":2358932974,"103":1671917842,"104":1653842896,"105":1638537337,"106":1410566518,"107":1339245846,"108":1350601401,"109":1046684655,"110":951542892,"111":663581432,"112":505285428,"113":279037044}};
 const EMBED_POWER = {"taken_at":"2026-10-31T07:00:06.000Z","top100":{"23":18568241766,"18":14204982039,"10":14190720390,"31":15051151723,"11":13448726593,"25":14403303351,"41":13702339420,"34":13826740668,"54":13399745502,"9":10880768222,"50":12530344541,"16":12830969073,"26":11448451543,"6":11429947893,"73":10887513677,"48":11744212963,"40":10551811443,"29":9712887778,"5":8634456591,"58":9664971447,"17":9222654971,"15":7449416669,"46":8698382415,"43":9064179329,"3":9756834056,"71":8890104823,"72":8733884276,"24":7564892847,"21":7158037272,"51":9521776205,"74":8839276019,"36":7250169244,"28":6194305046,"68":6440624512,"81":6900258713,"69":7692989462,"14":6903407938,"13":7024048199,"80":6829590596,"37":6172545683,"82":7451837337,"12":6511951800,"57":8927705457,"35":7403645612,"27":5478338103,"86":5613535590,"19":5432171981,"42":6208990145,"33":5708415800,"20":5208942228,"65":7945260315,"22":5172221404,"66":7061724154,"32":4982930441,"30":5184251632,"70":6721802148,"45":5855882023,"84":5291032687,"53":6151469493,"38":4136085759,"47":4763659882,"90":5823051462,"39":3875777029,"49":3462873261,"60":3756932096,"95":3802668580,"7":4410180890,"89":4066283018,"1":5936921903,"59":2988520249,"83":2353112393,"79":2966897928,"67":2896196298,"44":3626747794,"8":3933813006,"4":3831660370,"64":3814368989,"78":2899810245,"52":3241544639,"85":2033817829,"93":2950815230,"88":3485041881,"55":3145692317,"97":2393793076,"96":2752341395,"56":2748394986,"2":3593384295,"94":2414938382,"77":2658312545,"75":2266542667,"63":2767393740,"76":2213463766,"100":1976891876,"99":2299367920,"98":2118612367,"61":2054530276,"62":2136157355,"101":1848356625,"91":2193466604,"87":1562311415,"92":1478410576,"102":1390052209,"105":942339047,"103":1005207583,"104":998659346,"108":518211252,"109":346985031,"106":714024229,"107":613070639,"110":240937673,"111":63090154}};
 const EMBED_SVS = {"start":1790985600,"worlds":[{"warzone":1,"era":"Mythic","servers":[18,23,10,25],"winner":23},{"warzone":2,"era":"Mythic","servers":[31,34,11,16],"winner":31},{"warzone":3,"era":"Mythic","servers":[6,41,48,3],"winner":48},{"warzone":4,"era":"Mythic","servers":[40,9,26,1],"winner":26},{"warzone":5,"era":"Mythic","servers":[5,29,43,17],"winner":29},{"warzone":6,"era":"Mythic","servers":[15,46,24,13],"winner":46},{"warzone":7,"era":"Mythic","servers":[21,35,36,42],"winner":36},{"warzone":8,"era":"Mythic","servers":[12,28,33,14],"winner":14},{"warzone":9,"era":"Mythic","servers":[30,37,45,20],"winner":20},{"warzone":10,"era":"Mythic","servers":[2,27,7,4],"winner":2},{"warzone":11,"era":"Mythic","servers":[8,47,32,22],"winner":null},{"warzone":12,"era":"Mythic","servers":[44,38,39,19],"winner":null},{"warzone":13,"era":"Dominance","servers":[51,54,57,50],"winner":51},{"warzone":14,"era":"Dominance","servers":[53,55,60,58],"winner":58},{"warzone":15,"era":"Dominance","servers":[56,52,59,49],"winner":null},{"warzone":16,"era":"Conquest","servers":[65,72,69,71],"winner":71},{"warzone":17,"era":"Conquest","servers":[70,64,68,66],"winner":70},{"warzone":18,"era":"Conquest","servers":[62,61,63,67],"winner":null},{"warzone":19,"era":"Clash","servers":[82,73,80,74],"winner":73},{"warzone":20,"era":"Clash","servers":[84,81,78,79],"winner":84},{"warzone":21,"era":"Clash","servers":[75,77,76,83],"winner":null},{"warzone":22,"era":"Frontier","servers":[95,86,89,90],"winner":90},{"warzone":23,"era":"Frontier","servers":[96,94,88,93],"winner":88},{"warzone":24,"era":"Frontier","servers":[87,91,85,92],"winner":91}]};
 const EMBED_MATCH = {"taken_at":"2026-10-08","top100":{"1":5798664029,"2":3549747036,"3":9539885846,"4":3804904707,"5":8476684514,"6":11263604259,"7":4337599228,"8":3899787968,"9":10690662960,"10":13788946095,"11":13166580238,"12":6406450411,"13":6917533777,"14":6781053653,"15":7186270618,"16":12979131841,"17":8994781156,"18":13668920860,"19":5370282560,"20":5139921277,"21":7049692349,"22":5151819965,"23":18103024495,"24":7404715619,"25":14656703135,"26":11038450491,"27":5405842333,"28":6044624143,"29":9464950698,"30":5096665698,"31":14673114041,"32":4949196858,"33":5634494969,"34":13313501637,"35":7259522519,"36":7178841221,"37":6130199840,"38":4122020387,"39":3830802422,"40":10219783031,"41":13402593354,"42":6030756000,"43":8709900228,"44":3594638088,"45":5731902160,"46":8392579358,"47":4666396582,"48":11343275500,"49":3407620535,"50":12108977418,"51":9224962055,"52":3202929187,"53":5879163071,"54":13089637964,"55":3113476849,"56":2633713313,"57":8633133466,"58":9251997000,"59":2938092484,"60":3643046865,"61":2031077326,"62":2085129727,"63":2692527615,"64":3694572063,"65":7655288640,"66":6762575852,"67":2838789571,"68":6025601716,"69":7322343517,"70":6317098696,"71":8300132667,"72":8171101063,"73":10106905069,"74":8359403555,"75":2205549947,"76":2131748325,"77":2530360440,"78":2818290351,"79":2781005242,"80":6157433245,"81":6135649191,"82":6759875991,"83":2160278585,"84":4770812562,"85":1951169862,"86":4972510946,"87":1480233375,"88":3106076238,"89":3578993078,"90":5079628071,"91":1886741855,"92":1336128196,"93":2526332957,"94":1974844293,"95":3069488461,"96":2272987705,"97":1912144174,"98":1588403790,"99":1754810422,"100":1456235915,"101":1200042087,"102":878138430,"103":603406059,"104":540435920,"105":494144335,"106":334766600,"107":145661078}};
@@ -293,7 +294,8 @@ const save = (k, v) => { try { store?.setItem('egr2-' + k, v); } catch (e) {} };
 let model = (() => { try { return { ...DEFAULT_MODEL, ...JSON.parse(saved('model', '{}')) }; } catch (e) { return { ...DEFAULT_MODEL }; } })();
 
 // ---------- Data (live files from your site, else built-in snapshot) ----------
-const DATA = { power: EMBED_POWER, powerSrc: 'built-in snapshot', svs: EMBED_SVS, history: { '2026-10-08': EMBED_MATCH } };
+const DATA = { power: EMBED_POWER, powerSrc: 'built-in snapshot', svs: EMBED_SVS, history: { '2026-10-08': EMBED_MATCH },
+  top200: typeof EMBED_TOP200 !== 'undefined' ? EMBED_TOP200 : null, history200: {} };
 const getJSON = (url) => fetch(url, { cache: 'no-store' }).then(r => r.ok ? r.json() : Promise.reject(r.status));
 // Vanguard (Upper Ring) worlds: picked by the game when each migration event opens,
 // published by dengsden.com and saved daily to /data/deng-vanguard.json.
@@ -334,24 +336,45 @@ async function loadData() {
     DATA.power = { taken_at: s.taken_at, top100 }; DATA.powerSrc = 'live';
   } catch (e) {}
   try {
+    const t = await getJSON(PLAYERS_BASE + 'top200.json');
+    if (t && t.top200 && Object.keys(t.top200).length) DATA.top200 = t;
+  } catch (e) {}
+  try {
     const v = await getJSON('/data/deng-svs.json');
     if (v && Array.isArray(v.worlds)) DATA.svs = { start: v.start, worlds: v.worlds.map(w => ({ warzone: w.warzone, era: w.era, servers: w.servers.map(x => x.server), winner: w.winner?.server })) };
   } catch (e) {}
   render();
 }
-// Warzones are set on the Matching day (day 6 of the round). Past rounds use that day's snapshot, upcoming rounds the latest.
+// Warzones are set on the Matching day (day 6 of the round). Past rounds use that day's
+// snapshot, upcoming rounds the latest. Matchmaking used each world's top-100 power
+// through the October round and top-200 power from the Nov 28 round on. Deng's Den
+// publishes top-100 totals; top-200 totals are added up weekly from its player
+// rankings (.github/workflows/deng-players.yml, on the deng-players branch).
 const MATCH_OFFSET = 5;
+const TOP200_FROM = Date.UTC(2026, 10, 20); // rounds matched on or after this use top 200
 const histCache = {};
+function histFetch(key, url, store) {
+  if (key in histCache) return;
+  histCache[key] = null;
+  getJSON(url).then(h => { store[key.slice(key.indexOf(':') + 1)] = h; render(); }).catch(() => {});
+}
 function powerFor(start) {
   const mday = start + MATCH_OFFSET * DAY, day = toInput(mday);
-  if (mday <= Date.parse(DATA.power.taken_at)) {
-    if (DATA.history[day]) return { ...DATA.history[day], label: 'Matching day (' + fmtShort(mday) + ')' };
-    if (!(day in histCache)) {
-      histCache[day] = null;
-      getJSON(`/data/history/servers-${day}.json`).then(h => { DATA.history[day] = h; render(); }).catch(() => {});
+  if (mday >= TOP200_FROM && DATA.top200) {
+    if (mday <= Date.parse(DATA.top200.taken_at)) {
+      const h = DATA.history200[day];
+      if (h) return { vals: h.top200, n: 200, label: 'top 200 · Matching day (' + fmtShort(mday) + ')' };
+      histFetch('200:' + day, `${PLAYERS_BASE}history/top200-${day}.json`, DATA.history200);
     }
+    return { vals: DATA.top200.top200, n: 200, taken_at: DATA.top200.taken_at, label: 'top 200 · latest (' + fmtShort(Date.parse(DATA.top200.taken_at)) + ')' };
   }
-  return { ...DATA.power, label: 'latest (' + fmtShort(Date.parse(DATA.power.taken_at)) + ')' };
+  const note = mday >= TOP200_FROM ? ' <span class="acc">(top-200 totals unavailable)</span>' : '';
+  if (mday <= Date.parse(DATA.power.taken_at)) {
+    const h = DATA.history[day];
+    if (h) return { vals: h.top100, n: 100, label: 'top 100 · Matching day (' + fmtShort(mday) + ')' + note };
+    histFetch('100:' + day, `/data/history/servers-${day}.json`, DATA.history);
+  }
+  return { vals: DATA.power.top100, n: 100, taken_at: DATA.power.taken_at, label: 'top 100 · latest (' + fmtShort(Date.parse(DATA.power.taken_at)) + ')' + note };
 }
 // Actual warzones for a round, if Deng has them
 function actualFor(start) {
@@ -384,7 +407,7 @@ function warzones(groups, power) {
     const m = model[g.name] || { bonus: 0, curve: 1 };
     const ages = g.list.map(w => w.age), mn = Math.min(...ages), mx = Math.max(...ages);
     const scored = g.list.map(w => {
-      const p = power.top100[w.s - 1000] || 0;
+      const p = power.vals[w.s - 1000] || 0;
       const rel = mx > mn ? (w.age - mn) / (mx - mn) : 0;
       const bonus = (m.bonus / 100) * Math.pow(rel, m.curve);
       return { ...w, p, bonus, score: p * (1 + bonus) };
@@ -398,8 +421,8 @@ function warzones(groups, power) {
 
 
 // ---------- Warzone editor ----------
-// Player lists (top 200 per world: [name, alliance tag, power]) are built every few
-// days by .github/workflows/deng-players.yml and kept on the deng-players branch.
+// Player lists (top 400 per world: [name, alliance tag, power]) are built weekly by
+// .github/workflows/deng-players.yml and kept on the deng-players branch.
 const PLAYERS_BASE = 'https://raw.githubusercontent.com/zephyrus44/zephyrus44.github.io/deng-players/';
 const PLAYERS = {};          // world -> { players: [{n, t, p}], taken_at } | 'loading' | 'missing'
 let MODE = saved('mode', 'view');
@@ -415,7 +438,8 @@ function loadPlayers(w) {
     .catch(() => { PLAYERS[w] = 'missing'; render(); });
 }
 const listOf = (w) => (PLAYERS[w] && PLAYERS[w].players) || null;
-const top100 = (list) => list.slice().sort((a, b) => b.p - a.p).slice(0, 100).reduce((a, x) => a + x.p, 0);
+let TOPN = 200; // the round's matchmaking depth (200, or 100 for October), set in render()
+const topN = (list) => list.slice().sort((a, b) => b.p - a.p).slice(0, TOPN).reduce((a, x) => a + x.p, 0);
 
 // Apply every move in order. Returns per-world { before, after, list } plus per-move results.
 function applyMoves() {
@@ -432,7 +456,7 @@ function applyMoves() {
   }
   const worlds = {};
   for (const w of Object.keys(cur)) {
-    const before = top100(listOf(+w)), after = top100(cur[w]);
+    const before = topN(listOf(+w)), after = topN(cur[w]);
     worlds[w] = { before, after, delta: after - before, list: cur[w] };
   }
   return { worlds, results };
@@ -483,10 +507,10 @@ function renderEditor(ctx) {
     const cut = ps.length >= 100 ? ps[99].p : 0;
     if (ED.kind === 'alliance') {
       const al = {};
-      ps.forEach((x, i) => { if (!x.t) return; const a = al[x.t] = al[x.t] || { t: x.t, n: 0, n100: 0, p: 0, p100: 0 }; a.n++; a.p += x.p; if (i < 100) { a.n100++; a.p100 += x.p; } });
+      ps.forEach((x, i) => { if (!x.t) return; const a = al[x.t] = al[x.t] || { t: x.t, n: 0, n100: 0, p: 0, p100: 0 }; a.n++; a.p += x.p; if (i < TOPN) { a.n100++; a.p100 += x.p; } });
       const rows = Object.values(al).sort((a, b) => b.p100 - a.p100 || b.p - a.p);
-      picker = rows.length ? `<div class="pick">${rows.map(a => `<label class="it${ED.tag === a.t ? ' sel' : ''}"><input type="radio" name="edAlly" value="${esc(a.t)}"${ED.tag === a.t ? ' checked' : ''}><span class="nm">${esc(a.t)} <span class="sub2">· ${a.n100} in top 100${a.n > a.n100 ? `, ${a.n} in top 200` : ''}</span></span><span class="pw">${bil(a.p100)}</span></label>`).join('')}</div>`
-        : `<div class="empty">No alliances in ${from}'s top 200.</div>`;
+      picker = rows.length ? `<div class="pick">${rows.map(a => `<label class="it${ED.tag === a.t ? ' sel' : ''}"><input type="radio" name="edAlly" value="${esc(a.t)}"${ED.tag === a.t ? ' checked' : ''}><span class="nm">${esc(a.t)} <span class="sub2">· ${a.n100} in top ${TOPN}${a.n > a.n100 ? `, ${a.n} in top ${ps.length}` : ''}</span></span><span class="pw">${bil(a.p100)}</span></label>`).join('')}</div>`
+        : `<div class="empty">No alliances in ${from}'s top ${ps.length}.</div>`;
     } else {
       const q = ED.q.trim().toLowerCase();
       const rows = ps.map((x, i) => ({ ...x, r: i + 1 })).filter(x => !q || x.n.toLowerCase().includes(q) || x.t.toLowerCase().includes(q));
@@ -510,26 +534,26 @@ function renderEditor(ctx) {
     if (r.pending) info = (PLAYERS[m.from] === 'missing' || PLAYERS[m.to] === 'missing') ? 'Player lists for these worlds aren\'t available yet.' : 'Loading player lists…';
     else if (!r.moved.length) {
       const earlier = eff.results.slice(0, i).some(e => e.m.from === m.from && e.moved.some(x => m.tag != null ? x.t === m.tag : m.names.includes(x.n)));
-      info = earlier ? 'Nobody left to move: an earlier move already took them.' : `No matching players in ${m.from}'s top 200.`;
+      info = earlier ? 'Nobody left to move: an earlier move already took them.' : `No matching players in ${m.from}'s player list.`;
     }
     else if (dest) {
-      const cutoff = dest.list.slice().sort((a, b) => b.p - a.p)[99];
+      const cutoff = dest.list.slice().sort((a, b) => b.p - a.p)[TOPN - 1];
       const inTop = cutoff ? r.moved.filter(x => x.p >= cutoff.p).length : r.moved.length;
-      info = `${r.moved.length} player${r.moved.length === 1 ? '' : 's'}, ${bil(pw)}. ${inTop} land${inTop === 1 ? 's' : ''} in ${m.to}'s top 100.`;
+      info = `${r.moved.length} player${r.moved.length === 1 ? '' : 's'}, ${bil(pw)}. ${inTop} land${inTop === 1 ? 's' : ''} in ${m.to}'s top ${TOPN}.`;
     }
     return `<div class="mv"><div>${what} · ${m.from} → ${m.to}</div><button class="x" data-del="${i}" title="Remove this move" aria-label="Remove move">×</button>
       ${info ? `<div class="inf">${info}</div>` : ''}${warns.map(w => `<div class="w8">⚠ ${w}</div>`).join('')}</div>`;
   }).join('') : `<div class="empty">No moves yet. Pick a world above, choose an alliance or players, and where they go.</div>`;
 
   const changed = Object.entries(eff.worlds).filter(([, v]) => Math.abs(v.delta) > 0).sort(([a], [b]) => a - b);
-  const fx = changed.length ? `<div style="overflow-x:auto"><table class="fx"><thead><tr><th>World</th><th>Top-100 power</th><th>Warzone</th></tr></thead><tbody>${changed.map(([w, v]) => {
+  const fx = changed.length ? `<div style="overflow-x:auto"><table class="fx"><thead><tr><th>World</th><th>Top-${TOPN} power</th><th>Warzone</th></tr></thead><tbody>${changed.map(([w, v]) => {
       const z0 = wzOf0[w], z1 = wzOf1[w];
       return `<tr><td>${w}</td><td>${bil(ctx.basePower(+w))} → ${bil(ctx.basePower(+w) + v.delta)}<span class="dl ${v.delta > 0 ? 'up' : 'down'}">${v.delta > 0 ? '+' : '−'}${bil(Math.abs(v.delta))}</span></td><td>${z0 ? z0.n : '—'}${z1 && z0 && z1.n !== z0.n ? ` → <b>${z1.n}</b>` : ''}</td></tr>`;
     }).join('')}</tbody></table></div>` : `<div class="empty">No changes yet.</div>`;
 
   const taken = Object.values(PLAYERS).find(v => v && v.taken_at);
   box.innerHTML = `<h3>Warzone editor</h3>
-    <p class="lead">Move players or alliances between worlds and see how this round's predicted warzones change. Warzones still use each world's top 100.${isPast ? ' This round has already been matched, so the results show what the current player lists would do.' : ''}</p>
+    <p class="lead">Move players or alliances between worlds and see how this round's predicted warzones change. Warzones use each world's top-${TOPN} power.${isPast ? ' This round has already been matched, so the results show what the current player lists would do.' : ''}</p>
     <div class="build">
       <div class="lbl">From world</div>
       <div><input id="edFrom" class="srv" inputmode="numeric" placeholder="e.g. 1074" value="${esc(ED.from)}"></div>
@@ -597,6 +621,7 @@ function render() {
   const n = Math.round((base - ANCHOR) / (56 * DAY));
   const onCycle = (base - ANCHOR) % (56 * DAY) === 0;
   const power = powerFor(start);
+  TOPN = power.n;
   const actual = actualFor(base) || actualFor(start);
   const actualZ = actualZones(base) || actualZones(start);
   ROUND_VG = vanguardFor(start);
@@ -610,13 +635,13 @@ function render() {
   const worlds = [];
   for (let s = 1001; launchOf(s) <= t; s++) worlds.push({ s, age: ageOn(s, t), est: s > NEWEST_KNOWN });
   const groups = ERAS.map(e => ({ ...e, list: worlds.filter(w => w.age >= e.min && w.age <= e.max) }));
-  // Editor: moves change top-100 power for the worlds involved (delta from the player lists)
+  // Editor: moves change top-N power for the worlds involved (delta from the player lists)
   const editing = MODE === 'edit';
   if (editing) MOVES.forEach(m => { loadPlayers(m.from); loadPlayers(m.to); });
   const eff = editing ? applyMoves() : { worlds: {}, results: [] };
-  const basePower = (w) => power.top100[w - 1000] || 0;
+  const basePower = (w) => power.vals[w - 1000] || 0;
   const usePower = editing && Object.keys(eff.worlds).length
-    ? { ...power, top100: Object.assign({}, power.top100, ...Object.entries(eff.worlds).map(([w, v]) => ({ [w - 1000]: basePower(+w) + v.delta }))) }
+    ? { ...power, vals: Object.assign({}, power.vals, ...Object.entries(eff.worlds).map(([w, v]) => ({ [w - 1000]: basePower(+w) + v.delta }))) }
     : power;
   const wz0 = editing ? warzones(groups, power) : null;
   const wz = warzones(groups, usePower);
@@ -648,7 +673,7 @@ function render() {
         <div class="stat"><div class="k">${e.none ? 'Eligible in' : 'Moves up in'}</div><div class="v">${daysUp != null ? daysUp + ' <small>days</small>' : '<small>Top era</small>'}</div></div>
         ${az ? `<div class="stat"><div class="k">Warzone</div><div class="v">${az.n}${az.winner === sv ? ' <small>· won</small>' : ''}</div></div>`
              : z ? `<div class="stat"><div class="k">Predicted</div><div class="v">Warzone ${z.n}</div></div>` : ''}
-      </div>${az ? `<div class="opp">Opponents: ${az.servers.filter(x => x !== sv).map(x => `<b>${x}</b>${vgStar(x)} <span class="mono">${bil(power.top100[x - 1000])}</span>`).join(' · ')}</div>`
+      </div>${az ? `<div class="opp">Opponents: ${az.servers.filter(x => x !== sv).map(x => `<b>${x}</b>${vgStar(x)} <span class="mono">${bil(power.vals[x - 1000])}</span>`).join(' · ')}</div>`
              : z ? `<div class="opp">Predicted opponents: ${z.worlds.filter(w => w.s !== sv).map(w => `<b>${w.s}</b>${vgStar(w.s)} <span class="mono">${bil(w.p)}</span>`).join(' · ')}</div>` : ''}</div>`;
       open.add(e.name);
     }
@@ -674,8 +699,8 @@ function render() {
       const tabs = g.none ? '' : `<div class="tabs">${hasActual && !editing ? tab('actual', 'Actual') + tab('wz', 'Predicted') : (editing ? tab('wz', 'Edited warzones', 'Edited') + tab('orig', 'Current warzones', 'Current') : tab('wz', 'Warzones'))}${tab('ages', 'World ages', 'Ages')}</div>`;
       let body;
       if (mode === 'actual') {
-        body = `<div class="wzs">${actualZ[g.name].map(z => `<div class="wz${z.servers.includes(sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.servers.reduce((a, x) => a + (power.top100[x - 1000] || 0), 0))}</span></h4>${
-          z.servers.map(x => `<div class="w${x === sv ? ' me' : ''}" data-s="${x}"><span>${x}${vgStar(x)}${z.winner === x ? '<span class="won">Won</span>' : ''}</span><span class="p">${bil(power.top100[x - 1000])}</span></div>`).join('')}</div>`).join('')}</div>
+        body = `<div class="wzs">${actualZ[g.name].map(z => `<div class="wz${z.servers.includes(sv) ? ' hl' : ''}"><h4><span>Warzone ${z.n}</span><span>${bil(z.servers.reduce((a, x) => a + (power.vals[x - 1000] || 0), 0))}</span></h4>${
+          z.servers.map(x => `<div class="w${x === sv ? ' me' : ''}" data-s="${x}"><span>${x}${vgStar(x)}${z.winner === x ? '<span class="won">Won</span>' : ''}</span><span class="p">${bil(power.vals[x - 1000])}</span></div>`).join('')}</div>`).join('')}</div>
           <div class="check">Actual warzones from dengsden.com.</div>`;
       } else if (mode === 'orig') {
         // the prediction before any edits; worlds the edits would move show where they'd go
