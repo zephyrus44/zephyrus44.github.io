@@ -576,7 +576,10 @@ const elig=(g,id)=>g.ty===ANY?items[id].kind==="t":g.ty.includes(typeOf(id));
 const ST=["target","captured","restored"], STN={target:"Target",captured:"Captured",restored:"Restored"};
 const STC={target:"#ffffff",captured:"#f5a524",restored:"#22c55e"};
 const evStart=()=>{const v=S.evStart; return (typeof v==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(v))?fromYMD(v):estStart();};
-function applySchedule(){const st=evStart(); CH.forEach((c,i)=>{c.start=st+CH_OFF+i*DAYMS; c.end=c.start+DAYMS;});}
+/* Chapters open daily at 22:00 UTC, except Zone 2 (Ch.5 Oracle, Sat 18:00 and Ch.6 Grand Bazaar, Sun 18:00) per the Nov 25, 2026 update.
+   Each chapter stays current until the next one opens. */
+const CH_EARLY={5:4*36e5,6:4*36e5};
+function applySchedule(){const st=evStart(); CH.forEach((c,i)=>{c.start=st+CH_OFF+i*DAYMS-(CH_EARLY[c.n]||0);}); CH.forEach((c,i)=>{c.end=CH[i+1]?CH[i+1].start:c.start+DAYMS;});}
 applySchedule();
 if(!S.goal){const nx=CH.find(c=>!S.chDone[c.id]&&c.end>Date.now()); S.goal=nx?nx.id:"c13";}
 
