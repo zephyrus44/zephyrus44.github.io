@@ -534,10 +534,11 @@ function renderEditor(ctx) {
   else if (fl === 'missing') picker = `<div class="empty">Player list for ${from} isn't available yet.</div>`;
   else if (fl && fl.players) {
     const ps = fl.players;
-    const cut = ps.length >= 100 ? ps[99].p : 0;
     if (ED.kind === 'alliance') {
       const al = {};
-      ps.forEach((x, i) => { if (!x.t) return; const a = al[x.t] = al[x.t] || { t: x.t, n: 0, n100: 0, p: 0, p100: 0 }; a.n++; a.p += x.p; if (i < TOPN) { a.n100++; a.p100 += x.p; } });
+      // rank among counted players only, so inactive players left out don't take top-200 spots
+      const counted = new Set(ps.filter(x => !(TOPN === 200 && isIdle(x))).slice(0, TOPN));
+      ps.forEach((x) => { if (!x.t) return; const a = al[x.t] = al[x.t] || { t: x.t, n: 0, n100: 0, p: 0, p100: 0 }; a.n++; a.p += x.p; if (counted.has(x)) { a.n100++; a.p100 += x.p; } });
       const rows = Object.values(al).sort((a, b) => b.p100 - a.p100 || b.p - a.p);
       picker = rows.length ? `<div class="pick">${rows.map(a => `<label class="it${ED.tag === a.t ? ' sel' : ''}"><input type="radio" name="edAlly" value="${esc(a.t)}"${ED.tag === a.t ? ' checked' : ''}><span class="nm">${esc(a.t)} <span class="sub2">· ${a.n100} in top ${TOPN}${a.n > a.n100 ? `, ${a.n} in top ${ps.length}` : ''}</span></span><span class="pw">${bil(a.p100)}</span></label>`).join('')}</div>`
         : `<div class="empty">No alliances in ${from}'s top ${ps.length}.</div>`;
@@ -572,8 +573,9 @@ function renderEditor(ctx) {
       info = `${r.moved.length} player${r.moved.length === 1 ? '' : 's'}, ${bil(pw)}, no longer counted. ${inTop} ${inTop === 1 ? 'was' : 'were'} in ${m.from}'s top ${TOPN}; the next players move up.`;
     }
     else if (dest) {
-      const cutoff = dest.list.slice().sort((a, b) => b.p - a.p)[TOPN - 1];
-      const inTop = cutoff ? r.moved.filter(x => x.p >= cutoff.p).length : r.moved.length;
+      const counted = dest.list.filter(x => !(TOPN === 200 && isIdle(x))).sort((a, b) => b.p - a.p);
+      const cutoff = counted[TOPN - 1];
+      const inTop = r.moved.filter(x => !(TOPN === 200 && isIdle(x)) && (!cutoff || x.p >= cutoff.p)).length;
       info = `${r.moved.length} player${r.moved.length === 1 ? '' : 's'}, ${bil(pw)}. ${inTop} land${inTop === 1 ? 's' : ''} in ${m.to}'s top ${TOPN}.`;
     }
     return `<div class="mv"><div>${what} · ${m.from} → ${m.to ? m.to : '<span class="muted">inactive</span>'}</div><button class="x" data-del="${i}" title="Remove this move" aria-label="Remove move">×</button>
