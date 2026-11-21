@@ -1657,6 +1657,8 @@ function dcNorm(v) {
 function dcIsId(v) { return /^\d{17,20}$/.test(v || ''); }
 /* saved Discord users, kept on this device apart from any plan, matched by player name */
 var DC_KEY = 'arc-discord-users';
+var dcLimit = 2000;
+try { var dl0 = +localStorage.getItem('arc-discord-limit'); if ([2000, 4000, 0].indexOf(dl0) >= 0 && localStorage.getItem('arc-discord-limit') != null) dcLimit = dl0; } catch (e) {}
 var dcDir = {};
 try { dcDir = JSON.parse(localStorage.getItem(DC_KEY) || '{}') || {}; } catch (e) { dcDir = {}; }
 function dcSaveDir() { try { localStorage.setItem(DC_KEY, JSON.stringify(dcDir)); } catch (e) {} }
@@ -1812,7 +1814,7 @@ function dcParts() {
   var parts = [], cur = head;
   blocks.forEach(function (b) {
     var next = cur ? cur + '\n\n' + b : b;
-    if (next.length > 1900 && cur && cur !== head) { parts.push(cur); cur = b; } else cur = next;
+    if (dcLimit && next.length > dcLimit && cur && cur !== head) { parts.push(cur); cur = b; } else cur = next;
   });
   if (cur) parts.push(cur);
   return { parts: parts, noId: noId, total: total };
@@ -1821,6 +1823,7 @@ function dcPanel() {
   var o = st.dco || (st.dco = { team: '', power: true, ping: true }), d = dcParts(), pi = Math.min(st.dcpart || 0, Math.max(0, d.parts.length - 1));
   var h = '<div class="dcpanel"><div class="top"><b>Copy teams for Discord</b><button class="rx" data-act="r-cancel" aria-label="Close">×</button></div>';
   h += '<div class="top"><select class="input" id="gm-dcteam" style="flex:1;width:auto" aria-label="Teams to copy"><option value="">All teams</option>' + R().teams.map(function (t) { return '<option value="' + t.id + '"' + (o.team === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') + '</select>' +
+    '<select class="input" id="gm-dclimit" style="width:auto" aria-label="Message length limit" title="Longest message your Discord account can send"><option value="2000"' + (dcLimit === 2000 ? ' selected' : '') + '>2,000 characters</option><option value="4000"' + (dcLimit === 4000 ? ' selected' : '') + '>4,000 (Nitro)</option><option value="0"' + (dcLimit === 0 ? ' selected' : '') + '>Don\u2019t split</option></select>' +
     '<label class="chk"><input type="checkbox" id="gm-dcping"' + (o.ping ? ' checked' : '') + '> Ping players</label><label class="chk"><input type="checkbox" id="gm-dcpow"' + (o.power ? ' checked' : '') + '> Power</label></div>';
   h += '<textarea id="gm-dctext" readonly aria-label="Discord message">' + esc(d.parts[pi] || '') + '</textarea>';
   h += '<div class="top">';
@@ -1828,7 +1831,7 @@ function dcPanel() {
   else h += '<button class="btn primary" data-dcpart="0">Copy message</button>';
   h += '</div>';
   var notes = [];
-  if (d.parts.length > 1) notes.push('Discord messages are limited to 2,000 characters, so this is split into ' + d.parts.length + ' messages. Send them in order.');
+  if (d.parts.length > 1) notes.push('Longer than ' + dcLimit.toLocaleString() + ' characters, so it\u2019s split into ' + d.parts.length + ' messages. Send them in order, or raise the limit if your account allows longer messages.');
   if (o.ping && d.noId) notes.push(d.noId + ' of ' + d.total + ' player' + (d.total === 1 ? '' : 's') + ' won’t be pinged because they have no Discord user ID. Tap <b>@</b> beside a player to add one.');
   h += '<div class="top"><span class="note" style="margin-right:auto">' + dcDirCount() + ' Discord user' + (dcDirCount() === 1 ? '' : 's') + ' saved on this device, matched by player name</span><button class="btn ghost" data-act="dc-import">Import</button><button class="btn ghost" data-act="dc-export"' + (dcDirCount() ? '' : ' disabled') + '>Export</button>' + (dcDirCount() ? '<button class="btn ghost danger" data-act="dc-forget">Forget all</button>' : '') + '</div>';
   if (st.dcforget) h += '<div class="confirm">Forget all ' + dcDirCount() + ' saved Discord users on this device? Players in this plan keep theirs. <button class="btn danger" data-act="dc-forget-yes">Forget</button><button class="btn ghost" data-act="dc-forget-no">Cancel</button></div>';
@@ -1888,6 +1891,7 @@ $('gm-roster').addEventListener('change', function (e) {
   var t = e.target, ds = t.dataset;
   if (t.id === 'gm-rteamf') { st.rfilter = t.value; renderRoster(); return; }
   if (t.id === 'gm-dcteam') { st.dco.team = t.value; st.dcpart = 0; renderRoster(); return; }
+  if (t.id === 'gm-dclimit') { dcLimit = +t.value; try { localStorage.setItem('arc-discord-limit', String(dcLimit)); } catch (er) {} st.dcpart = 0; renderRoster(); return; }
   if (t.id === 'gm-dcping') { st.dco.ping = t.checked; renderRoster(); return; }
   if (t.id === 'gm-dcpow') { st.dco.power = t.checked; st.dcpart = 0; renderRoster(); return; }
   if (ds.pteam) { var p = R().players.filter(function (x) { return x.id === ds.pteam; })[0]; if (!p) return; commit(); p.team = t.value; changed(); renderRoster(); return; }
