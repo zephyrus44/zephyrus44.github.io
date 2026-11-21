@@ -240,12 +240,23 @@ svg#gm-svg{position:absolute;inset:0;width:100%;height:100%;display:block;user-s
 .empty{border:1px dashed var(--line-strong);border-radius:8px;padding:12px;color:var(--muted);font-size:12.5px;line-height:1.45}
 .rfilters{display:grid;grid-template-columns:minmax(0,1fr) 128px;gap:6px}
 .rlist{display:flex;flex-direction:column;gap:3px;max-height:340px;overflow-y:auto;margin-inline:-4px;padding-inline:4px}
-.prow{display:grid;grid-template-columns:minmax(0,1fr) 64px 104px 24px;gap:4px;align-items:center;border-left:3px solid var(--tc);padding-left:6px;border-radius:2px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) 64px 104px 24px 24px;gap:4px;align-items:center;border-left:3px solid var(--tc);padding-left:6px;border-radius:2px}
 .pin{border:1px solid transparent;background:transparent;border-radius:6px;padding:4px 6px;font-size:12.5px;min-width:0;width:100%}
 .pin:hover{border-color:var(--line)}
 .pin:focus{outline:none;border-color:var(--accent);background:var(--bg)}
 .pin.pw{font-family:var(--f-mono);font-size:11.5px;text-align:right}
 select.pin{border-color:var(--line);background:var(--bg);cursor:pointer;padding:3px 4px}
+.dcb{width:24px;height:24px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);font:600 12px var(--f-mono);cursor:pointer;padding:0}
+.dcb:hover{border-color:var(--line);color:var(--fg)}
+.dcb.on{color:#8B9BFF;background:rgba(88,101,242,.14)}
+.dcb.half{color:var(--fg)}
+.dcrow{display:flex;gap:6px;align-items:center;padding:2px 0 6px 9px}
+.dcrow .input{flex:1;width:auto;font-size:12.5px}
+.dcpanel{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)}
+.dcpanel .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.dcpanel .top b{font-size:13px;margin-right:auto}
+.dcpanel textarea{width:100%;min-height:130px;resize:vertical;font:12px/1.45 var(--f-mono);background:var(--panel,transparent);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px}
+.dcpanel .chk{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
 #gm-rfoot:empty{display:none}
 #gm-radd{min-height:110px;font-size:12.5px}
 @media (max-width:600px){.dgrp [data-tool] span{display:none}}
@@ -1613,27 +1624,50 @@ function parseRows(text) {
 }
 function rowsToPlayers(rows) {
   if (!rows.length) return [];
-  var head = rows[0].map(function (x) { return x.toLowerCase(); }), ni = -1, pi = -1, ti = -1;
+  var head = rows[0].map(function (x) { return x.toLowerCase(); }), ni = -1, pi = -1, ti = -1, di = -1;
   head.forEach(function (h, i) {
     if (ni < 0 && /^(name|player|players|ign|player name|governor|member)$/.test(h)) ni = i;
     else if (pi < 0 && /^(power|might|cp|total power)$/.test(h)) pi = i;
     else if (ti < 0 && /^(team|squad|group|team name)$/.test(h)) ti = i;
+    else if (di < 0 && /^(discord|discord id|discord user|discord name|mention|ping)$/.test(h)) di = i;
   });
   var out = [];
   if (ni >= 0) {
     rows.slice(1).forEach(function (r) {
       var name = (r[ni] || '').trim(); if (!name) return;
-      out.push({ name: name, power: pi >= 0 ? parsePower(r[pi]) : null, teamName: ti >= 0 ? (r[ti] || '').trim() : '' });
+      out.push({ name: name, power: pi >= 0 ? parsePower(r[pi]) : null, teamName: ti >= 0 ? (r[ti] || '').trim() : '', dc: di >= 0 ? dcNorm(r[di]) : '' });
     });
     return out;
   }
   rows.forEach(function (r) {
     var name = (r[0] || '').trim(); if (!name) return;
-    var power = null, teamName = '';
-    r.slice(1).forEach(function (x) { if (!x) return; var pw = parsePower(x); if (pw != null && power == null) power = pw; else if (!teamName) teamName = x; });
-    out.push({ name: name, power: power, teamName: teamName });
+    var power = null, teamName = '', dc = '';
+    r.slice(1).forEach(function (x) { if (!x) return; if (DC_ID.test(x) || /^@\S/.test(x)) { dc = dcNorm(x); return; } var pw = parsePower(x); if (pw != null && power == null) power = pw; else if (!teamName) teamName = x; });
+    out.push({ name: name, power: power, teamName: teamName, dc: dc });
   });
   return out;
+}
+/* Discord: a user ID pings; a plain @name is shown but does not ping */
+var DC_ID = /^<?@?!?(\d{17,20})>?$/;
+function dcNorm(v) {
+  v = String(v || '').trim(); if (!v) return '';
+  var m = v.match(DC_ID); if (m) return m[1];
+  return v.replace(/^@+/, '').slice(0, 40);
+}
+function dcIsId(v) { return /^\d{17,20}$/.test(v || ''); }
+/* saved Discord users, kept on this device apart from any plan, matched by player name */
+var DC_KEY = 'arc-discord-users';
+var dcDir = {};
+try { dcDir = JSON.parse(localStorage.getItem(DC_KEY) || '{}') || {}; } catch (e) { dcDir = {}; }
+function dcSaveDir() { try { localStorage.setItem(DC_KEY, JSON.stringify(dcDir)); } catch (e) {} }
+function dcKey(name) { return String(name || '').trim().toLowerCase(); }
+function dcOf(p) { return p.dc || dcDir[dcKey(p.name)] || ''; }
+function dcRemember(name, v) { var k = dcKey(name); if (!k) return; if (v) dcDir[k] = v; else delete dcDir[k]; dcSaveDir(); }
+function dcDirCount() { return Object.keys(dcDir).length; }
+function dcDirCSV() {
+  var q = function (v) { v = String(v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  var names = {}; R().players.forEach(function (p) { names[dcKey(p.name)] = p.name; });
+  return 'Name,Discord\r\n' + Object.keys(dcDir).sort().map(function (k) { return q(names[k] || k) + ',' + q(dcDir[k]); }).join('\r\n') + '\r\n';
 }
 function teamByName(name, create) {
   var n = String(name || '').trim(); if (!n) return null;
@@ -1652,8 +1686,9 @@ function applyPlayers(list, mode) {
   var added = 0, updated = 0;
   list.forEach(function (x) {
     var t = x.teamName ? teamByName(x.teamName, true) : null, ex = byName[x.name.toLowerCase()];
-    if (ex) { if (x.power != null) ex.power = x.power; if (t) ex.team = t.id; if (x.src) ex.src = x.src; updated++; }
-    else { var p = { id: uid(), name: x.name.slice(0, 32), power: x.power, team: t ? t.id : '' }; if (x.src) p.src = x.src; R().players.push(p); byName[x.name.toLowerCase()] = p; added++; }
+    if (x.dc) dcRemember(x.name, x.dc);
+    if (ex) { if (x.power != null) ex.power = x.power; if (t) ex.team = t.id; if (x.src) ex.src = x.src; if (x.dc) ex.dc = x.dc; updated++; }
+    else { var p = { id: uid(), name: x.name.slice(0, 32), power: x.power, team: t ? t.id : '' }; if (x.src) p.src = x.src; if (x.dc) p.dc = x.dc; R().players.push(p); byName[x.name.toLowerCase()] = p; added++; }
   });
   changed(); renderRoster(); renderSel(); renderMap();
   return { added: added, updated: updated };
@@ -1662,9 +1697,9 @@ function rosterCSV() {
   var q = function (v) { v = v == null ? '' : String(v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
   var order = {}; R().teams.forEach(function (t, i) { order[t.id] = i; });
   var ps = R().players.slice().sort(function (a, b) { var oa = order[a.team] != null ? order[a.team] : 999, ob = order[b.team] != null ? order[b.team] : 999; return oa - ob; });
-  var lines = ['Name,Power,Team'];
-  ps.forEach(function (p) { var t = rteam(p.team); lines.push([q(p.name), p.power == null ? '' : q(p.power), q(t ? t.name : '')].join(',')); });
-  R().teams.forEach(function (t) { if (!ps.some(function (p) { return p.team === t.id; })) lines.push(',,' + q(t.name)); });
+  var lines = ['Name,Power,Team,Discord'];
+  ps.forEach(function (p) { var t = rteam(p.team); lines.push([q(p.name), p.power == null ? '' : q(p.power), q(t ? t.name : ''), q(dcOf(p))].join(',')); });
+  R().teams.forEach(function (t) { if (!ps.some(function (p) { return p.team === t.id; })) lines.push(',,' + q(t.name) + ','); });
   return lines.join('\r\n') + '\r\n';
 }
 function saveFile(name, blob, okMsg, accept) {
@@ -1733,7 +1768,8 @@ function renderRoster() {
   if (!r.teams.length) h += '<div class="empty">No teams yet. Add one, or upload a CSV with a Team column.</div>';
   h += '</div>';
   if (s[''].n && r.teams.length) h += '<p class="note">' + s[''].n + ' unassigned</p>';
-  h += '<div class="row"><button class="btn" data-act="r-addteam">+ Team</button><button class="btn" data-act="r-split" ' + (r.players.length && r.teams.length ? '' : 'disabled') + '>Auto-split</button><button class="btn ghost" data-act="r-toggleadd">' + (st.radd ? 'Hide add' : '+ Add players') + '</button>' + (dg.open ? '' : '<button class="btn ghost" data-act="r-deng">+ From Deng\u2019s Den</button>') + '</div>';
+  h += '<div class="row"><button class="btn" data-act="r-addteam">+ Team</button><button class="btn" data-act="r-split" ' + (r.players.length && r.teams.length ? '' : 'disabled') + '>Auto-split</button><button class="btn ghost" data-act="r-toggleadd">' + (st.radd ? 'Hide add' : '+ Add players') + '</button>' + (dg.open ? '' : '<button class="btn ghost" data-act="r-deng">+ From Deng\u2019s Den</button>') + (r.teams.length && r.players.length ? '<button class="btn ghost" data-act="r-discord" aria-pressed="' + (st.rconfirm === 'discord') + '">Copy for Discord</button>' : '') + '</div>';
+  if (st.rconfirm === 'discord') h += dcPanel();
   if (st.rconfirm === 'split') h += '<div class="confirm">Split into ' + r.teams.length + ' equal-size teams with power as even as possible. <button class="btn primary" data-act="r-split-all">Split everyone</button>' + (s[''].n && s[''].n < r.players.length ? '<button class="btn" data-act="r-split-un">Only unassigned (' + s[''].n + ')</button>' : '') + '<button class="btn ghost" data-act="r-cancel">Cancel</button></div>';
   if (st.rconfirm === 'clear') h += '<div class="confirm">Remove all ' + r.players.length + ' players and every team? <button class="btn danger" data-act="r-clear-yes">Clear roster</button><button class="btn ghost" data-act="r-cancel">Cancel</button></div>';
   if (st.rimport) {
@@ -1756,6 +1792,57 @@ function renderRoster() {
   $('gm-rfoot').innerHTML = (fromDeng ? '<button class="btn" data-act="r-refresh" title="Update the power of the ' + fromDeng + ' players added from Deng\u2019s Den">Refresh power</button>' : '') + '<button class="btn" data-act="r-upload">Upload CSV</button><button class="btn" data-act="r-download" ' + (r.players.length || r.teams.length ? '' : 'disabled') + '>Download CSV</button>' +
     (r.players.length ? '<button class="btn ghost danger" data-act="r-clear">Clear</button>' : '');
 }
+function dcParts() {
+  var o = st.dco || (st.dco = { team: '', power: true, ping: true });
+  var teams = R().teams.filter(function (t) { return !o.team || t.id === o.team; });
+  var blocks = [], noId = 0, total = 0;
+  teams.forEach(function (t) {
+    var ps = R().players.filter(function (p) { return p.team === t.id; }); if (!ps.length) return;
+    var pw = ps.reduce(function (a, p) { return a + (p.power || 0); }, 0);
+    var lines = ['**' + t.name.replace(/\*/g, '') + '** · ' + ps.length + ' player' + (ps.length === 1 ? '' : 's') + (o.power && pw ? ' · ' + fmtPower(pw) : '')];
+    ps.forEach(function (p) {
+      var dc = dcOf(p), who = o.ping && dcIsId(dc) ? '<@' + dc + '> ' + p.name : dc && o.ping ? p.name + ' (@' + dc + ')' : p.name;
+      if (!dcIsId(dc)) noId++;
+      total++;
+      lines.push('- ' + who + (o.power && p.power != null ? ' · ' + fmtPower(p.power) : ''));
+    });
+    blocks.push(lines.join('\n'));
+  });
+  var head = plan.name ? '### ' + plan.name + (o.team ? '' : ' teams') : '';
+  var parts = [], cur = head;
+  blocks.forEach(function (b) {
+    var next = cur ? cur + '\n\n' + b : b;
+    if (next.length > 1900 && cur && cur !== head) { parts.push(cur); cur = b; } else cur = next;
+  });
+  if (cur) parts.push(cur);
+  return { parts: parts, noId: noId, total: total };
+}
+function dcPanel() {
+  var o = st.dco || (st.dco = { team: '', power: true, ping: true }), d = dcParts(), pi = Math.min(st.dcpart || 0, Math.max(0, d.parts.length - 1));
+  var h = '<div class="dcpanel"><div class="top"><b>Copy teams for Discord</b><button class="rx" data-act="r-cancel" aria-label="Close">×</button></div>';
+  h += '<div class="top"><select class="input" id="gm-dcteam" style="flex:1;width:auto" aria-label="Teams to copy"><option value="">All teams</option>' + R().teams.map(function (t) { return '<option value="' + t.id + '"' + (o.team === t.id ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join('') + '</select>' +
+    '<label class="chk"><input type="checkbox" id="gm-dcping"' + (o.ping ? ' checked' : '') + '> Ping players</label><label class="chk"><input type="checkbox" id="gm-dcpow"' + (o.power ? ' checked' : '') + '> Power</label></div>';
+  h += '<textarea id="gm-dctext" readonly aria-label="Discord message">' + esc(d.parts[pi] || '') + '</textarea>';
+  h += '<div class="top">';
+  if (d.parts.length > 1) d.parts.forEach(function (_, i) { h += '<button class="btn' + (i === pi ? ' primary' : '') + '" data-dcpart="' + i + '">Copy part ' + (i + 1) + ' of ' + d.parts.length + '</button>'; });
+  else h += '<button class="btn primary" data-dcpart="0">Copy message</button>';
+  h += '</div>';
+  var notes = [];
+  if (d.parts.length > 1) notes.push('Discord messages are limited to 2,000 characters, so this is split into ' + d.parts.length + ' messages. Send them in order.');
+  if (o.ping && d.noId) notes.push(d.noId + ' of ' + d.total + ' player' + (d.total === 1 ? '' : 's') + ' won’t be pinged because they have no Discord user ID. Tap <b>@</b> beside a player to add one.');
+  h += '<div class="top"><span class="note" style="margin-right:auto">' + dcDirCount() + ' Discord user' + (dcDirCount() === 1 ? '' : 's') + ' saved on this device, matched by player name</span><button class="btn ghost" data-act="dc-import">Import</button><button class="btn ghost" data-act="dc-export"' + (dcDirCount() ? '' : ' disabled') + '>Export</button>' + (dcDirCount() ? '<button class="btn ghost danger" data-act="dc-forget">Forget all</button>' : '') + '</div>';
+  if (st.dcforget) h += '<div class="confirm">Forget all ' + dcDirCount() + ' saved Discord users on this device? Players in this plan keep theirs. <button class="btn danger" data-act="dc-forget-yes">Forget</button><button class="btn ghost" data-act="dc-forget-no">Cancel</button></div>';
+  if (o.ping) notes.push('To get a user ID, turn on Developer Mode in Discord (Settings › Advanced), then right-click or long-press the member and choose Copy User ID. You can also add a Discord column to the roster CSV.');
+  h += notes.map(function (n) { return '<p class="note">' + n + '</p>'; }).join('');
+  return h + '</div>';
+}
+function dcCopy(i) {
+  var d = dcParts(), txt = d.parts[i] || ''; if (!txt) return;
+  st.dcpart = i;
+  var ok = function () { toast(d.parts.length > 1 ? 'Part ' + (i + 1) + ' copied. Paste it into Discord' : 'Copied. Paste it into Discord'); };
+  var fail = function () { renderRoster(); var ta = $('gm-dctext'); if (ta) { ta.focus(); ta.select(); try { if (document.execCommand('copy')) { ok(); return; } } catch (e) {} } toast('Copy is blocked here. The message is selected, copy it from there'); };
+  try { navigator.clipboard.writeText(txt).then(function () { renderRoster(); ok(); }, fail); } catch (e) { fail(); }
+}
 function renderRosterList() {
   var r = R(), q = (st.rsearch || '').toLowerCase(), f = st.rfilter || '';
   var opts = function (cur) { return '<option value="">No team</option>' + r.teams.map(function (t) { return '<option value="' + t.id + '"' + (t.id === cur ? ' selected' : '') + '>' + esc(t.name) + '</option>'; }).join(''); };
@@ -1773,7 +1860,9 @@ function renderRosterList() {
     h += '<div class="prow" style="--tc:' + (t ? t.color : 'transparent') + '"><input class="pin" data-pname="' + p.id + '" value="' + esc(p.name) + '" maxlength="32" aria-label="Player name">' +
       '<input class="pin pw" data-ppow="' + p.id + '" value="' + esc(fmtPower(p.power)) + '" placeholder="Power" aria-label="Power" inputmode="decimal">' +
       '<select class="pin" data-pteam="' + p.id + '" aria-label="Team">' + opts(t ? t.id : '') + '</select>' +
+      '<button class="dcb' + (dcIsId(dcOf(p)) ? ' on' : dcOf(p) ? ' half' : '') + '" data-pdcb="' + p.id + '" title="' + (dcIsId(dcOf(p)) ? 'Pinged in Discord copy' : dcOf(p) ? 'Discord name set. Add their user ID to ping them' : 'Add Discord user') + '" aria-label="Discord user for ' + esc(p.name) + '">@</button>' +
       '<button class="rx" data-pdel="' + p.id + '" aria-label="Remove ' + esc(p.name) + '">×</button></div>';
+    if (st.rdc === p.id) h += '<div class="dcrow"><input class="input" data-pdc="' + p.id + '" value="' + esc(dcOf(p)) + '" placeholder="Discord user ID, e.g. 412345678901234567" autocomplete="off" inputmode="text" aria-label="Discord user ID for ' + esc(p.name) + '"><button class="btn ghost" data-act="r-dcdone">Done</button></div>';
   });
   $('gm-rlist').innerHTML = h;
 }
@@ -1788,6 +1877,8 @@ $('gm-roster').addEventListener('click', function (e) {
     if (st.rfilter === id) st.rfilter = '';
     changed(); renderRoster(); renderMap(); renderSel(); return;
   }
+  if (ds.dcpart != null) { dcCopy(+ds.dcpart); return; }
+  if (ds.pdcb) { st.rdc = st.rdc === ds.pdcb ? null : ds.pdcb; renderRosterList(); var di = document.querySelector('[data-pdc="' + ds.pdcb + '"]'); if (di) di.focus(); return; }
   if (ds.pdel) { commit(); R().players = R().players.filter(function (p) { return p.id !== ds.pdel; }); changed(); renderRoster(); return; }
   if (b) return;
   var row = e.target.closest('[data-rfilter]');
@@ -1796,7 +1887,17 @@ $('gm-roster').addEventListener('click', function (e) {
 $('gm-roster').addEventListener('change', function (e) {
   var t = e.target, ds = t.dataset;
   if (t.id === 'gm-rteamf') { st.rfilter = t.value; renderRoster(); return; }
+  if (t.id === 'gm-dcteam') { st.dco.team = t.value; st.dcpart = 0; renderRoster(); return; }
+  if (t.id === 'gm-dcping') { st.dco.ping = t.checked; renderRoster(); return; }
+  if (t.id === 'gm-dcpow') { st.dco.power = t.checked; st.dcpart = 0; renderRoster(); return; }
   if (ds.pteam) { var p = R().players.filter(function (x) { return x.id === ds.pteam; })[0]; if (!p) return; commit(); p.team = t.value; changed(); renderRoster(); return; }
+  if (ds.pdc) {
+    var p3 = R().players.filter(function (x) { return x.id === ds.pdc; })[0]; if (!p3) return;
+    var nv = dcNorm(t.value); if (dcOf(p3) === nv) return;
+    commit(); if (nv) p3.dc = nv; else delete p3.dc; changed(); dcRemember(p3.name, nv);
+    if (nv && !dcIsId(nv)) toast('Saved. Only a Discord user ID pings the player');
+    renderRosterList(); return;
+  }
   if (ds.ppow) {
     var p2 = R().players.filter(function (x) { return x.id === ds.ppow; })[0]; if (!p2) return;
     var v = t.value.trim(), n = parsePower(v);
@@ -1821,8 +1922,27 @@ rfile.addEventListener('change', function () {
   rd.onerror = function () { toast('That file couldn’t be read.'); };
   rd.readAsText(f);
 });
+var dcfile = document.createElement('input'); dcfile.type = 'file'; dcfile.accept = '.csv,.tsv,.txt,text/csv,text/plain'; dcfile.hidden = true; document.body.appendChild(dcfile);
+dcfile.addEventListener('change', function () {
+  var f = dcfile.files && dcfile.files[0]; if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function () {
+    dcfile.value = '';
+    var n = 0; rowsToPlayers(parseRows(rd.result)).forEach(function (x) { if (x.dc) { dcRemember(x.name, x.dc); n++; } });
+    toast(n ? 'Saved ' + n + ' Discord user' + (n === 1 ? '' : 's') : 'No Discord users found. Use columns Name and Discord.');
+    renderRoster();
+  };
+  rd.readAsText(f);
+});
 Object.assign(ACTS, {
   'r-addteam': function () { commit(); var t = { id: uid(), name: 'Team ' + (R().teams.length + 1), color: nextTeamColor() }; R().teams.push(t); changed(); renderRoster(); var i = document.querySelector('[data-rtname="' + t.id + '"]'); if (i) { i.focus(); i.select(); } },
+  'r-discord': function () { st.rconfirm = st.rconfirm === 'discord' ? null : 'discord'; st.rimport = null; st.dcpart = 0; renderRoster(); },
+  'dc-export': function () { saveFile('discord-users.csv', new Blob(['\ufeff' + dcDirCSV()], { type: 'text/csv' }), 'Discord users downloaded', { description: 'CSV spreadsheet', accept: { 'text/csv': ['.csv'] } }); },
+  'dc-import': function () { dcfile.click(); },
+  'dc-forget': function () { st.dcforget = true; renderRoster(); },
+  'dc-forget-no': function () { st.dcforget = false; renderRoster(); },
+  'dc-forget-yes': function () { dcDir = {}; dcSaveDir(); st.dcforget = false; renderRoster(); toast('Saved Discord users cleared'); },
+  'r-dcdone': function () { var i = document.querySelector('[data-pdc]'); if (i) i.dispatchEvent(new Event('change', { bubbles: true })); st.rdc = null; renderRosterList(); },
   'r-split': function () { st.rconfirm = 'split'; st.rimport = null; renderRoster(); },
   'r-split-all': function () { st.rconfirm = null; autoSplit(false); },
   'r-split-un': function () { st.rconfirm = null; autoSplit(true); },
