@@ -1803,7 +1803,7 @@ function dcParts() {
     var pw = ps.reduce(function (a, p) { return a + (p.power || 0); }, 0);
     var lines = ['**' + t.name.replace(/\*/g, '') + '** · ' + ps.length + ' player' + (ps.length === 1 ? '' : 's') + (o.power && pw ? ' · ' + fmtPower(pw) : '')];
     ps.forEach(function (p) {
-      var dc = dcOf(p), who = o.ping && dcIsId(dc) ? '<@' + dc + '> ' + p.name : dc && o.ping ? p.name + ' (@' + dc + ')' : p.name;
+      var dc = dcOf(p), who = o.ping && dcIsId(dc) ? '<@' + dc + '>' : dc && o.ping ? p.name + ' (@' + dc + ')' : p.name;
       if (!dcIsId(dc)) noId++;
       total++;
       lines.push('- ' + who + (o.power && p.power != null ? ' · ' + fmtPower(p.power) : ''));
