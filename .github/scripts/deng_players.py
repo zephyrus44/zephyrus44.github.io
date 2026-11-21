@@ -95,7 +95,7 @@ def main():
                 ids |= {str(r["player_id"]) for r in d["rows"] if r.get("player_id")}
                 page += 1
                 if len(d["rows"]) < d.get("per", 50) or page * d.get("per", 50) >= int(d.get("total") or 0):
-                    return ids
+                    return ids or None  # an empty list means the window predates the world, not that everyone is idle
         except RuntimeError as e:
             print(e, flush=True)
             return None
@@ -115,6 +115,8 @@ def main():
             continue  # keep the previous file for this server
         rows.sort(key=lambda r: -int(r["value"]))
         ch7, ch30 = changed(server, 7), changed(server, 30)
+        if ch7 is not None and ch30 is not None:
+            ch30 |= ch7  # a change in the last 7 days is also a change in the last 30 (young worlds report short 30-day lists)
         p7 = set((prev7 or {}).get(str(server), [])) if prev7 is not None else None
         players = []
         for r in rows:

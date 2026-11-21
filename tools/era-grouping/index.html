@@ -456,7 +456,11 @@ function loadPlayers(w) {
     .then(r => r.ok ? r.json() : Promise.reject(r.status))
     .then(d => { PLAYERS[w] = { taken_at: d.taken_at, players: d.players.map(([n, t, p, ...f]) => ({ n, t: t || '', p: +p,
       // inactive flags for 7/14/30 days: 1, 0 or null (older lists had other values here: ignored)
-      idle: f.length === 3 && f.every(v => v === null || v === 0 || v === 1) ? { 7: f[0], 14: f[1], 30: f[2] } : {} })) }; render(); })
+      idle: f.length === 3 && f.every(v => v === null || v === 0 || v === 1) ? { 7: f[0], 14: f[1], 30: f[0] === 0 ? 0 : f[2] } : {} })) };
+      // a list where nobody changed power means the window is older than the world: not known
+      const ps = PLAYERS[w].players;
+      [7, 14, 30].forEach(k => { if (ps.length && !ps.some(x => x.idle[k] === 0)) ps.forEach(x => { if (x.idle[k] != null) x.idle[k] = null; }); });
+      render(); })
     .catch(() => { PLAYERS[w] = 'missing'; render(); });
 }
 const listOf = (w) => (PLAYERS[w] && PLAYERS[w].players) || null;
