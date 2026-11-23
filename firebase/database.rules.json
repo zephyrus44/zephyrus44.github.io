@@ -188,6 +188,32 @@
           ".validate": false
         }
       }
+    },
+    "z3": {
+      "$room": {
+        ".read": "$room.length >= 12 && $room.length <= 32",
+        ".write": "$room.length >= 12 && $room.length <= 32",
+        ".validate": "newData.hasChildren(['created'])",
+        "created": {
+          ".validate": "newData.isNumber()"
+        },
+        "updated": {
+          ".validate": "newData.isNumber()"
+        },
+        "a": {
+          "$k": {
+            ".validate": "$k.length <= 40 && newData.isString() && newData.val().length <= 400"
+          }
+        },
+        "o": {
+          "$k": {
+            ".validate": "$k.length <= 40 && newData.isString() && newData.val().length <= 40"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
