@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 
-/* Z3 — v5
+/* Z3 — v6
    Full map from a CAD-traced SVG: 46 closed territories
    (43 bases · 2 sanctuaries · temple) + 12 gate markers on the ring.
    Rulers show approximate game coordinates (anchor: temple = 500,500,
-   2.554 px/unit; X increases left, Y increases up).                   */
+   2.554 px/unit; X increases left, Y increases up).
+   Live plans share one board between everyone with the link; alliances
+   can be filled in from Deng's Den.                                    */
 
 const PTS = { base: 300, gate: 1500, sanct: 1500, temple: 10000 };
 const CAP = 10000; // max territory rewards per alliance
@@ -20,9 +22,227 @@ const NAME = (f) =>
   f.type === "sanct" ? "Sanctuary" :
   f.type === "gate" ? `Gate ${f.n}` : "Lv.3 Base";
 
+/* ── Live plans ─────────────────────────────────────────────────
+ * A live link (?live=<id>) shares one plan between everyone who opens it,
+ * through the site's Firebase Realtime Database (settings in /firebase/config.js,
+ * rules in /firebase/database.rules.json). Alliances and claims are stored one
+ * per key, so two people claiming different territories never overwrite each
+ * other. Your own plan on this device is never replaced by a live plan.
+ */
+const FIREBASE_SDK = "https://cdn.jsdelivr.net/npm/firebase@11.10.0/";
+const LIVE_ID_RE = /^[a-z0-9]{12,32}$/;
+const urlParam = (k) => { try { return new URLSearchParams(location.search).get(k); } catch { return null; } };
+const loadScript = (src) => new Promise((ok, fail) => {
+  if (document.querySelector(`script[data-src="${src}"]`)) return ok();
+  const s = document.createElement("script");
+  s.src = src; s.async = true; s.dataset.src = src;
+  s.onload = () => ok(); s.onerror = () => { s.remove(); fail(new Error("load " + src)); };
+  document.head.appendChild(s);
+});
+let liveDbPromise = null;
+function liveDb() {
+  if (!liveDbPromise) {
+    liveDbPromise = (async () => {
+      if (!window.ARC_FIREBASE) { try { await loadScript("/firebase/config.js"); } catch {} }
+      const cfg = window.ARC_FIREBASE;
+      if (!cfg || !cfg.databaseURL) throw new Error("not-configured");
+      await loadScript(FIREBASE_SDK + "firebase-app-compat.js");
+      await loadScript(FIREBASE_SDK + "firebase-database-compat.js");
+      const fb = window.firebase;
+      const app = fb.apps.find((a) => a.name === "arc-live") || fb.initializeApp(cfg, "arc-live");
+      const db = app.database();
+      if (cfg.emulator) db.useEmulator(cfg.emulator.host, cfg.emulator.port);
+      return db;
+    })();
+    liveDbPromise.catch(() => { liveDbPromise = null; });
+  }
+  return liveDbPromise;
+}
+const TS = () => window.firebase.database.ServerValue.TIMESTAMP;
+const newLiveId = () => {
+  const a = new Uint8Array(12); crypto.getRandomValues(a);
+  return [...a].map((x) => "abcdefghijklmnopqrstuvwxyz0123456789"[x % 36]).join("") + "z" + Date.now().toString(36).slice(-3);
+};
+const clientId = (() => { const a = new Uint8Array(8); try { crypto.getRandomValues(a); } catch {} return [...a].map((x) => x.toString(16).padStart(2, "0")).join(""); })();
+// unique even when two people add an alliance in the same millisecond
+const newAllianceId = () => "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const allianceRecord = (a, i) => JSON.stringify({ id: a.id, name: a.name, color: a.color, ...(a.power ? { power: a.power } : {}), ...(a.members ? { members: a.members } : {}), o: i });
+
+async function createLiveRoom(alliances, own) {
+  const db = await liveDb();
+  const id = newLiveId();
+  const a = {}; alliances.forEach((x, i) => { a[x.id] = allianceRecord(x, i); });
+  const o = {}; Object.entries(own).forEach(([k, v]) => { if (v) o[k] = v; });
+  await db.ref("z3/" + id).set({ created: TS(), updated: TS(), a, o });
+  return id;
+}
+
+/* Keep ?live=… in the address so the link survives a reload, without
+ * disturbing the hub's own routing. */
+function useShareParams(params) {
+  const own = useMemo(() => { try { return location.pathname; } catch { return ""; } }, []);
+  const key = JSON.stringify(params);
+  useEffect(() => {
+    const apply = () => {
+      try {
+        if (location.pathname !== own) return; // another tool is showing
+        const q = new URLSearchParams();
+        for (const [k, v] of Object.entries(params)) if (v !== "" && v != null && v !== false) q.set(k, v);
+        const s = q.toString();
+        const next = own + (s ? "?" + s : "") + location.hash;
+        if (next !== location.pathname + location.search + location.hash) history.replaceState(history.state, "", next);
+      } catch {}
+    };
+    apply();
+    window.addEventListener("arc:route", apply);
+    return () => window.removeEventListener("arc:route", apply);
+  }, [key]);
+}
+
+function useLiveRoom(id) {
+  const [st, setSt] = useState({ status: id ? "connecting" : "off", here: 0, alliances: [], own: {} });
+  const dbRef = useRef(null);
+  useEffect(() => {
+    if (!id) { setSt({ status: "off", here: 0, alliances: [], own: {} }); return; }
+    let alive = true, room, pres, me, conn;
+    setSt((s) => ({ ...s, status: "connecting" }));
+    liveDb().then((db) => {
+      if (!alive) return;
+      dbRef.current = db;
+      room = db.ref("z3/" + id);
+      room.on("value", (snap) => {
+        if (!alive) return;
+        const v = snap.val();
+        if (!v) { setSt((s) => ({ ...s, status: "missing" })); return; }
+        const alliances = Object.values(v.a || {})
+          .map((s2) => { try { return JSON.parse(s2); } catch { return null; } })
+          .filter((a) => a && a.id && typeof a.name === "string")
+          .sort((x, y) => (x.o ?? 0) - (y.o ?? 0))
+          .map(({ o, ...rest }) => rest);
+        const own = {};
+        Object.entries(v.o || {}).forEach(([k, val]) => { if (typeof val === "string") own[k] = val; });
+        setSt((s) => ({ ...s, status: "live", alliances, own }));
+      }, () => alive && setSt((s) => ({ ...s, status: "error" })));
+      pres = db.ref("presence/" + id);
+      me = pres.child(clientId);
+      conn = db.ref(".info/connected");
+      conn.on("value", (c) => { if (!c.val()) return; me.onDisconnect().remove(); me.set(TS()); });
+      pres.on("value", (snap) => alive && setSt((s) => ({ ...s, here: snap.numChildren() })));
+    }).catch((e) => alive && setSt((s) => ({ ...s, status: e && e.message === "not-configured" ? "not-configured" : "error" })));
+    return () => {
+      alive = false;
+      try { room && room.off(); pres && pres.off(); conn && conn.off(); me && me.remove(); } catch {}
+    };
+  }, [id]);
+
+  const push = (u) => {
+    const db = dbRef.current; if (!db || !id) return;
+    u.updated = TS();
+    db.ref("z3/" + id).update(u).catch(() => setSt((s) => ({ ...s, status: "error" })));
+  };
+  // write only what changed, and show it here straight away so claiming stays snappy
+  const writeAlliances = (prev, next) => {
+    setSt((s) => ({ ...s, alliances: next }));
+    const u = {}, nextIds = new Set(next.map((a) => a.id));
+    prev.forEach((a) => { if (!nextIds.has(a.id)) u["a/" + a.id] = null; });
+    next.forEach((a, i) => {
+      const rec = allianceRecord(a, i), p = prev.findIndex((x) => x.id === a.id);
+      if (p < 0 || allianceRecord(prev[p], p) !== rec) u["a/" + a.id] = rec;
+    });
+    if (Object.keys(u).length) push(u);
+  };
+  const writeOwn = (prev, next) => {
+    setSt((s) => ({ ...s, own: next }));
+    const u = {};
+    Object.keys(prev).forEach((k) => { if (!(k in next)) u["o/" + k] = null; });
+    Object.keys(next).forEach((k) => { if (next[k] !== prev[k]) u["o/" + k] = next[k]; });
+    if (Object.keys(u).length) push(u);
+  };
+  return { ...st, writeAlliances, writeOwn };
+}
+
+/* ── Deng's Den ─────────────────────────────────────────────────
+ * Top alliances on every world, with power and member counts, refreshed
+ * daily from dengsden.com into the site's deng-alliances branch.
+ * Worlds are 1001+ here and 1+ there, so the world number is offset by 1000. */
+const DENG_BASE = "https://raw.githubusercontent.com/zephyrus44/zephyrus44.github.io/deng-alliances/";
+let dengPromise = null;
+const dengIndex = () => (dengPromise = dengPromise || fetch(DENG_BASE + "index.json", { cache: "no-cache" })
+  .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .catch((e) => { dengPromise = null; throw e; }));
+const power = (n) => (n >= 1e9 ? (n / 1e9).toFixed(2) + "B" : n >= 1e6 ? Math.round(n / 1e6) + "M" : fmt(n));
+const dengDate = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric" }); };
+
+
+
+/* Fill the alliance list in from Deng's Den: pick a world, tick the alliances. */
+function DengPicker({ C, num, existing, onAdd, onClose }) {
+  const [world, setWorld] = useState(() => { try { return localStorage.getItem("arc-z3-world") || ""; } catch { return ""; } });
+  const [idx, setIdx] = useState(null);
+  const [err, setErr] = useState("");
+  const [sel, setSel] = useState({});
+  useEffect(() => {
+    let alive = true;
+    dengIndex().then((j) => alive && setIdx(j)).catch(() => alive && setErr("Couldn't load the Deng's Den data. Check your connection and try again."));
+    return () => { alive = false; };
+  }, []);
+  const tagOf = (a) => a.tag || a.name || "—";
+  const n = parseInt(world, 10);
+  const list = idx && n >= 1001 ? (idx.servers[String(n - 1000)] || []) : null;
+  useEffect(() => { setSel({}); if (n >= 1001) { try { localStorage.setItem("arc-z3-world", String(n)); } catch {} } }, [world]);
+  const picks = (list || []).filter((a) => sel[tagOf(a)])
+    .map((a) => ({ tag: tagOf(a), name: a.name, power: a.power, n: a.n }));
+  const taken = (tag) => existing.some((x) => (x.name || "").toLowerCase() === String(tag).toLowerCase());
+  const inp = { height: 36, background: C.bg, border: `1px solid ${C.line2}`, borderRadius: 9, padding: "0 11px", fontSize: 14, color: C.text, outline: "none", fontFamily: "inherit", width: 96, ...num };
+  return (
+    <div style={{ borderTop: `1px solid ${C.line}`, padding: 14, background: C.bg }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <b style={{ fontSize: 13, flex: 1 }}>From Deng's Den</b>
+        {idx && <span style={{ fontSize: 11, color: C.faint }}>Updated {dengDate(idx.taken_at)}</span>}
+        <span onClick={onClose} style={{ color: C.faint, fontSize: 16, lineHeight: 1, cursor: "pointer", padding: "0 2px" }} aria-label="Close">×</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <input value={world} onChange={(e) => setWorld(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          placeholder="World" inputMode="numeric" style={inp} />
+        <span style={{ fontSize: 12, color: C.mut }}>{!idx && !err ? "Loading…" : list ? `${list.length} alliances` : "e.g. 1074"}</span>
+      </div>
+      {err && <div style={{ fontSize: 12, color: "#FF7A63", marginTop: 8 }}>{err}</div>}
+      {idx && n >= 1001 && list && list.length === 0 && (
+        <div style={{ fontSize: 12, color: C.mut, marginTop: 8 }}>No data for world {n} yet.</div>
+      )}
+      {list && list.length > 0 && (
+        <>
+          <div style={{ marginTop: 10, maxHeight: 232, overflowY: "auto", border: `1px solid ${C.line}`, borderRadius: 9 }}>
+            {list.map((a, i) => {
+              const tag = tagOf(a), on = !!sel[tag], dim = taken(tag);
+              return (
+                <div key={tag + i} onClick={() => !dim && setSel((s) => ({ ...s, [tag]: !s[tag] }))}
+                  className="row"
+                  style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", cursor: dim ? "default" : "pointer", opacity: dim ? 0.45 : 1, borderTop: i ? `1px solid ${C.line}` : "none" }}>
+                  <span style={{ width: 14, height: 14, flexShrink: 0, borderRadius: 4, border: `1.5px solid ${on ? C.accent : C.line2}`, background: on ? C.accent : "transparent", display: "grid", placeItems: "center", color: "#0B1020", fontSize: 10, fontWeight: 700 }}>{on ? "✓" : ""}</span>
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{tag}</span>
+                  <span style={{ fontSize: 12, color: C.mut, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dim ? "already added" : a.tag ? a.name : ""}</span>
+                  <span style={{ fontSize: 11.5, color: C.faint, ...num }}>{power(a.power)} · {a.n}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+            <button onClick={() => picks.length && onAdd(picks)} disabled={!picks.length}
+              style={{ height: 34, background: picks.length ? C.accent : C.raise, color: picks.length ? "#0B1020" : C.faint, border: "none", borderRadius: 9, padding: "0 14px", fontSize: 13, fontWeight: 600, cursor: picks.length ? "pointer" : "default" }}>
+              Add {picks.length || ""} alliance{picks.length === 1 ? "" : "s"}
+            </button>
+            <span style={{ fontSize: 11.5, color: C.faint }}>Power and members as of {idx ? dengDate(idx.taken_at) : ""}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function TempleWarPlanner() {
-  const [alliances, setAlliances] = useState([]);
-  const [own, setOwn] = useState({});
+  const [myAlliances, setMyAlliances] = useState([]);
+  const [myOwn, setMyOwn] = useState({});
   const [active, setActive] = useState(null);
   const [draft, setDraft] = useState("");
   const [colorEdit, setColorEdit] = useState(null);
@@ -30,6 +250,10 @@ export default function TempleWarPlanner() {
   const [tip, setTip] = useState(null);
   const [vb, setVb] = useState(VB0);
   const [loaded, setLoaded] = useState(false);
+  const [liveId, setLiveId] = useState(() => (LIVE_ID_RE.test(urlParam("live") || "") ? urlParam("live") : null));
+  const [liveMsg, setLiveMsg] = useState("");
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [deng, setDeng] = useState(null); // null = closed
   const saveT = useRef(null);
   const wrapRef = useRef(null);
   const svgRef = useRef(null);
@@ -37,14 +261,33 @@ export default function TempleWarPlanner() {
   const moved = useRef(false);
   const pinch = useRef(null);
 
+  /* The live plan replaces what is on screen while you are in one; this
+     device's own plan stays untouched underneath and comes back when you leave. */
+  const live = useLiveRoom(liveId);
+  const alliances = liveId ? live.alliances : myAlliances;
+  const own = liveId ? live.own : myOwn;
+  const api = useRef(null);
+  api.current = { liveId, alliances, own, live };
+  const setAlliances = useCallback((upd) => {
+    const { liveId: lid, alliances: prev, live: lv } = api.current;
+    const next = typeof upd === "function" ? upd(prev) : upd;
+    if (lid) lv.writeAlliances(prev, next); else setMyAlliances(next);
+  }, []);
+  const setOwn = useCallback((upd) => {
+    const { liveId: lid, own: prev, live: lv } = api.current;
+    const next = typeof upd === "function" ? upd(prev) : upd;
+    if (lid) lv.writeOwn(prev, next); else setMyOwn(next);
+  }, []);
+  useShareParams(liveId ? { live: liveId } : {});
+
   useEffect(() => {
     (async () => {
       try {
         const r = await window.storage.get(KEY);
         if (r?.value) {
           const d = JSON.parse(r.value);
-          if (d.alliances?.length) setAlliances(d.alliances);
-          if (d.own) setOwn(d.own);
+          if (d.alliances?.length) setMyAlliances(d.alliances);
+          if (d.own) setMyOwn(d.own);
           if (d.active) setActive(d.active);
         }
       } catch (e) { /* first run */ }
@@ -52,13 +295,21 @@ export default function TempleWarPlanner() {
     })();
   }, []);
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || liveId) return; // a live plan never overwrites this device's own
     clearTimeout(saveT.current);
     saveT.current = setTimeout(() => {
-      window.storage.set(KEY, JSON.stringify({ alliances, own, active })).catch(() => {});
+      window.storage.set(KEY, JSON.stringify({ alliances: myAlliances, own: myOwn, active })).catch(() => {});
     }, 700);
     return () => clearTimeout(saveT.current);
-  }, [alliances, own, active, loaded]);
+  }, [myAlliances, myOwn, active, loaded, liveId]);
+  // an alliance that was removed by someone else shouldn't stay selected — but
+  // don't clear it while a live plan is still connecting, when the list is empty
+  // only because nothing has arrived yet
+  useEffect(() => {
+    if (!active || active === "erase") return;
+    if (liveId && live.status !== "live") return;
+    if (!alliances.some((a) => a.id === active)) setActive(null);
+  }, [alliances, active, liveId, live.status]);
 
   /* ── pan / zoom ─────────────────────────────────────────── */
   const clientToSvg = useCallback((cx, cy) => {
@@ -149,11 +400,47 @@ export default function TempleWarPlanner() {
   const totalAvail = 12 * PTS.gate + nBases * PTS.base + 2 * PTS.sanct + PTS.temple;
   const claimed = Object.values(totals).reduce((s, t) => s + t.pts, 0);
 
+  const nextColor = (list) => COLORS.find((c) => !list.some((a) => a.color === c)) ?? COLORS[list.length % COLORS.length];
   const addAlliance = () => {
     const name = draft.trim(); if (!name) return;
-    const id = "a" + Date.now();
-    setAlliances((a) => [...a, { id, name, color: COLORS[a.length % COLORS.length] }]);
+    const id = newAllianceId();
+    setAlliances((a) => [...a, { id, name, color: nextColor(a) }]);
     setActive(id); setDraft("");
+  };
+  const addFromDeng = (picks) => {
+    setAlliances((a) => {
+      const out = [...a];
+      picks.forEach((d) => {
+        if (out.some((x) => (x.name || "").toLowerCase() === String(d.tag).toLowerCase())) return;
+        out.push({ id: newAllianceId(), name: d.tag, color: nextColor(out), power: d.power, members: d.n });
+      });
+      return out;
+    });
+    setStatus(`${picks.length} alliance${picks.length === 1 ? "" : "s"} added from Deng's Den`);
+    setDeng(null);
+  };
+
+  /* ── live plans ─────────────────────────────────────────── */
+  const liveUrl = liveId ? location.origin + location.pathname + "?live=" + liveId : "";
+  const copyLive = () => {
+    try { navigator.clipboard.writeText(liveUrl); setStatus("Live link copied"); }
+    catch { setStatus(liveUrl); }
+  };
+  const goLive = async () => {
+    setLiveMsg("Starting…");
+    try {
+      const id = await createLiveRoom(myAlliances, myOwn);
+      setLiveId(id); setLiveMsg("");
+      try { await navigator.clipboard.writeText(location.origin + location.pathname + "?live=" + id); setStatus("Live link copied — anyone with it can view and edit this plan"); }
+      catch { setStatus("Live plan started"); }
+    } catch (e) {
+      setLiveMsg(e && e.message === "not-configured" ? "Live plans aren't set up on this site yet." : "Couldn't start a live plan. Check your connection and try again.");
+    }
+  };
+  const leaveLive = (keep) => {
+    if (keep) { setMyAlliances(live.alliances); setMyOwn(live.own); }
+    setLiveId(null); setConfirmLeave(false); setActive(null);
+    setStatus(keep ? "Left the live plan. A copy is now your own plan on this device" : "Left the live plan. Back to your own plan");
   };
   const removeAlliance = (id) => {
     setAlliances((a) => a.filter((x) => x.id !== id));
@@ -297,6 +584,12 @@ export default function TempleWarPlanner() {
 
             <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 10px 6px", flexWrap: "wrap" }}>
               <span style={{ fontSize: 12, color: C.faint }}>Scroll / pinch to zoom · drag to pan</span>
+              {liveId && (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: live.status === "live" ? "#5FD394" : C.faint, ...num }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 999, background: live.status === "live" ? "#5FD394" : live.status === "connecting" ? C.faint : "#FF7A63" }} />
+                  {live.status === "live" ? `Live · ${Math.max(1, live.here)}` : live.status === "connecting" ? "Connecting…" : "Offline"}
+                </span>
+              )}
               <span style={{ marginLeft: "auto", fontSize: 12, color: status ? C.mut : C.faint, ...num }}>{status ?? "Tap territories to claim"}</span>
             </div>
           </div>
@@ -325,7 +618,7 @@ export default function TempleWarPlanner() {
                         style={{ color: C.faint, fontSize: 16, lineHeight: 1, cursor: "pointer", padding: "0 2px" }} aria-label={`Remove ${a.name}`}>×</span>
                     </div>
                     <div style={{ display: "flex", fontSize: 11.5, color: C.mut, margin: "5px 0 7px 24px", ...num }}>
-                      <span style={{ flex: 1 }}>{t.gate}G · {t.base}B · {t.sanct}S{t.temple ? " · Temple" : ""}</span>
+                      <span style={{ flex: 1 }}>{t.gate}G · {t.base}B · {t.sanct}S{t.temple ? " · Temple" : ""}{a.power ? ` · ${power(a.power)}` : ""}</span>
                       <span style={{ color: t.pts >= CAP ? a.color : C.faint }}>{fmt(Math.min(t.pts, CAP))} / {fmt(CAP)}{t.pts >= CAP ? " · max" : ""}</span>
                     </div>
                     <div style={{ height: 3, background: C.line, borderRadius: 2, marginLeft: 24 }}>
@@ -355,6 +648,79 @@ export default function TempleWarPlanner() {
                 <button onClick={addAlliance}
                   style={{ height: 38, background: C.accent, color: "#0B1020", border: "none", borderRadius: 10, padding: "0 16px", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>Add</button>
               </div>
+              {deng ? (
+                <DengPicker C={C} num={num} existing={alliances} onAdd={addFromDeng} onClose={() => setDeng(null)} />
+              ) : (
+                <div style={{ padding: "0 14px 14px" }}>
+                  <button onClick={() => setDeng({})}
+                    style={{ width: "100%", height: 34, background: "transparent", color: C.mut, border: `1px solid ${C.line2}`, borderRadius: 10, fontSize: 12.5, fontWeight: 500, cursor: "pointer" }}>
+                    Fill in from Deng's Den
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* ── Live plan ── */}
+            <div style={{ background: C.panel, border: `1px solid ${liveId && live.status === "live" ? "#2A4034" : C.line}`, borderRadius: 14, padding: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: 999, flexShrink: 0,
+                  background: !liveId ? C.faint : live.status === "live" ? "#5FD394" : live.status === "connecting" ? C.faint : "#FF7A63" }} />
+                <b style={{ fontSize: 14, letterSpacing: "-0.01em" }}>
+                  {!liveId ? "Live plan"
+                    : live.status === "live" ? "Live"
+                    : live.status === "connecting" ? "Connecting…"
+                    : live.status === "missing" ? "This live plan has ended, or the link is wrong"
+                    : live.status === "not-configured" ? "Live plans aren't set up on this site yet"
+                    : "Connection lost. Reconnecting…"}
+                </b>
+                {liveId && live.status === "live" && (
+                  <span style={{ fontSize: 11.5, color: C.mut, ...num }}>
+                    {Math.max(1, live.here)} here now
+                  </span>
+                )}
+              </div>
+              {!liveId ? (
+                <>
+                  <div style={{ fontSize: 12.5, color: C.mut, lineHeight: 1.55, marginBottom: 12 }}>
+                    Share a link where everyone sees and edits this board together, in real time. Your own plan on this device stays as it is.
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                    <button onClick={goLive}
+                      style={{ height: 34, background: C.accent, color: "#0B1020", border: "none", borderRadius: 10, padding: "0 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                      Go live
+                    </button>
+                    {liveMsg && <span style={{ fontSize: 11.5, color: C.mut }}>{liveMsg}</span>}
+                  </div>
+                </>
+              ) : confirmLeave ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 12.5, color: C.mut }}>
+                  <span>Leave the live plan?</span>
+                  <button onClick={() => leaveLive(true)}
+                    style={{ height: 30, background: C.raise, color: C.text, border: `1px solid ${C.line2}`, borderRadius: 9, padding: "0 11px", fontSize: 12.5, cursor: "pointer" }}>Keep a copy</button>
+                  <button onClick={() => leaveLive(false)}
+                    style={{ height: 30, background: "transparent", color: C.mut, border: `1px solid ${C.line2}`, borderRadius: 9, padding: "0 11px", fontSize: 12.5, cursor: "pointer" }}>Leave</button>
+                  <button onClick={() => setConfirmLeave(false)}
+                    style={{ height: 30, background: "transparent", color: C.mut, border: "none", fontSize: 12.5, cursor: "pointer" }}>Stay</button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12.5, color: C.mut, lineHeight: 1.55, marginBottom: 12 }}>
+                    {live.status === "live" ? "Everyone with the link is editing this board. Changes save for everyone." : "Trying to reach the live plan…"}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {live.status === "live" && (
+                      <button onClick={copyLive}
+                        style={{ height: 34, background: C.accent, color: "#0B1020", border: "none", borderRadius: 10, padding: "0 14px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                        Copy live link
+                      </button>
+                    )}
+                    <button onClick={() => (live.status === "live" ? setConfirmLeave(true) : leaveLive(false))}
+                      style={{ height: 34, background: "transparent", color: C.mut, border: `1px solid ${C.line2}`, borderRadius: 10, padding: "0 14px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                      {live.status === "live" ? "Leave" : "Back to my plan"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             <div style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 16 }}>
