@@ -656,7 +656,8 @@ function TicketCalc({ world, people, setPeople }) {
               <div className="ms-stat"><div className="k">People</div><div className="v">{rows.length}</div></div>
               {!!totalShop && <div className="ms-stat"><div className="k">From Alliance Shop</div><div className="v">{totalShop}</div></div>}
               <div className="ms-stat"><div className="k">Tickets to buy</div><div className="v">{totalShort}</div></div>
-              <div className="ms-stat"><div className="k">Total cost</div><div className="v">{money(totalUsd)}</div></div>
+              <div className="ms-stat"><div className="k">Total cost</div><div className="v">{money(totalUsd)}</div>
+                <a className="ms-link ms-tk-bundlelink" href="https://dengsden.com/avatar/bundles/#q=Migration" target="_blank" rel="noopener">See the bundles ↗</a></div>
             </div>
             <div className="ms-row ms-tk-imgbtns">
               {canCopyImage && (
@@ -976,6 +977,7 @@ export default function MigrationScout() {
     .ms-live-txt { font-size: 14px; color: var(--arc-mut, #8B93A1); }
     .ms-live-txt b { color: var(--arc-text, #E8EAEE); }
     .ms-live-go { display: inline-flex; align-items: center; gap: 8px; }
+    .ms-tk-bundlelink { display: inline-block; margin-top: 4px; font-size: 12.5px; font-weight: 500; }
     .ms-tk-cards { display: none; }
     .ms-tk-c { border: 1px solid var(--arc-line, #232934); border-radius: 12px; background: var(--arc-bg, #0E1116); padding: 12px 12px 12px 14px; }
     .ms-tk-c.done { background: var(--arc-ok-soft, #173326); border-color: color-mix(in srgb, var(--arc-ok, #5FD394) 40%, transparent);
