@@ -188,6 +188,7 @@ const BUNDLES = [
   { t: 10, usd: 49.99, max: 1 },
   { t: 20, usd: 99.99, max: 3 },
 ];
+const ALLIANCE_POINTS_PER_TICKET = 300000; // Alliance Shop, individual alliance points
 const BUNDLE_MAX_TICKETS = BUNDLES.reduce((a, b) => a + b.t * b.max, 0);
 
 function useTicketTable() {
@@ -329,10 +330,12 @@ function TicketCalc({ world, people, setPeople, currency, setCurrency }) {
     const listed = byName.get(p.name);
     const power = p.power ?? (listed ? listed[2] : null);
     const need = power != null ? ticketsFor(table, power) : null;
-    const short = need != null ? Math.max(0, need - (p.has || 0)) : null;
+    const fromShop = need != null ? Math.min(Math.floor((p.pts || 0) / ALLIANCE_POINTS_PER_TICKET), Math.max(0, need - (p.has || 0))) : 0;
+    const short = need != null ? Math.max(0, need - (p.has || 0) - fromShop) : null;
     const buy = short != null ? cheapestBundles(short) : null;
-    return { ...p, listed, power, need, short, buy };
+    return { ...p, listed, power, need, fromShop, short, buy };
   });
+  const totalShop = rows.reduce((a, r) => a + (r.fromShop || 0), 0);
   const totalShort = rows.reduce((a, r) => a + (r.short || 0), 0);
   const totalUsd = rows.reduce((a, r) => a + (r.buy ? r.buy.usd : 0), 0);
 
@@ -406,6 +409,7 @@ function TicketCalc({ world, people, setPeople, currency, setCurrency }) {
           <div className="ms-tk-head">
             <div className="ms-stats">
               <div className="ms-stat"><div className="k">People</div><div className="v">{rows.length}</div></div>
+              {!!totalShop && <div className="ms-stat"><div className="k">From Alliance Shop</div><div className="v">{totalShop}</div></div>}
               <div className="ms-stat"><div className="k">Tickets to buy</div><div className="v">{totalShort}</div></div>
               <div className="ms-stat"><div className="k">Total cost</div><div className="v">{money(totalUsd)}</div></div>
             </div>
@@ -419,7 +423,7 @@ function TicketCalc({ world, people, setPeople, currency, setCurrency }) {
           <div className="ms-scroll ms-tk-scroll" style={{ marginTop: 16 }}>
             <table className="ms-table ms-tk-table">
               <thead>
-                <tr><th>Player</th><th>Highest power</th><th style={{ textAlign: "right" }}>Needs</th><th>Has</th><th style={{ textAlign: "right" }}>To buy</th><th>Bundles (tickets each)</th><th style={{ textAlign: "right" }}>Cost</th><th></th></tr>
+                <tr><th>Player</th><th>Highest power</th><th style={{ textAlign: "right" }}>Needs</th><th>Has</th><th>Alliance points</th><th style={{ textAlign: "right" }}>To buy</th><th>Bundles (tickets each)</th><th style={{ textAlign: "right" }}>Cost</th><th></th></tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
@@ -438,12 +442,22 @@ function TicketCalc({ world, people, setPeople, currency, setCurrency }) {
                         value={r.has || ""} placeholder="0"
                         onChange={(e) => update(r.name, { has: parseInt(e.target.value.replace(/\D/g, ""), 10) || 0 })} />
                     </td>
+                    <td>
+                      <div className="ms-row" style={{ gap: 6, flexWrap: "nowrap" }}>
+                        <input className="ms-input ms-tk-cell" style={{ width: 84 }} placeholder="0"
+                          defaultValue={r.pts ? fmtPower(r.pts) : ""} key={r.name + ":pts:" + (r.pts || 0)}
+                          onBlur={(e) => { const v = e.target.value.trim() ? parsePower(e.target.value) : 0; if (v != null && v !== (r.pts || 0)) update(r.name, { pts: v }); else e.target.value = r.pts ? fmtPower(r.pts) : ""; }}
+                          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                          title="Individual alliance points. 300K buys 1 ticket in the Alliance Shop." />
+                        {r.fromShop ? <span className="ms-tk-shop">+{r.fromShop}</span> : null}
+                      </div>
+                    </td>
                     <td style={{ textAlign: "right", fontWeight: 600, color: r.short ? "var(--arc-text, #E8EAEE)" : "var(--arc-ok, #5FD394)" }}>
                       {r.short == null ? "—" : r.short || "✓"}
                     </td>
                     <td className="ms-tk-bundles">
                       {r.buy && r.buy.pick.length ? r.buy.pick.map((b) => `${b.t}${b.count > 1 ? " ×" + b.count : ""}`).join(", ") : "—"}
-                      {r.buy?.short ? <div className="ms-tk-warn">+{r.buy.short} from the Alliance Shop</div> : null}
+                      {r.buy?.short ? <div className="ms-tk-warn">{r.buy.short} more than bundles can cover</div> : null}
                     </td>
                     <td style={{ textAlign: "right" }}>{r.buy && r.buy.usd ? money(r.buy.usd) : "—"}</td>
                     <td style={{ textAlign: "right" }}>
@@ -462,7 +476,8 @@ function TicketCalc({ world, people, setPeople, currency, setCurrency }) {
         at today's power: change it if their highest was more. Each player buys their own bundles. The Bundle Shop has
         2, 3, 5 and 10 ticket bundles ({BUNDLES.slice(0, 4).map((b) => money(b.usd)).join(", ")}) once each per migration,
         and the 20 ticket bundle ({money(99.99)}) up to 3 times; the table picks the cheapest mix that covers what's missing.
-        Tickets also come from the Alliance Shop.
+        Tickets also come from the Alliance Shop for 300K individual alliance points each: enter a player's points
+        and the tickets they can get there (+n) are used before bundles.
         {currency !== "USD" && (rate
           ? " Prices are converted from US dollars at today's exchange rate; the in-game price in your country may differ."
           : " Exchange rates couldn't be loaded, so prices are in US dollars.")}{" "}
@@ -494,7 +509,7 @@ export default function MigrationScout() {
     try {
       const v = JSON.parse(urlParam("p") || "[]");
       return Array.isArray(v) ? v.filter((x) => Array.isArray(x) && typeof x[0] === "string")
-        .map((x) => ({ name: x[0], has: Math.max(0, parseInt(x[1], 10) || 0), power: Number.isFinite(x[2]) ? x[2] : null })) : [];
+        .map((x) => ({ name: x[0], has: Math.max(0, parseInt(x[1], 10) || 0), power: Number.isFinite(x[2]) ? x[2] : null, pts: Number.isFinite(x[3]) ? x[3] : 0 })) : [];
     } catch { return []; }
   });
   const [currency, setCurrency] = useState(() => {
@@ -504,7 +519,7 @@ export default function MigrationScout() {
   useShareParams(tab === "tickets" ? {
     tab: "tickets",
     server: serverStr,
-    p: people.length ? JSON.stringify(people.map((x) => (x.power != null ? [x.name, x.has || 0, x.power] : [x.name, x.has || 0]))) : "",
+    p: people.length ? JSON.stringify(people.map((x) => x.pts ? [x.name, x.has || 0, x.power ?? null, x.pts] : x.power != null ? [x.name, x.has || 0, x.power] : [x.name, x.has || 0])) : "",
     cur: currency !== localCurrency() ? currency : "",
   } : {
     server: serverStr,
@@ -624,14 +639,16 @@ export default function MigrationScout() {
     .ms-tk-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--arc-line, #232934); }
     .ms-tk-add .ms-input:first-child { flex: 1 1 180px; width: auto; }
     .ms-tk-scroll { overflow-x: auto; }
-    .ms-tk-table { min-width: 720px; }
+    .ms-tk-table { min-width: 900px; }
     .ms-tk-table td { vertical-align: middle; }
+    .ms-tk-table th { white-space: nowrap; }
     .ms-tk-table td.ms-tk-name { max-width: 200px; }
     .ms-tk-cell { height: 34px; font-size: 14px; padding: 0 8px; }
     .ms-tk-table tr.ms-tk-done td { background: var(--arc-ok-soft, #173326); }
     .ms-tk-table tr.ms-tk-done:hover td { background: color-mix(in srgb, var(--arc-ok, #5FD394) 18%, var(--arc-panel, #161A21)); }
     .ms-tk-table tr.ms-tk-done td:first-child { box-shadow: inset 3px 0 0 var(--arc-ok, #5FD394); }
     .ms-tk-bundles { color: var(--arc-mut, #8B93A1); font-size: 13px; white-space: nowrap; }
+    .ms-tk-shop { color: var(--arc-ok, #5FD394); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
     .ms-tk-warn { color: var(--arc-warn, #F0B35A); font-size: 12px; }
     .ms-tk-x { width: 30px; height: 30px; border-radius: 8px; border: 0; background: transparent; color: var(--arc-mut, #8B93A1);
       font-size: 18px; cursor: pointer; }
