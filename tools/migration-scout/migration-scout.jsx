@@ -393,6 +393,8 @@ function TicketCalc({ world, people, setPeople }) {
   const [addName, setAddName] = useState("");
   const [addPower, setAddPower] = useState("");
   const [imgMsg, setImgMsg] = useState("");
+  const [findQ, setFindQ] = useState("");
+  const [hideDone, setHideDone] = useState(false);
   const canCopyImage = typeof window !== "undefined" && !!(navigator.clipboard && window.ClipboardItem) && !(window.matchMedia && matchMedia("(pointer: coarse)").matches);
 
   const money = (usd) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(usd);
@@ -419,6 +421,9 @@ function TicketCalc({ world, people, setPeople }) {
   const totalShop = rows.reduce((a, r) => a + (r.fromShop || 0), 0);
   const totalShort = rows.reduce((a, r) => a + (r.short || 0), 0);
   const totalUsd = rows.reduce((a, r) => a + (r.buy ? r.buy.usd : 0), 0);
+  // the find box and "hide covered" only filter what's shown; totals and the image use everyone
+  const fq = findQ.trim().toLowerCase();
+  const shown = rows.filter((r) => (!hideDone || r.short !== 0) && (!fq || (r.name + " " + (r.listed?.[1] || "")).toLowerCase().includes(fq)));
   const imgOpts = () => ({ world, rows, totals: { shop: rows.reduce((a, r) => a + (r.fromShop || 0), 0), short: rows.reduce((a, r) => a + (r.short || 0), 0), usd: totalUsd }, money });
 
   const update = (name, patch) => setPeople(people.map((p) => (p.name === name ? { ...p, ...patch } : p)));
@@ -547,13 +552,26 @@ function TicketCalc({ world, people, setPeople }) {
               {imgMsg && <span className="ms-tk-sub" style={{ marginTop: 0 }}>{imgMsg}</span>}
             </div>
           </div>
-          <div className="ms-scroll ms-tk-scroll" style={{ marginTop: 16 }}>
+          {rows.length > 5 && (
+            <div className="ms-tk-find">
+              <input className="ms-input" type="search" placeholder={`Find in your ${rows.length} players`} value={findQ}
+                onChange={(e) => setFindQ(e.target.value)} />
+              <label className="ms-tk-hide">
+                <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} />
+                Hide covered
+              </label>
+            </div>
+          )}
+          {rows.length > 5 && !shown.length && (
+            <div className="ms-tk-sub" style={{ marginTop: 14 }}>No players match.</div>
+          )}
+          <div className="ms-scroll ms-tk-scroll" style={{ marginTop: 16, display: shown.length ? null : "none" }}>
             <table className="ms-table ms-tk-table">
               <thead>
                 <tr><th>Player</th><th>Highest power</th><th style={{ textAlign: "right" }}>Needed</th><th>Has</th><th>Alliance points<div className="ms-tk-th2">300,000 = 1 ticket</div></th><th style={{ textAlign: "right" }}>Alliance<br />Shop</th><th style={{ textAlign: "right" }}>To buy</th><th>Bundles<div className="ms-tk-th2">tickets each</div></th><th style={{ textAlign: "right" }}>Cost</th><th></th></tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {shown.map((r) => (
                   <tr key={r.name} className={r.short === 0 ? "ms-tk-done" : ""}>
                     <td>{nameEl(r)}</td>
                     <td>{powerIn(r)}</td>
@@ -576,7 +594,7 @@ function TicketCalc({ world, people, setPeople }) {
             </table>
           </div>
           <div className="ms-tk-cards">
-            {rows.map((r) => (
+            {shown.map((r) => (
               <div key={r.name} className={"ms-tk-c" + (r.short === 0 ? " done" : "")}>
                 <div className="ms-tk-c-top">
                   {nameEl(r)}
@@ -798,6 +816,10 @@ export default function MigrationScout() {
     .ms-wide { max-width: 1120px; }
     .ms-wide > .ms-sub, .ms-wide > .ms-note { max-width: 72ch; }
     .ms-tk-imgbtns { gap: 8px; flex-wrap: wrap; align-items: center; }
+    .ms-tk-find { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 16px; }
+    .ms-tk-find .ms-input { flex: 1 1 220px; width: auto; max-width: 360px; }
+    .ms-tk-hide { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--arc-mut, #8B93A1); cursor: pointer; }
+    .ms-tk-hide input { accent-color: var(--arc-accent, #7EA0FF); margin: 0; }
     .ms-tk-cards { display: none; }
     .ms-tk-c { border: 1px solid var(--arc-line, #232934); border-radius: 12px; background: var(--arc-bg, #0E1116); padding: 12px 12px 12px 14px; }
     .ms-tk-c.done { background: var(--arc-ok-soft, #173326); border-color: color-mix(in srgb, var(--arc-ok, #5FD394) 40%, transparent);
