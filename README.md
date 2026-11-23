@@ -12,7 +12,8 @@ nav.js          top bar and tool menu for HTML tools opened as full pages (phone
 404.html        shown for addresses that don't exist
 tools/<name>/   one folder per tool
 og/             link-preview pictures for the site and each tool (made by scripts/og-cards.js)
-data/           world power and warzone data from dengsden.com, used by Era Grouping
+data/           data from dengsden.com: world power and warzones (Era Grouping), migration tickets and
+                each world's top 100 players by power (Migration Scout's Tickets tab)
 .github/workflows/deng-data.yml   refreshes data/ once a day
 .github/workflows/deng-alliances.yml   builds the top 8 alliances on every server, with
                 each member's power, onto the deng-alliances branch once a day
