@@ -257,6 +257,127 @@ const parsePower = (s) => {
   return Math.round(parseFloat(m[1]) * ({ k: 1e3, m: 1e6, b: 1e9 }[m[2]] || 1));
 };
 
+/* ── Live sessions (beta) ──────────────────────────────────────────────
+ * A live link (?live=<id>) shares one ticket list between everyone who opens
+ * it, through a Firebase Realtime Database (settings in /firebase/config.js,
+ * security rules in /firebase/database.rules.json). Each player is stored
+ * separately, and each field is written on its own, so two people editing
+ * different players (or different fields) never overwrite each other.
+ */
+const FIREBASE_SDK = "https://cdn.jsdelivr.net/npm/firebase@11.10.0/";
+const LIVE_ID_RE = /^[a-z0-9]{12,32}$/;
+const loadScript = (src) => new Promise((ok, fail) => {
+  if (document.querySelector(`script[data-src="${src}"]`)) return ok();
+  const s = document.createElement("script");
+  s.src = src; s.async = true; s.dataset.src = src;
+  s.onload = () => ok(); s.onerror = () => { s.remove(); fail(new Error("load " + src)); };
+  document.head.appendChild(s);
+});
+let liveDbPromise = null;
+function liveDb() {
+  if (!liveDbPromise) {
+    liveDbPromise = (async () => {
+      if (!window.ARC_FIREBASE) { try { await loadScript("/firebase/config.js"); } catch {} }
+      const cfg = window.ARC_FIREBASE;
+      if (!cfg || !cfg.databaseURL) throw new Error("not-configured");
+      await loadScript(FIREBASE_SDK + "firebase-app-compat.js");
+      await loadScript(FIREBASE_SDK + "firebase-database-compat.js");
+      const fb = window.firebase;
+      const app = fb.apps.find((a) => a.name === "arc-live") || fb.initializeApp(cfg, "arc-live");
+      const db = app.database();
+      if (cfg.emulator) db.useEmulator(cfg.emulator.host, cfg.emulator.port);
+      return db;
+    })();
+    liveDbPromise.catch(() => { liveDbPromise = null; });
+  }
+  return liveDbPromise;
+}
+// Firebase keys can't contain . # $ [ ] /
+const liveKey = (name) => encodeURIComponent(name).replace(/\./g, "%2E").replace(/%/g, "~");
+const newLiveId = () => {
+  const a = new Uint8Array(12); crypto.getRandomValues(a);
+  return [...a].map((x) => "abcdefghijklmnopqrstuvwxyz0123456789"[x % 36]).join("") + "x" + Date.now().toString(36).slice(-3);
+};
+const clientId = (() => { const a = new Uint8Array(8); try { crypto.getRandomValues(a); } catch {} return [...a].map((x) => x.toString(16).padStart(2, "0")).join(""); })();
+const personRecord = (p, order) => {
+  const o = { name: String(p.name).slice(0, 40), has: p.has || 0, pts: p.pts || 0, order };
+  if (p.power != null) o.power = p.power;
+  return o;
+};
+
+async function createLiveRoom(server, people) {
+  const db = await liveDb();
+  const id = newLiveId();
+  const ppl = {};
+  people.forEach((p, i) => { ppl[liveKey(p.name)] = personRecord(p, i); });
+  const TS = window.firebase.database.ServerValue.TIMESTAMP;
+  await db.ref("tickets/" + id).set({ server: String(server || ""), created: TS, updated: TS, people: ppl });
+  return id;
+}
+
+function useLiveRoom(id) {
+  const [st, setSt] = useState({ status: id ? "connecting" : "off", server: "", people: [], here: 0 });
+  const dbRef = React.useRef(null);
+  useEffect(() => {
+    if (!id) { setSt({ status: "off", server: "", people: [], here: 0 }); return; }
+    let alive = true, room, pres, me;
+    setSt((s) => ({ ...s, status: "connecting" }));
+    liveDb().then((db) => {
+      if (!alive) return;
+      dbRef.current = db;
+      room = db.ref("tickets/" + id);
+      room.on("value", (snap) => {
+        if (!alive) return;
+        const v = snap.val();
+        if (!v) { setSt((s) => ({ ...s, status: "missing" })); return; }
+        const people = Object.values(v.people || {})
+          .filter((p) => p && typeof p.name === "string")
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map((p) => ({ name: p.name, has: p.has || 0, power: p.power ?? null, pts: p.pts || 0, order: p.order ?? 0 }));
+        setSt((s) => ({ ...s, status: "live", server: String(v.server || ""), people }));
+      }, () => alive && setSt((s) => ({ ...s, status: "error" })));
+      pres = db.ref("presence/" + id);
+      me = pres.child(clientId);
+      db.ref(".info/connected").on("value", (c) => {
+        if (!c.val()) return;
+        me.onDisconnect().remove();
+        me.set(window.firebase.database.ServerValue.TIMESTAMP);
+      });
+      pres.on("value", (snap) => alive && setSt((s) => ({ ...s, here: snap.numChildren() })));
+    }).catch((e) => alive && setSt((s) => ({ ...s, status: e && e.message === "not-configured" ? "not-configured" : "error" })));
+    return () => {
+      alive = false;
+      try { room && room.off(); pres && pres.off(); me && me.remove(); dbRef.current && dbRef.current.ref(".info/connected").off(); } catch {}
+    };
+  }, [id]);
+
+  // Write only what changed between the current list and the new one, in one update.
+  const setPeople = (next) => {
+    const db = dbRef.current; if (!db || !id) return;
+    const cur = new Map(st.people.map((p) => [p.name, p]));
+    const nextNames = new Set(next.map((p) => p.name));
+    const u = {};
+    let maxOrder = st.people.reduce((m, p) => Math.max(m, p.order ?? 0), -1);
+    for (const p of st.people) if (!nextNames.has(p.name)) u["people/" + liveKey(p.name)] = null;
+    for (const p of next) {
+      const c = cur.get(p.name), k = "people/" + liveKey(p.name);
+      if (!c) { u[k] = personRecord(p, ++maxOrder); continue; }
+      if ((p.has || 0) !== (c.has || 0)) u[k + "/has"] = p.has || 0;
+      if ((p.pts || 0) !== (c.pts || 0)) u[k + "/pts"] = p.pts || 0;
+      if ((p.power ?? null) !== (c.power ?? null)) u[k + "/power"] = p.power ?? null;
+    }
+    if (!Object.keys(u).length) return;
+    u.updated = window.firebase.database.ServerValue.TIMESTAMP;
+    // apply locally right away so typing stays smooth, then let the server confirm
+    db.ref("tickets/" + id).update(u).catch(() => setSt((s) => ({ ...s, status: "error" })));
+  };
+  const setServer = (server) => {
+    const db = dbRef.current; if (!db || !id) return;
+    db.ref("tickets/" + id).update({ server: String(server), people: null, updated: window.firebase.database.ServerValue.TIMESTAMP });
+  };
+  return { ...st, setPeople, setServer };
+}
+
 /* Summary picture of the ticket list: drawn on a canvas, sized so it stays
  * close to 5:4 however many players there are (1 to 4 columns). */
 function drawTicketImage({ world, rows, totals, money }) {
@@ -663,7 +784,19 @@ export default function MigrationScout() {
   const [eventN, setEventN] = useState(() => (num("event") >= 1 ? num("event") : defaultEvent));
   const [offset, setOffset] = useState(() => num("offset") ?? 0);
   const [posFilter, setPosFilter] = useState(() => num("pos") ?? 0); // 0 = all
-  const [tab, setTab] = useState(() => (urlParam("tab") === "tickets" || (!urlParam("tab") && !location.search && savedTk?.tab === "tickets") ? "tickets" : "worlds"));
+  // live sessions (beta): ?live=<id> shares one ticket list between everyone with the link
+  const [liveId, setLiveId] = useState(() => (LIVE_ID_RE.test(urlParam("live") || "") ? urlParam("live") : null));
+  const live = useLiveRoom(liveId);
+  const beta = useMemo(() => {
+    const b = urlParam("beta");
+    try {
+      if (b === "1") localStorage.setItem("arc-beta", "1");
+      if (b === "0") localStorage.removeItem("arc-beta");
+      return localStorage.getItem("arc-beta") === "1";
+    } catch { return b === "1"; }
+  }, []);
+  const [liveMsg, setLiveMsg] = useState("");
+  const [tab, setTab] = useState(() => (liveId || urlParam("tab") === "tickets" || (!urlParam("tab") && !location.search && savedTk?.tab === "tickets") ? "tickets" : "worlds"));
   // ticket calculator: people as [name, has, highest power if typed in, alliance points]
   const [people, setPeople] = useState(() => {
     try {
@@ -672,7 +805,29 @@ export default function MigrationScout() {
         .map((x) => ({ name: x[0], has: Math.max(0, parseInt(x[1], 10) || 0), power: Number.isFinite(x[2]) ? x[2] : null, pts: Number.isFinite(x[3]) ? x[3] : 0 })) : [];
     } catch { return []; }
   });
+  // in a live session the list and server come from the session
+  useEffect(() => { if (liveId && live.status === "live" && live.server !== serverStr) setServerStr(live.server); }, [liveId, live.status, live.server]);
+  const tkPeople = liveId ? live.people : people;
+  const tkSetPeople = liveId ? live.setPeople : setPeople;
+  const goLive = async () => {
+    setLiveMsg("Starting…");
+    try { const id = await createLiveRoom(serverStr, people); setLiveId(id); setTab("tickets"); setLiveMsg(""); }
+    catch (e) { setLiveMsg(e && e.message === "not-configured" ? "Live sessions aren't set up on this site yet." : "Couldn't start a live session. Try again."); }
+  };
+  const leaveLive = () => {
+    if (live.status === "live") { setPeople(live.people); setServerStr(live.server); }
+    setLiveId(null);
+  };
+  const shareLive = async () => {
+    const url = location.origin + location.pathname + "?tab=tickets&live=" + liveId;
+    try {
+      if (window.matchMedia && matchMedia("(pointer: coarse)").matches && navigator.share) { await navigator.share({ url, title: "Migration tickets (live)" }); return; }
+      await navigator.clipboard.writeText(url); setLiveMsg("Link copied");
+    } catch (e) { if (!(e && e.name === "AbortError")) setLiveMsg("Copy the address bar to share"); }
+    setTimeout(() => setLiveMsg(""), 2500);
+  };
   useEffect(() => {
+    if (liveId) return; // a live session doesn't replace this device's own list
     try {
       localStorage.setItem("ms-tickets", JSON.stringify({
         tab, server: serverStr,
@@ -680,7 +835,7 @@ export default function MigrationScout() {
       }));
     } catch {}
   }, [tab, serverStr, people]);
-  useShareParams(tab === "tickets" ? {
+  useShareParams(liveId ? { tab: "tickets", live: liveId } : tab === "tickets" ? {
     tab: "tickets",
     server: serverStr,
     p: people.length ? JSON.stringify(people.map((x) => x.pts ? [x.name, x.has || 0, x.power ?? null, x.pts] : x.power != null ? [x.name, x.has || 0, x.power] : [x.name, x.has || 0])) : "",
@@ -820,6 +975,16 @@ export default function MigrationScout() {
     .ms-tk-find .ms-input { flex: 1 1 220px; width: auto; max-width: 360px; }
     .ms-tk-hide { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--arc-mut, #8B93A1); cursor: pointer; }
     .ms-tk-hide input { accent-color: var(--arc-accent, #7EA0FF); margin: 0; }
+    .ms-live { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; align-self: flex-end; min-height: 40px; }
+    .ms-live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--arc-dim, #5F6774); flex: none; }
+    .ms-live-dot.live { background: var(--arc-ok, #5FD394); box-shadow: 0 0 0 4px color-mix(in srgb, var(--arc-ok, #5FD394) 22%, transparent); animation: ms-pulse 2s ease-in-out infinite; }
+    .ms-live-dot.connecting { background: var(--arc-warn, #F0B35A); }
+    .ms-live-dot.missing, .ms-live-dot.error, .ms-live-dot.not-configured { background: var(--arc-bad, #FF7A63); }
+    @keyframes ms-pulse { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--arc-ok, #5FD394) 0%, transparent); } }
+    .ms-live-txt { font-size: 14px; color: var(--arc-mut, #8B93A1); }
+    .ms-live-txt b { color: var(--arc-text, #E8EAEE); }
+    .ms-live-go { display: inline-flex; align-items: center; gap: 8px; }
+    .ms-beta { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--arc-accent-soft, #1D2640); color: var(--arc-accent, #7EA0FF); }
     .ms-tk-cards { display: none; }
     .ms-tk-c { border: 1px solid var(--arc-line, #232934); border-radius: 12px; background: var(--arc-bg, #0E1116); padding: 12px 12px 12px 14px; }
     .ms-tk-c.done { background: var(--arc-ok-soft, #173326); border-color: color-mix(in srgb, var(--arc-ok, #5FD394) 40%, transparent);
@@ -929,12 +1094,38 @@ export default function MigrationScout() {
               <div className="ms-field">
                 <label htmlFor="ms-server2">Server</label>
                 <input id="ms-server2" className="ms-input" inputMode="numeric" value={serverStr}
-                  onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); if (v !== serverStr) setPeople([]); setServerStr(v); }}
-                  placeholder="e.g. 1097" />
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "");
+                    if (liveId) { if (v !== serverStr) live.setServer(v); setServerStr(v); return; }
+                    if (v !== serverStr) setPeople([]); setServerStr(v);
+                  }}
+                  placeholder="e.g. 1097" disabled={!!liveId && live.status !== "live"} />
               </div>
+              {liveId ? (
+                <div className="ms-live">
+                  <span className={"ms-live-dot " + live.status} />
+                  <span className="ms-live-txt">
+                    {live.status === "live" ? <>Live · <b>{Math.max(1, live.here)}</b> {live.here === 1 ? "person" : "people"} here</>
+                      : live.status === "connecting" ? "Connecting…"
+                      : live.status === "missing" ? "This live session has ended or the link is wrong"
+                      : live.status === "not-configured" ? "Live sessions aren't set up on this site yet"
+                      : "Connection lost, reconnecting…"}
+                  </span>
+                  {live.status === "live" && <button className="ms-btn" onClick={shareLive}>Share link</button>}
+                  <button className="ms-btn ghost" onClick={leaveLive}>{live.status === "live" ? "Leave" : "Back to my list"}</button>
+                  {liveMsg && <span className="ms-tk-sub" style={{ marginTop: 0 }}>{liveMsg}</span>}
+                </div>
+              ) : beta ? (
+                <div className="ms-live">
+                  <button className="ms-btn ms-live-go" onClick={goLive}>Go live <span className="ms-beta">Beta</span></button>
+                  <span className="ms-tk-sub" style={{ marginTop: 0 }}>{liveMsg || "Everyone with the link sees and edits this list together."}</span>
+                </div>
+              ) : null}
             </div>
           </div>
-          <TicketCalc world={validServer ? server : null} people={people} setPeople={setPeople} />
+          {(!liveId || live.status === "live") && (
+            <TicketCalc world={validServer ? server : null} people={tkPeople} setPeople={tkSetPeople} />
+          )}
         </>)}
 
         {tab === "worlds" && (<>
