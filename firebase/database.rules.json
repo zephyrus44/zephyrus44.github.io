@@ -7,21 +7,41 @@
         ".read": "$room.length >= 12 && $room.length <= 32",
         ".write": "$room.length >= 12 && $room.length <= 32",
         ".validate": "newData.hasChildren(['server', 'created'])",
-        "server": { ".validate": "newData.isString() && newData.val().length <= 6" },
-        "created": { ".validate": "newData.isNumber()" },
-        "updated": { ".validate": "newData.isNumber()" },
+        "server": {
+          ".validate": "newData.isString() && newData.val().length <= 6"
+        },
+        "created": {
+          ".validate": "newData.isNumber()"
+        },
+        "updated": {
+          ".validate": "newData.isNumber()"
+        },
         "people": {
           "$p": {
             ".validate": "$p.length <= 300 && newData.hasChildren(['name'])",
-            "name": { ".validate": "newData.isString() && newData.val().length <= 40" },
-            "has": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000" },
-            "power": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000000" },
-            "pts": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 10000000000000" },
-            "order": { ".validate": "newData.isNumber()" },
-            "$other": { ".validate": false }
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "has": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000"
+            },
+            "power": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 100000000000"
+            },
+            "pts": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 10000000000000"
+            },
+            "order": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         },
-        "$other": { ".validate": false }
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "presence": {
@@ -30,6 +50,69 @@
         "$client": {
           ".write": "$room.length >= 12 && $room.length <= 32 && $client.length <= 32",
           ".validate": "newData.isNumber()"
+        }
+      }
+    },
+    "melee": {
+      "$room": {
+        ".read": "$room.length >= 12 && $room.length <= 32",
+        ".write": "$room.length >= 12 && $room.length <= 32",
+        ".validate": "newData.hasChildren(['created'])",
+        "created": {
+          ".validate": "newData.isNumber()"
+        },
+        "updated": {
+          ".validate": "newData.isNumber()"
+        },
+        "m": {
+          "$k": {
+            ".validate": "newData.isString() && newData.val().length <= 20000"
+          }
+        },
+        "p": {
+          "$ph": {
+            ".validate": "$ph.length <= 40",
+            "n": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            },
+            "t": {
+              ".validate": "newData.isString() && newData.val().length <= 20000"
+            },
+            "o": {
+              ".validate": "newData.isString() && newData.val().length <= 10"
+            },
+            "i": {
+              "$it": {
+                ".validate": "newData.isString() && newData.val().length <= 20000"
+              }
+            },
+            "w": {
+              "$r": {
+                ".validate": "newData.isString() && newData.val().length <= 200"
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "r": {
+          "t": {
+            "$x": {
+              ".validate": "newData.isString() && newData.val().length <= 2000"
+            }
+          },
+          "p": {
+            "$x": {
+              ".validate": "newData.isString() && newData.val().length <= 2000"
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "$other": {
+          ".validate": false
         }
       }
     }

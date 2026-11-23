@@ -72,6 +72,14 @@ h2{font-size:11px;font-weight:600;margin:0;text-transform:uppercase;letter-spaci
 .plan-name:focus{outline:none;border-bottom:1px solid var(--accent)}
 .status{font-size:12px;color:var(--muted)}
 .status.dirty{color:var(--accent);font-weight:600}
+.status.live{color:#5FD394;font-weight:600}
+.lv{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px}
+.lv.on{border-color:rgba(95,211,148,.45);background:rgba(95,211,148,.06)}
+.lv .lvh{display:flex;align-items:center;gap:8px;font-size:13px}
+.lvdot{width:8px;height:8px;border-radius:50%;background:#5FD394;flex:none;box-shadow:0 0 0 0 rgba(95,211,148,.6);animation:lvp 2s infinite}
+.lvdot.off{background:var(--muted);animation:none}.lvdot.err{background:#EC4441;animation:none}
+@keyframes lvp{0%{box-shadow:0 0 0 0 rgba(95,211,148,.55)}70%{box-shadow:0 0 0 7px rgba(95,211,148,0)}100%{box-shadow:0 0 0 0 rgba(95,211,148,0)}}
+@media (prefers-reduced-motion:reduce){.lvdot{animation:none}}
 .iconbtns{display:flex;gap:2px}
 .iconbtns button{width:28px;height:28px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;display:grid;place-items:center;padding:0}
 .iconbtns button:hover:not([disabled]){border-color:var(--line-strong);color:var(--fg)}
@@ -360,6 +368,7 @@ function normalize(p) {
 var plan = normalize(clone(EMBED));
 var st = { phase: 0, tool: 'select', color: null, team: 3, sel: null, view: clone(VB0), nums: true, ghost: false, dirty: false, canSave: null, confirm: null, picker: null, showImp: false };
 var hist = [], fut = [], restoredBanner = null;
+var LV = { id: null, status: 'off', here: 0, db: null, room: null, pres: null, me: null, synced: null, z: {}, pending: null, msg: '' };
 st.keyOn = true; try { var kv = localStorage.getItem('gm-key-on'); if (kv) st.keyOn = kv === '1'; } catch (e) {}
 try { var ss = JSON.parse(sessionStorage.getItem('gm-ui') || 'null'); if (ss) { st.phase = ss.phase || 0; st.nums = ss.nums !== false; sessionStorage.removeItem('gm-ui'); } } catch (e) {}
 try {
@@ -374,9 +383,10 @@ function ph() { return plan.phases[st.phase]; }
 function teamById(id) { for (var i = 0; i < 4; i++) if (plan.teams[i].id === id) return plan.teams[i]; return null; }
 function teamColor(id) { var t = teamById(id); return t ? t.color : '#888'; }
 
-function commit() { hist.push(JSON.stringify(plan)); if (hist.length > 150) hist.shift(); fut = []; }
+function commit() { hist.push(JSON.stringify(plan)); if (hist.length > (LV.id ? 60 : 150)) hist.shift(); fut = []; }
 function changed() {
   st.dirty = true;
+  if (LV.id) { livePush(); renderStatus(); return; }
   try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ basedOn: EMBED.savedAt || '', plan: plan, at: Date.now() })); } catch (e) {}
   renderStatus();
 }
@@ -964,7 +974,7 @@ function renderSel() {
 }
 function renderShare() {
   var view = st.canSave === false;
-  var h = '';
+  var h = liveBlock();
   if (st.standalone) h += '<p class="sub">Your plan stays in this browser. To share it, copy a link: whoever opens it sees the whole plan, every phase.</p><div class="row"><button class="btn primary" data-act="copy-link">Copy share link</button><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
   else if (!view) h += '<p class="sub">Save writes every phase into this page, so anyone you share the link with sees the latest plan.</p><div class="row"><button class="btn primary" data-act="save-page" ' + (st.dirty ? '' : 'disabled') + '>' + (st.dirty ? 'Save plan' : 'Plan saved') + '</button><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
   else if (view) h += '<p class="sub">This view can’t save to the page. Copy the plan and send it to whoever owns the planner.</p><div class="row"><button class="btn" data-act="save-png">Image of this phase</button><button class="btn" data-act="save-plan-png">Image of whole plan</button></div>';
@@ -977,6 +987,7 @@ function renderShare() {
 }
 function renderStatus() {
   var el = $('gm-status');
+  if (LV.id) { el.textContent = LV.status === 'live' ? '· Live with ' + Math.max(1, LV.here) + (LV.here === 1 ? ' person' : ' people') + '.' : LV.status === 'connecting' ? '· Connecting to the live plan…' : '· Live plan unavailable.'; el.className = 'status' + (LV.status === 'live' ? ' live' : ''); $('gm-undo').disabled = !hist.length; $('gm-redo').disabled = !fut.length; return; }
   if (st.standalone) { el.textContent = '· Kept in this browser.'; el.className = 'status'; }
   else if (st.canSave === false) { el.textContent = st.dirty ? '· Local changes, view only.' : '· View only.'; el.className = 'status'; }
   else { el.textContent = st.dirty ? '· Unsaved changes' : (EMBED.savedAt ? '· Saved ' + ago(EMBED.savedAt) + '.' : ''); el.className = 'status' + (st.dirty ? ' dirty' : ''); }
@@ -2170,9 +2181,215 @@ function refreshPower(btn) {
 }
 Object.assign(ACTS, { 'r-deng': function () { dgOpen(); renderRoster(); }, 'r-refresh': function (b) { refreshPower(b); } });
 
+/* ---------- live plans ----------
+ * A live link (?live=<id>) shares one plan between everyone who opens it, through the
+ * site's Firebase Realtime Database (/firebase/config.js; rules in /firebase/database.rules.json).
+ * The plan is stored in small pieces: each marking, claim, phase field, team and player
+ * separately, so people editing different things at the same time never overwrite each other.
+ */
+var FIREBASE_SDK = 'https://cdn.jsdelivr.net/npm/firebase@11.10.0/';
+var LIVE_RE = /^[a-z0-9]{12,32}$/;
+function loadScript(src) {
+  return new Promise(function (ok, fail) {
+    if (document.querySelector('script[data-src="' + src + '"]')) return ok();
+    var sc = document.createElement('script'); sc.src = src; sc.async = true; sc.dataset.src = src;
+    sc.onload = function () { ok(); }; sc.onerror = function () { sc.remove(); fail(new Error('load ' + src)); };
+    document.head.appendChild(sc);
+  });
+}
+var liveDbP = null;
+function liveDb() {
+  if (!liveDbP) {
+    liveDbP = (window.ARC_FIREBASE ? Promise.resolve() : loadScript('/firebase/config.js').catch(function () {})).then(function () {
+      var cfg = window.ARC_FIREBASE; if (!cfg || !cfg.databaseURL) throw new Error('not-configured');
+      return loadScript(FIREBASE_SDK + 'firebase-app-compat.js').then(function () { return loadScript(FIREBASE_SDK + 'firebase-database-compat.js'); }).then(function () {
+        var fb = window.firebase, app = fb.apps.filter(function (a) { return a.name === 'arc-live'; })[0] || fb.initializeApp(cfg, 'arc-live'), db = app.database();
+        if (cfg.emulator) db.useEmulator(cfg.emulator.host, cfg.emulator.port);
+        return db;
+      });
+    });
+    liveDbP.catch(function () { liveDbP = null; });
+  }
+  return liveDbP;
+}
+function TS() { return window.firebase.database.ServerValue.TIMESTAMP; }
+function lkey(k) { return encodeURIComponent(String(k)).replace(/\./g, '%2E').replace(/%/g, '~'); }
+function newLiveId() { var a = new Uint8Array(12); crypto.getRandomValues(a); return Array.prototype.map.call(a, function (x) { return 'abcdefghijklmnopqrstuvwxyz0123456789'[x % 36]; }).join('') + 'm' + Date.now().toString(36).slice(-3); }
+var liveClient = (function () { var a = new Uint8Array(8); try { crypto.getRandomValues(a); } catch (e) {} return Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); })();
+function zOf(id) { if (LV.z[id] == null) { var m = -1; for (var k in LV.z) if (LV.z[k] > m) m = LV.z[k]; LV.z[id] = m + 1; } return LV.z[id]; }
+// plan -> { 'path': 'json string' }
+function flatten(p) {
+  var o = {}, J = JSON.stringify;
+  o['m/name'] = J(p.name); o['m/teams'] = J(p.teams); o['m/key'] = J(p.key); o['m/start'] = J(p.start || '');
+  p.phases.forEach(function (x, i) {
+    var b = 'p/' + lkey(x.id) + '/';
+    o[b + 'n'] = J(x.name); o[b + 't'] = J(x.notes || ''); o[b + 'o'] = J(i);
+    x.items.forEach(function (it) { var c = clone(it); c._z = zOf(x.id + ':' + it.id); o[b + 'i/' + lkey(it.id)] = J(c); });
+    Object.keys(x.owners || {}).forEach(function (r) { if (x.owners[r] != null) o[b + 'w/' + lkey(r)] = J([r, x.owners[r]]); });
+  });
+  p.roster.teams.forEach(function (t, i) { var c = clone(t); c._z = i; o['r/t/' + lkey(t.id)] = J(c); });
+  p.roster.players.forEach(function (pl) { var c = clone(pl); c._z = zOf('pl:' + pl.id); o['r/p/' + lkey(pl.id)] = J(c); });
+  return o;
+}
+function flatTree(v) {
+  var o = {};
+  (function walk(n, path) { if (n == null) return; if (typeof n === 'string') { o[path] = n; return; } if (typeof n !== 'object') return; for (var k in n) walk(n[k], path ? path + '/' + k : k); })(v, '');
+  delete o.created; delete o.updated;
+  return o;
+}
+function unflat(fl) {
+  var P = function (s, d) { try { return JSON.parse(s); } catch (e) { return d; } };
+  var p = { name: P(fl['m/name'], ''), teams: P(fl['m/teams'], null), key: P(fl['m/key'], null), start: P(fl['m/start'], ''), phases: [], roster: { teams: [], players: [] } };
+  var phs = {}, getPh = function (k) { return phs[k] || (phs[k] = { name: 'Phase', notes: '', o: 0, items: [], owners: {} }); };
+  Object.keys(fl).forEach(function (k) {
+    var a = k.split('/'), v = fl[k];
+    if (a[0] === 'p' && a.length >= 3) {
+      var x = getPh(a[1]); if (!x.id) x.id = decodeURIComponent(a[1].replace(/~/g, '%'));
+      if (a[2] === 'n') x.name = P(v, 'Phase'); else if (a[2] === 't') x.notes = P(v, ''); else if (a[2] === 'o') x.o = P(v, 0);
+      else if (a[2] === 'i') { var it = P(v, null); if (it && it.id) { LV.z[x.id + ':' + it.id] = it._z; x.items.push(it); } }
+      else if (a[2] === 'w') { var w = P(v, null); if (w) x.owners[w[0]] = w[1]; }
+    } else if (a[0] === 'r' && a[1] === 't') { var t = P(v, null); if (t && t.id) p.roster.teams.push(t); }
+    else if (a[0] === 'r' && a[1] === 'p') { var pl = P(v, null); if (pl && pl.id) { LV.z['pl:' + pl.id] = pl._z; p.roster.players.push(pl); } }
+  });
+  var bz = function (a, b) { return (a._z || 0) - (b._z || 0); }, strip = function (x) { delete x._z; return x; };
+  p.phases = Object.keys(phs).map(function (k) { return phs[k]; }).sort(function (a, b) { return a.o - b.o; }).map(function (x) {
+    x.items.sort(bz).forEach(strip); delete x.o; return x;
+  });
+  p.roster.teams.sort(bz).forEach(strip); p.roster.players.sort(bz).forEach(strip);
+  return normalize(p);
+}
+function liveTree(fl) {
+  var t = {};
+  Object.keys(fl).forEach(function (k) { var a = k.split('/'), n = t; for (var i = 0; i < a.length - 1; i++) n = n[a[i]] || (n[a[i]] = {}); n[a[a.length - 1]] = fl[k]; });
+  return t;
+}
+function livePush() {
+  if (!LV.room || LV.status !== 'live' || !LV.synced) return;
+  var cur = flatten(plan), u = {}, n = 0;
+  for (var k in cur) if (cur[k] !== LV.synced[k]) { u[k] = cur[k]; n++; }
+  for (var k2 in LV.synced) if (!(k2 in cur)) { u[k2] = null; n++; }
+  if (!n) return;
+  u.updated = TS();
+  LV.synced = cur;
+  LV.room.update(u).catch(function () { LV.status = 'error'; renderStatus(); renderShare(); });
+}
+function liveSel() {
+  var a = document.activeElement; if (!a || a === document.body || !/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return null;
+  var q = a.id ? '#' + a.id : null;
+  if (!q) for (var i = 0; i < a.attributes.length; i++) { var at = a.attributes[i]; if (/^data-/.test(at.name)) { q = '[' + at.name + '="' + String(at.value).replace(/"/g, '\\"') + '"]'; break; } }
+  if (!q) return null;
+  var r = { q: q }; try { r.s = a.selectionStart; r.e = a.selectionEnd; } catch (e) {}
+  return r;
+}
+function liveApply(v) {
+  if (!v) { LV.status = 'missing'; renderStatus(); renderShare(); return; }
+  if (gest) { LV.pending = v; clearTimeout(LV.pt); LV.pt = setTimeout(function () { if (LV.pending) { var p = LV.pending; LV.pending = null; liveApply(p); } }, 200); return; }
+  var remote = flatTree(v), first = !LV.synced, old = LV.synced || {};
+  LV.status = 'live';
+  var local = flatten(plan), same = Object.keys(remote).length === Object.keys(local).length;
+  if (same) for (var k in remote) if (remote[k] !== local[k]) { same = false; break; }
+  LV.synced = remote;
+  if (same && !first) { renderStatus(); return; }
+  // others' changes since last time; history keeps only your own edits to undo
+  if (!first) {
+    var rd = {}; for (var a in remote) if (remote[a] !== old[a]) rd[a] = remote[a]; for (var b in old) if (!(b in remote)) rd[b] = null;
+    var rebase = function (sj) { var fl = flatten(JSON.parse(sj)); for (var k in rd) { if (rd[k] == null) delete fl[k]; else fl[k] = rd[k]; } return JSON.stringify(unflat(fl)); };
+    try { hist = hist.slice(-60).map(rebase); fut = fut.map(rebase); } catch (e) { hist = []; fut = []; }
+  } else { hist = []; fut = []; }
+  var phId = ph() && ph().id, fs = liveSel();
+  plan = unflat(remote);
+  var pi = -1; plan.phases.forEach(function (x, i) { if (x.id === phId) pi = i; });
+  st.phase = pi >= 0 ? pi : Math.min(st.phase, plan.phases.length - 1);
+  if (st.sel && !findItem(st.sel)) st.sel = null;
+  if (first) st.phase = Math.min(st.phase, plan.phases.length - 1);
+  renderAll();
+  if (fs) { var e = document.querySelector(fs.q); if (e) { e.focus({ preventScroll: true }); try { if (fs.s != null) e.setSelectionRange(Math.min(fs.s, e.value.length), Math.min(fs.e, e.value.length)); } catch (er) {} } }
+}
+function liveUrl(id) {
+  var base = location.pathname.replace(/index\.html$/, '');
+  return { path: base + (id ? '?live=' + id : ''), full: location.origin + base + (id ? '?live=' + id : '') };
+}
+function liveSetUrl(id) {
+  var u = liveUrl(id).path;
+  try { history.replaceState(null, '', u); } catch (e) {}
+  try { if (window.parent !== window && window.parent.location.pathname.replace(/index\.html$/, '') === location.pathname.replace(/index\.html$/, '')) window.parent.history.replaceState(null, '', u); } catch (e) {}
+}
+function liveJoin(id) {
+  liveLeaveQuiet();
+  LV.id = id; LV.status = 'connecting'; LV.synced = null; LV.here = 0; LV.z = {}; LV.msg = '';
+  renderStatus(); renderShare();
+  liveDb().then(function (db) {
+    if (LV.id !== id) return;
+    LV.db = db; LV.room = db.ref('melee/' + id);
+    LV.room.on('value', function (snap) { if (LV.id === id) liveApply(snap.val()); }, function () { if (LV.id !== id) return; LV.status = 'error'; renderStatus(); renderShare(); });
+    LV.pres = db.ref('presence/' + id); LV.me = LV.pres.child(liveClient);
+    LV.conn = db.ref('.info/connected');
+    LV.conn.on('value', function (c) { if (LV.id !== id) return; if (!c.val()) { if (LV.status === 'live') { LV.status = 'connecting'; renderStatus(); } return; } LV.me.onDisconnect().remove(); LV.me.set(TS()); });
+    LV.pres.on('value', function (snap) { if (LV.id !== id) return; LV.here = snap.numChildren(); renderStatus(); var h = $('gm-lvhere'); if (h) h.textContent = Math.max(1, LV.here); });
+  }).catch(function (e) { if (LV.id !== id) return; LV.status = e && e.message === 'not-configured' ? 'not-configured' : 'error'; renderStatus(); renderShare(); });
+}
+function liveLeaveQuiet() {
+  try { LV.room && LV.room.off(); LV.pres && LV.pres.off(); LV.conn && LV.conn.off(); LV.me && LV.me.remove(); } catch (e) {}
+  LV.room = LV.pres = LV.me = LV.conn = null; LV.id = null; LV.status = 'off'; LV.synced = null; LV.pending = null;
+}
+function ownDraft() {
+  try { var d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); if (d && d.plan) return normalize(d.plan); } catch (e) {}
+  return normalize(clone(EMBED));
+}
+function liveLeave(keep) {
+  var copy = keep ? clone(plan) : null;
+  liveLeaveQuiet(); liveSetUrl(null);
+  hist = []; fut = [];
+  plan = copy ? normalize(copy) : ownDraft();
+  if (copy) { try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ basedOn: EMBED.savedAt || '', plan: plan, at: Date.now() })); } catch (e) {} }
+  st.sel = null; st.phase = Math.min(st.phase, plan.phases.length - 1); st.lvconfirm = false;
+  renderAll(); toast(copy ? 'Left the live plan. A copy is now your own plan on this device' : 'Left the live plan. Back to your own plan');
+}
+function liveStart() {
+  LV.msg = 'Starting…'; renderShare();
+  liveDb().then(function (db) {
+    var id = newLiveId(); LV.z = {};
+    var fl = flatten(plan), tree = liveTree(fl);
+    tree.created = TS(); tree.updated = TS();
+    return db.ref('melee/' + id).set(tree).then(function () { return id; });
+  }).then(function (id) {
+    LV.msg = ''; liveSetUrl(id); liveJoin(id);
+    copyText(liveUrl(id).full, 'Live link copied. Anyone with it can view and edit this plan');
+    toast('Live link copied');
+  }).catch(function (e) {
+    LV.msg = e && e.message === 'not-configured' ? 'Live plans aren’t set up on this site yet.' : 'Couldn’t start a live plan. Check your connection and try again.';
+    renderShare();
+  });
+}
+function liveBlock() {
+  if (!st.standalone) return '';
+  if (!LV.id) return '<div class="lv"><div class="lvh"><span class="lvdot off"></span><b>Live plan</b></div><p class="sub" style="margin:0">Share a link where everyone sees and edits this plan together, in real time. Your own plan on this device stays as it is.</p><div class="row"><button class="btn primary" data-act="live-start">Go live</button>' + (LV.msg ? '<span class="note">' + esc(LV.msg) + '</span>' : '') + '</div></div>';
+  var s = LV.status, h = '<div class="lv' + (s === 'live' ? ' on' : '') + '"><div class="lvh"><span class="lvdot' + (s === 'live' ? '' : s === 'connecting' ? ' off' : ' err') + '"></span>';
+  if (s === 'live') h += '<b>Live</b><span class="note"><b id="gm-lvhere">' + Math.max(1, LV.here) + '</b> here now · changes save for everyone</span>';
+  else if (s === 'connecting') h += '<b>Connecting…</b>';
+  else if (s === 'missing') h += '<b>This live plan has ended, or the link is wrong</b>';
+  else if (s === 'not-configured') h += '<b>Live plans aren’t set up on this site yet</b>';
+  else h += '<b>Connection lost. Reconnecting…</b>';
+  h += '</div><div class="row">';
+  if (s === 'live') h += '<button class="btn primary" data-act="live-copy">Copy live link</button>';
+  h += st.lvconfirm ? '' : '<button class="btn ghost" data-act="live-leave">' + (s === 'live' ? 'Leave' : 'Back to my plan') + '</button>';
+  h += '</div>';
+  if (st.lvconfirm) h += '<div class="confirm">Leave the live plan? <button class="btn" data-act="live-leave-keep">Keep a copy</button><button class="btn ghost" data-act="live-leave-yes">Leave</button><button class="btn ghost" data-act="live-leave-no">Stay</button></div>';
+  return h + '</div>';
+}
+Object.assign(ACTS, {
+  'live-start': function () { liveStart(); },
+  'live-copy': function () { copyText(liveUrl(LV.id).full, 'Live link copied. Anyone with it can view and edit this plan'); },
+  'live-leave': function () { if (LV.status !== 'live') { liveLeave(false); return; } st.lvconfirm = true; renderShare(); },
+  'live-leave-no': function () { st.lvconfirm = false; renderShare(); },
+  'live-leave-yes': function () { liveLeave(false); },
+  'live-leave-keep': function () { liveLeave(true); }
+});
+
 /* ---------- boot ---------- */
 renderAll();
-if (st.standalone && location.hash.indexOf('#p=') === 0) {
+(function () { var m = /[?&]live=([^&#]+)/.exec(location.search); if (st.standalone && m && LIVE_RE.test(m[1])) { restoredBanner = null; liveJoin(m[1]); } })();
+if (st.standalone && !LV.id && location.hash.indexOf('#p=') === 0) {
   decodePlan(location.hash.slice(3)).then(function (p) {
     commit(); plan = normalize(p); st.phase = 0; st.sel = null; changed(); renderAll(); toast('Shared plan loaded');
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
