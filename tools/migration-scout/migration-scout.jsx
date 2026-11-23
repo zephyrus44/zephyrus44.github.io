@@ -257,7 +257,7 @@ const parsePower = (s) => {
   return Math.round(parseFloat(m[1]) * ({ k: 1e3, m: 1e6, b: 1e9 }[m[2]] || 1));
 };
 
-/* ── Live sessions (beta) ──────────────────────────────────────────────
+/* ── Live sessions ──────────────────────────────────────────────
  * A live link (?live=<id>) shares one ticket list between everyone who opens
  * it, through a Firebase Realtime Database (settings in /firebase/config.js,
  * security rules in /firebase/database.rules.json). Each player is stored
@@ -784,17 +784,9 @@ export default function MigrationScout() {
   const [eventN, setEventN] = useState(() => (num("event") >= 1 ? num("event") : defaultEvent));
   const [offset, setOffset] = useState(() => num("offset") ?? 0);
   const [posFilter, setPosFilter] = useState(() => num("pos") ?? 0); // 0 = all
-  // live sessions (beta): ?live=<id> shares one ticket list between everyone with the link
+  // live sessions: ?live=<id> shares one ticket list between everyone with the link
   const [liveId, setLiveId] = useState(() => (LIVE_ID_RE.test(urlParam("live") || "") ? urlParam("live") : null));
   const live = useLiveRoom(liveId);
-  const beta = useMemo(() => {
-    const b = urlParam("beta");
-    try {
-      if (b === "1") localStorage.setItem("arc-beta", "1");
-      if (b === "0") localStorage.removeItem("arc-beta");
-      return localStorage.getItem("arc-beta") === "1";
-    } catch { return b === "1"; }
-  }, []);
   const [liveMsg, setLiveMsg] = useState("");
   const [tab, setTab] = useState(() => (liveId || urlParam("tab") === "tickets" || (!urlParam("tab") && !location.search && savedTk?.tab === "tickets") ? "tickets" : "worlds"));
   // ticket calculator: people as [name, has, highest power if typed in, alliance points]
@@ -984,7 +976,6 @@ export default function MigrationScout() {
     .ms-live-txt { font-size: 14px; color: var(--arc-mut, #8B93A1); }
     .ms-live-txt b { color: var(--arc-text, #E8EAEE); }
     .ms-live-go { display: inline-flex; align-items: center; gap: 8px; }
-    .ms-beta { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--arc-accent-soft, #1D2640); color: var(--arc-accent, #7EA0FF); }
     .ms-tk-cards { display: none; }
     .ms-tk-c { border: 1px solid var(--arc-line, #232934); border-radius: 12px; background: var(--arc-bg, #0E1116); padding: 12px 12px 12px 14px; }
     .ms-tk-c.done { background: var(--arc-ok-soft, #173326); border-color: color-mix(in srgb, var(--arc-ok, #5FD394) 40%, transparent);
@@ -1115,12 +1106,12 @@ export default function MigrationScout() {
                   <button className="ms-btn ghost" onClick={leaveLive}>{live.status === "live" ? "Leave" : "Back to my list"}</button>
                   {liveMsg && <span className="ms-tk-sub" style={{ marginTop: 0 }}>{liveMsg}</span>}
                 </div>
-              ) : beta ? (
+              ) : (
                 <div className="ms-live">
-                  <button className="ms-btn ms-live-go" onClick={goLive}>Go live <span className="ms-beta">Beta</span></button>
-                  <span className="ms-tk-sub" style={{ marginTop: 0 }}>{liveMsg || "Everyone with the link sees and edits this list together."}</span>
+                  <button className="ms-btn ms-live-go" onClick={goLive}><span className="ms-live-dot live" style={{ animation: "none" }} />Go live</button>
+                  <span className="ms-tk-sub" style={{ marginTop: 0 }}>{liveMsg || "Share a link where everyone sees and edits this list together."}</span>
                 </div>
-              ) : null}
+              )}
             </div>
           </div>
           {(!liveId || live.status === "live") && (
