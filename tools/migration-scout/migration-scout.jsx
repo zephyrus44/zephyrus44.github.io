@@ -169,6 +169,310 @@ function useWorldDays() {
   return tick;
 }
 
+/* ── Migration tickets ─────────────────────────────────────────────────
+ * Tickets needed go by a player's highest power ever reached (table from
+ * dengsden.com, refreshed daily). Players and their current power come from
+ * /data/players/<world>.json (top 100 by power, refreshed daily).
+ */
+const EMBED_TICKETS = [
+  [0, 0], [1e6, 1], [5e6, 2], [10e6, 3], [15e6, 4], [20e6, 5], [25e6, 6], [30e6, 7], [35e6, 8],
+  [40e6, 9], [45e6, 10], [50e6, 11], [55e6, 12], [60e6, 14], [65e6, 16], [70e6, 18], [75e6, 20],
+  [80e6, 22], [85e6, 24], [90e6, 26], [95e6, 28], [100e6, 30], [110e6, 33], [120e6, 36], [130e6, 39],
+  [140e6, 42], [150e6, 45], [160e6, 48], [170e6, 51], [180e6, 54], [190e6, 57], [200e6, 60],
+];
+// Bundle Shop ticket bundles: tickets, price in US dollars, how many can be bought per event
+const BUNDLES = [
+  { t: 2, usd: 4.99, max: 1 },
+  { t: 3, usd: 9.99, max: 1 },
+  { t: 5, usd: 19.99, max: 1 },
+  { t: 10, usd: 49.99, max: 1 },
+  { t: 20, usd: 99.99, max: 3 },
+];
+const BUNDLE_MAX_TICKETS = BUNDLES.reduce((a, b) => a + b.t * b.max, 0);
+
+function useTicketTable() {
+  const [table, setTable] = useState(EMBED_TICKETS);
+  useEffect(() => {
+    let alive = true;
+    fetch("/data/deng-tickets.json", { cache: "no-cache" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => { if (alive && d.tickets?.length) setTable(d.tickets.map((x) => [Number(x.from), Number(x.tickets)])); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  return table;
+}
+const ticketsFor = (table, power) => {
+  let n = 0;
+  for (const [from, t] of table) if (power >= from) n = t;
+  return n;
+};
+
+// Cheapest set of bundles giving at least `need` tickets: lowest cost, then fewest spare tickets.
+function cheapestBundles(need) {
+  if (need <= 0) return { usd: 0, tickets: 0, pick: [] };
+  let best = null;
+  const walk = (i, counts) => {
+    if (i === BUNDLES.length) {
+      const tickets = counts.reduce((a, c, k) => a + c * BUNDLES[k].t, 0);
+      if (tickets < need) return;
+      const usd = counts.reduce((a, c, k) => a + c * BUNDLES[k].usd, 0);
+      if (!best || usd < best.usd - 1e-9 || (Math.abs(usd - best.usd) < 1e-9 && tickets < best.tickets))
+        best = { usd, tickets, pick: counts.slice() };
+      return;
+    }
+    for (let c = 0; c <= BUNDLES[i].max; c++) { counts[i] = c; walk(i + 1, counts); }
+  };
+  walk(0, []);
+  if (best) return { ...best, pick: best.pick.map((c, k) => ({ ...BUNDLES[k], count: c })).filter((b) => b.count) };
+  // more than every bundle together: buy them all, the rest has to come from the Alliance Shop
+  return {
+    usd: BUNDLES.reduce((a, b) => a + b.usd * b.max, 0),
+    tickets: BUNDLE_MAX_TICKETS,
+    pick: BUNDLES.map((b) => ({ ...b, count: b.max })),
+    short: need - BUNDLE_MAX_TICKETS,
+  };
+}
+
+function usePlayers(world) {
+  const [state, setState] = useState({ world: null, players: null, asOf: null });
+  useEffect(() => {
+    if (!(world >= 1001)) return;
+    let alive = true;
+    setState({ world, players: null, asOf: null });
+    fetch(`/data/players/${world}.json`, { cache: "no-cache" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => { if (alive) setState({ world, players: d.players || [], asOf: d.as_of || null }); })
+      .catch(() => { if (alive) setState({ world, players: [], asOf: null }); });
+    return () => { alive = false; };
+  }, [world]);
+  return state.world === world ? state : { world, players: null, asOf: null };
+}
+
+// Local currency from the browser's language/region; rates from open.er-api.com (refreshed daily)
+const REGION_CURRENCY = {
+  US: "USD", CA: "CAD", MX: "MXN", BR: "BRL", AR: "ARS", CL: "CLP", CO: "COP", PE: "PEN",
+  GB: "GBP", IE: "EUR", FR: "EUR", DE: "EUR", ES: "EUR", IT: "EUR", NL: "EUR", BE: "EUR", AT: "EUR",
+  PT: "EUR", FI: "EUR", GR: "EUR", SK: "EUR", SI: "EUR", EE: "EUR", LV: "EUR", LT: "EUR", LU: "EUR",
+  MT: "EUR", CY: "EUR", HR: "EUR", CH: "CHF", SE: "SEK", NO: "NOK", DK: "DKK", PL: "PLN", CZ: "CZK",
+  HU: "HUF", RO: "RON", BG: "BGN", TR: "TRY", UA: "UAH", RU: "RUB", IL: "ILS", AE: "AED", SA: "SAR",
+  EG: "EGP", ZA: "ZAR", NG: "NGN", KE: "KES", IN: "INR", PK: "PKR", BD: "BDT", LK: "LKR",
+  CN: "CNY", HK: "HKD", TW: "TWD", JP: "JPY", KR: "KRW", SG: "SGD", MY: "MYR", TH: "THB",
+  ID: "IDR", PH: "PHP", VN: "VND", AU: "AUD", NZ: "NZD",
+};
+const CURRENCIES = [...new Set(["USD", ...Object.values(REGION_CURRENCY)])].sort();
+const localCurrency = () => {
+  try {
+    for (const l of navigator.languages || [navigator.language]) {
+      const r = new Intl.Locale(l).maximize().region;
+      if (r && REGION_CURRENCY[r]) return REGION_CURRENCY[r];
+    }
+  } catch {}
+  return "USD";
+};
+function useRates() {
+  const [rates, setRates] = useState(() => {
+    try { const c = JSON.parse(localStorage.getItem("ms-rates") || "null"); if (c?.rates) return c; } catch {}
+    return null;
+  });
+  useEffect(() => {
+    if (rates && Date.now() - rates.at < 12 * 3600e3) return;
+    let alive = true;
+    fetch("https://open.er-api.com/v6/latest/USD")
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) => {
+        if (!alive || d.result !== "success") return;
+        const v = { at: Date.now(), rates: d.rates };
+        setRates(v);
+        try { localStorage.setItem("ms-rates", JSON.stringify(v)); } catch {}
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  return rates?.rates || null;
+}
+const fmtPower = (p) => (p >= 1e6 ? (p / 1e6).toFixed(p >= 1e8 ? 0 : 1).replace(/\.0$/, "") + "M" : p >= 1e3 ? Math.round(p / 1e3) + "K" : String(p));
+const parsePower = (s) => {
+  const m = String(s).trim().toLowerCase().replace(/,/g, "").match(/^(\d+(?:\.\d+)?)\s*([kmb]?)$/);
+  if (!m) return null;
+  return Math.round(parseFloat(m[1]) * ({ k: 1e3, m: 1e6, b: 1e9 }[m[2]] || 1));
+};
+
+function TicketCalc({ world, people, setPeople, currency, setCurrency }) {
+  const table = useTicketTable();
+  const { players, asOf } = usePlayers(world);
+  const rates = useRates();
+  const [q, setQ] = useState("");
+  const [ally, setAlly] = useState("");
+  const [addName, setAddName] = useState("");
+  const [addPower, setAddPower] = useState("");
+
+  const rate = currency === "USD" ? 1 : rates?.[currency];
+  const money = (usd) => {
+    const cur = rate ? currency : "USD";
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(usd * (rate || 1));
+    } catch { return cur + " " + (usd * (rate || 1)).toFixed(2); }
+  };
+
+  const byName = useMemo(() => new Map((players || []).map((p) => [p[0], p])), [players]);
+  const alliances = useMemo(() => {
+    const m = new Map();
+    for (const p of players || []) if (p[1]) m.set(p[1], (m.get(p[1]) || 0) + 1);
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [players]);
+  const chosen = new Set(people.map((p) => p.name));
+  const nq = q.trim().toLowerCase();
+  const list = (players || []).filter((p) => (!ally || p[1] === ally) && (!nq || (p[0] + " " + p[1]).toLowerCase().includes(nq)));
+
+  const rows = people.map((p) => {
+    const listed = byName.get(p.name);
+    const power = p.power ?? (listed ? listed[2] : null);
+    const need = power != null ? ticketsFor(table, power) : null;
+    const short = need != null ? Math.max(0, need - (p.has || 0)) : null;
+    const buy = short != null ? cheapestBundles(short) : null;
+    return { ...p, listed, power, need, short, buy };
+  });
+  const totalShort = rows.reduce((a, r) => a + (r.short || 0), 0);
+  const totalUsd = rows.reduce((a, r) => a + (r.buy ? r.buy.usd : 0), 0);
+
+  const update = (name, patch) => setPeople(people.map((p) => (p.name === name ? { ...p, ...patch } : p)));
+  const toggle = (p) => setPeople(chosen.has(p[0]) ? people.filter((x) => x.name !== p[0]) : [...people, { name: p[0], has: 0 }]);
+  const addMany = (ps) => setPeople([...people, ...ps.filter((p) => !chosen.has(p[0])).map((p) => ({ name: p[0], has: 0 }))]);
+  const addManual = () => {
+    const name = addName.trim(), power = parsePower(addPower);
+    if (!name || power == null || chosen.has(name)) return;
+    setPeople([...people, { name, has: 0, power }]);
+    setAddName(""); setAddPower("");
+  };
+
+  if (!(world >= 1001)) return <div className="ms-card ms-warn">Enter a server number (1001 or higher).</div>;
+
+  return (
+    <>
+      <div className="ms-card">
+        <div className="ms-tk-head">
+          <div>
+            <div className="ms-tk-h">Players on {world}</div>
+            <div className="ms-tk-sub">
+              {players === null ? "Loading…" : players.length
+                ? `Top ${players.length} by power${asOf ? ", " + fmtDate(Date.parse(asOf + "T00:00:00Z")) : ""}. Pick people, or a whole alliance.`
+                : "No player list for this server yet. Add people by hand below."}
+            </div>
+          </div>
+          {!!players?.length && (
+            <input className="ms-input ms-tk-search" placeholder="Search name or alliance" value={q} onChange={(e) => setQ(e.target.value)} />
+          )}
+        </div>
+        {!!alliances.length && (
+          <div className="ms-chips" style={{ marginTop: 14 }}>
+            <button className={"ms-chip" + (!ally ? " on" : "")} style={!ally ? { background: "var(--arc-text, #E8EAEE)" } : null} onClick={() => setAlly("")}>All</button>
+            {alliances.slice(0, 12).map(([tag, n]) => (
+              <button key={tag} className={"ms-chip" + (ally === tag ? " on" : "")} style={ally === tag ? { background: "var(--arc-text, #E8EAEE)" } : null}
+                onClick={() => setAlly(ally === tag ? "" : tag)}>
+                {tag} <span className="ms-tk-n">{n}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        {!!list.length && (
+          <>
+            <div className="ms-tk-list">
+              {list.map((p) => (
+                <label key={p[0]} className={"ms-tk-p" + (chosen.has(p[0]) ? " on" : "")}>
+                  <input type="checkbox" checked={chosen.has(p[0])} onChange={() => toggle(p)} />
+                  <span className="ms-tk-name">{p[1] && <span className="ms-tk-tag">[{p[1]}]</span>}{p[0]}</span>
+                  <span className="ms-tk-pw">{fmtPower(p[2])}</span>
+                </label>
+              ))}
+            </div>
+            <div className="ms-row" style={{ marginTop: 12, flexWrap: "wrap" }}>
+              <button className="ms-btn" onClick={() => addMany(list)}>
+                Add all {list.length}{ally ? " in " + ally : nq ? " shown" : ""}
+              </button>
+              {!!people.length && <button className="ms-btn ghost" onClick={() => setPeople([])}>Clear selection</button>}
+            </div>
+          </>
+        )}
+        <div className="ms-tk-add">
+          <input className="ms-input" placeholder="Name (not listed)" value={addName} onChange={(e) => setAddName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addManual()} />
+          <input className="ms-input" placeholder="Power, e.g. 62M" value={addPower} onChange={(e) => setAddPower(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addManual()} style={{ width: 190 }} />
+          <button className="ms-btn" onClick={addManual} disabled={!addName.trim() || parsePower(addPower) == null}>Add</button>
+        </div>
+      </div>
+
+      {!!rows.length && (
+        <div className="ms-card">
+          <div className="ms-tk-head">
+            <div className="ms-stats">
+              <div className="ms-stat"><div className="k">People</div><div className="v">{rows.length}</div></div>
+              <div className="ms-stat"><div className="k">Tickets to buy</div><div className="v">{totalShort}</div></div>
+              <div className="ms-stat"><div className="k">Total cost</div><div className="v">{money(totalUsd)}</div></div>
+            </div>
+            <div className="ms-field" style={{ marginLeft: "auto" }}>
+              <label htmlFor="ms-cur">Currency</label>
+              <select id="ms-cur" className="ms-input" style={{ width: 110 }} value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="ms-scroll ms-tk-scroll" style={{ marginTop: 16 }}>
+            <table className="ms-table ms-tk-table">
+              <thead>
+                <tr><th>Player</th><th>Highest power</th><th style={{ textAlign: "right" }}>Needs</th><th>Has</th><th style={{ textAlign: "right" }}>To buy</th><th>Bundles (tickets each)</th><th style={{ textAlign: "right" }}>Cost</th><th></th></tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.name} className={r.short === 0 ? "ms-tk-done" : ""}>
+                    <td className="ms-tk-name">{r.listed?.[1] && <span className="ms-tk-tag">[{r.listed[1]}]</span>}{r.name}</td>
+                    <td>
+                      <input className="ms-input ms-tk-cell" style={{ width: 92 }} defaultValue={r.power != null ? fmtPower(r.power) : ""}
+                        key={r.name + ":" + (r.power ?? "")}
+                        onBlur={(e) => { const v = parsePower(e.target.value); if (v != null && v !== r.power) update(r.name, { power: v }); else e.target.value = r.power != null ? fmtPower(r.power) : ""; }}
+                        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+                        title="Highest power ever reached. Listed players start at today's power." />
+                    </td>
+                    <td style={{ textAlign: "right" }}>{r.need ?? "—"}</td>
+                    <td>
+                      <input className="ms-input ms-tk-cell" style={{ width: 64, textAlign: "center" }} inputMode="numeric"
+                        value={r.has || ""} placeholder="0"
+                        onChange={(e) => update(r.name, { has: parseInt(e.target.value.replace(/\D/g, ""), 10) || 0 })} />
+                    </td>
+                    <td style={{ textAlign: "right", fontWeight: 600, color: r.short ? "var(--arc-text, #E8EAEE)" : "var(--arc-ok, #5FD394)" }}>
+                      {r.short == null ? "—" : r.short || "✓"}
+                    </td>
+                    <td className="ms-tk-bundles">
+                      {r.buy && r.buy.pick.length ? r.buy.pick.map((b) => `${b.t}${b.count > 1 ? " ×" + b.count : ""}`).join(", ") : "—"}
+                      {r.buy?.short ? <div className="ms-tk-warn">+{r.buy.short} from the Alliance Shop</div> : null}
+                    </td>
+                    <td style={{ textAlign: "right" }}>{r.buy && r.buy.usd ? money(r.buy.usd) : "—"}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button className="ms-tk-x" aria-label={"Remove " + r.name} onClick={() => setPeople(people.filter((p) => p.name !== r.name))}>×</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      <div className="ms-note">
+        Tickets needed go by a player's <b>highest power ever reached</b>, not today's power, so listed players start
+        at today's power: change it if their highest was more. Each player buys their own bundles. The Bundle Shop has
+        2, 3, 5 and 10 ticket bundles ({BUNDLES.slice(0, 4).map((b) => money(b.usd)).join(", ")}) once each per migration,
+        and the 20 ticket bundle ({money(99.99)}) up to 3 times; the table picks the cheapest mix that covers what's missing.
+        Tickets also come from the Alliance Shop.
+        {currency !== "USD" && (rate
+          ? " Prices are converted from US dollars at today's exchange rate; the in-game price in your country may differ."
+          : " Exchange rates couldn't be loaded, so prices are in US dollars.")}{" "}
+        Ticket table and player power from{" "}
+        <a className="ms-link" href="https://dengsden.com/avatar/migration/" target="_blank" rel="noopener">dengsden.com</a>.
+      </div>
+    </>
+  );
+}
+
 export default function MigrationScout() {
   const dataTick = useWorldDays();
   const vanguard = useVanguard();
@@ -184,7 +488,25 @@ export default function MigrationScout() {
   const [eventN, setEventN] = useState(() => (num("event") >= 1 ? num("event") : defaultEvent));
   const [offset, setOffset] = useState(() => num("offset") ?? 0);
   const [posFilter, setPosFilter] = useState(() => num("pos") ?? 0); // 0 = all
-  useShareParams({
+  const [tab, setTab] = useState(() => (urlParam("tab") === "tickets" ? "tickets" : "worlds"));
+  // ticket calculator: people as [name, has, highest power if typed in], currency
+  const [people, setPeople] = useState(() => {
+    try {
+      const v = JSON.parse(urlParam("p") || "[]");
+      return Array.isArray(v) ? v.filter((x) => Array.isArray(x) && typeof x[0] === "string")
+        .map((x) => ({ name: x[0], has: Math.max(0, parseInt(x[1], 10) || 0), power: Number.isFinite(x[2]) ? x[2] : null })) : [];
+    } catch { return []; }
+  });
+  const [currency, setCurrency] = useState(() => {
+    const c = (urlParam("cur") || "").toUpperCase();
+    return CURRENCIES.includes(c) ? c : localCurrency();
+  });
+  useShareParams(tab === "tickets" ? {
+    tab: "tickets",
+    server: serverStr,
+    p: people.length ? JSON.stringify(people.map((x) => (x.power != null ? [x.name, x.has || 0, x.power] : [x.name, x.has || 0]))) : "",
+    cur: currency !== localCurrency() ? currency : "",
+  } : {
     server: serverStr,
     event: eventN !== defaultEvent ? eventN : "",
     offset: offset || "",
@@ -275,6 +597,45 @@ export default function MigrationScout() {
     .ms-stats { display: flex; gap: 18px 32px; flex-wrap: wrap; }
     .ms-stat .k { font-size: 12.5px; font-weight: 500; color: var(--arc-mut, #8B93A1); }
     .ms-stat .v { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .ms-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--arc-bg, #0E1116);
+      border: 1px solid var(--arc-line-2, #2E3542); margin-bottom: 16px; }
+    .ms-seg button { border: 0; background: transparent; color: var(--arc-mut, #8B93A1); font-size: 13.5px; font-weight: 500;
+      height: 34px; padding: 0 16px; border-radius: 7px; cursor: pointer; }
+    .ms-seg button.on { background: var(--arc-raise, #1C222B); color: var(--arc-text, #E8EAEE); }
+    .ms-btn { height: 36px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--arc-line-2, #2E3542);
+      background: var(--arc-raise, #1C222B); color: var(--arc-text, #E8EAEE); font-size: 13.5px; font-weight: 500; cursor: pointer; }
+    .ms-btn:hover { background: var(--arc-hover, #212833); }
+    .ms-btn:disabled { opacity: .45; cursor: default; }
+    .ms-btn.ghost { background: transparent; color: var(--arc-mut, #8B93A1); }
+    .ms-tk-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; }
+    .ms-tk-h { font-size: 15px; font-weight: 600; }
+    .ms-tk-sub { color: var(--arc-mut, #8B93A1); font-size: 13.5px; margin-top: 2px; }
+    .ms-tk-search { width: 240px; }
+    .ms-tk-n { opacity: .6; margin-left: 4px; font-weight: 500; }
+    .ms-tk-list { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 10px;
+      max-height: 300px; overflow-y: auto; padding: 2px; }
+    .ms-tk-p { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 10px; border-radius: 8px; cursor: pointer; font-size: 13.5px; }
+    .ms-tk-p:hover { background: var(--arc-raise, #1C222B); }
+    .ms-tk-p.on { background: var(--arc-accent-soft, #1D2640); }
+    .ms-tk-p input { accent-color: var(--arc-accent, #7EA0FF); margin: 0; flex: none; }
+    .ms-tk-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ms-tk-tag { color: var(--arc-mut, #8B93A1); margin-right: 5px; }
+    .ms-tk-pw { color: var(--arc-mut, #8B93A1); font-variant-numeric: tabular-nums; }
+    .ms-tk-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--arc-line, #232934); }
+    .ms-tk-add .ms-input:first-child { flex: 1 1 180px; width: auto; }
+    .ms-tk-scroll { overflow-x: auto; }
+    .ms-tk-table { min-width: 720px; }
+    .ms-tk-table td { vertical-align: middle; }
+    .ms-tk-table td.ms-tk-name { max-width: 200px; }
+    .ms-tk-cell { height: 34px; font-size: 14px; padding: 0 8px; }
+    .ms-tk-table tr.ms-tk-done td { background: var(--arc-ok-soft, #173326); }
+    .ms-tk-table tr.ms-tk-done:hover td { background: color-mix(in srgb, var(--arc-ok, #5FD394) 18%, var(--arc-panel, #161A21)); }
+    .ms-tk-table tr.ms-tk-done td:first-child { box-shadow: inset 3px 0 0 var(--arc-ok, #5FD394); }
+    .ms-tk-bundles { color: var(--arc-mut, #8B93A1); font-size: 13px; white-space: nowrap; }
+    .ms-tk-warn { color: var(--arc-warn, #F0B35A); font-size: 12px; }
+    .ms-tk-x { width: 30px; height: 30px; border-radius: 8px; border: 0; background: transparent; color: var(--arc-mut, #8B93A1);
+      font-size: 18px; cursor: pointer; }
+    .ms-tk-x:hover { background: var(--arc-hover, #212833); color: var(--arc-text, #E8EAEE); }
     .ms-scroll { border: 1px solid var(--arc-line, #232934); border-radius: 12px; background: var(--arc-panel, #161A21); }
     .ms-table { width: 100%; border-collapse: collapse; font-size: 14px; }
     .ms-table th { position: sticky; top: 0; z-index: 1; text-align: left; font-size: 12.5px; font-weight: 500;
@@ -335,9 +696,30 @@ export default function MigrationScout() {
         <div className="ms-eyebrow">Avatar Realms Collide · All times UTC</div>
         <h1 className="ms-title">Migration Scout</h1>
         <div className="ms-sub">
-          Find your migration group and every compatible server, with SvS bracket order. All dates are in UTC.
+          Find your migration group and every compatible server, with SvS bracket order, and work out how many
+          migration tickets your players still need and what they cost. All dates are in UTC.
         </div>
 
+        <div className="ms-seg" role="tablist">
+          <button role="tab" aria-selected={tab === "worlds"} className={tab === "worlds" ? "on" : ""} onClick={() => setTab("worlds")}>Worlds</button>
+          <button role="tab" aria-selected={tab === "tickets"} className={tab === "tickets" ? "on" : ""} onClick={() => setTab("tickets")}>Tickets</button>
+        </div>
+
+        {tab === "tickets" && (<>
+          <div className="ms-card">
+            <div className="ms-controls">
+              <div className="ms-field">
+                <label htmlFor="ms-server2">Server</label>
+                <input id="ms-server2" className="ms-input" inputMode="numeric" value={serverStr}
+                  onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); if (v !== serverStr) setPeople([]); setServerStr(v); }}
+                  placeholder="e.g. 1097" />
+              </div>
+            </div>
+          </div>
+          <TicketCalc world={validServer ? server : null} people={people} setPeople={setPeople} currency={currency} setCurrency={setCurrency} />
+        </>)}
+
+        {tab === "worlds" && (<>
         {/* Controls */}
         <div className="ms-card">
           <div className="ms-controls">
@@ -665,6 +1047,7 @@ export default function MigrationScout() {
             dengsden.com
           </a>.
         </div>
+        </>)}
       </div>
     </div>
   );

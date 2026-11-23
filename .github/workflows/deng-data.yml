@@ -50,6 +50,32 @@ jobs:
             cp /tmp/svs.json "data/history/svs-$START.json"
           fi
 
+      - name: Migration tickets and player power
+        run: |
+          set -uo pipefail
+          UA="Mozilla/5.0 (ARC Tools; once a day)"
+          # Tickets needed by highest power
+          if curl -fsS -A "$UA" https://dengsden.com/avatar/api/migration -o /tmp/migration.json \
+             && jq -e '.tickets | length > 0' /tmp/migration.json > /dev/null; then
+            jq -c '{tickets: [.tickets[] | {from, tickets}]}' /tmp/migration.json > data/deng-tickets.json
+          fi
+          # Top 100 players by power on each world (name, alliance tag, power), for the ticket calculator
+          mkdir -p data/players
+          for s in $(jq -r '.rows[].server' data/deng-servers.json); do
+            rows='[]'; ok=1
+            for page in 0 1; do
+              if curl -fsS -A "$UA" "https://dengsden.com/avatar/api/board?board=power&server=$s&page=$page" -o /tmp/board.json \
+                 && jq -e '.rows | type == "array"' /tmp/board.json > /dev/null; then
+                rows=$(jq -c --argjson acc "$rows" '$acc + .rows' /tmp/board.json)
+              else ok=0; fi
+              sleep 0.5
+            done
+            [ "$ok" = 1 ] || continue
+            echo "$rows" | jq -c '{as_of: (.[0].refreshed // null),
+              players: map([(.name | sub("^\\[[^]]*\\] ?"; "")), (.ally_tag // ""), (.value | tonumber)])}' \
+              > "data/players/$((1000 + s)).json"
+          done
+
       - name: Commit if changed
         run: |
           git config user.name  "github-actions[bot]"
