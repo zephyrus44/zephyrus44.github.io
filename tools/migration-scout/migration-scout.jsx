@@ -631,19 +631,37 @@ export default function MigrationScout() {
   }, []);
 
   const num = (k) => { const v = parseInt(urlParam(k), 10); return Number.isFinite(v) ? v : null; };
-  const [serverStr, setServerStr] = useState(() => (num("server") ? String(num("server")) : "1097"));
+  // the ticket list is also remembered on this device, for opening the tool again without a link
+  const savedTk = useMemo(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem("ms-tickets") || "null");
+      if (!v || urlParam("p")) return null;
+      if (num("server") && String(num("server")) !== v.server) return null;
+      if (urlParam("tab") && urlParam("tab") !== "tickets" && !num("server")) return null;
+      return v;
+    } catch { return null; }
+  }, []);
+  const [serverStr, setServerStr] = useState(() => (num("server") ? String(num("server")) : savedTk?.server || "1097"));
   const [eventN, setEventN] = useState(() => (num("event") >= 1 ? num("event") : defaultEvent));
   const [offset, setOffset] = useState(() => num("offset") ?? 0);
   const [posFilter, setPosFilter] = useState(() => num("pos") ?? 0); // 0 = all
-  const [tab, setTab] = useState(() => (urlParam("tab") === "tickets" ? "tickets" : "worlds"));
+  const [tab, setTab] = useState(() => (urlParam("tab") === "tickets" || (!urlParam("tab") && !location.search && savedTk?.tab === "tickets") ? "tickets" : "worlds"));
   // ticket calculator: people as [name, has, highest power if typed in, alliance points]
   const [people, setPeople] = useState(() => {
     try {
-      const v = JSON.parse(urlParam("p") || "[]");
+      const v = urlParam("p") ? JSON.parse(urlParam("p")) : savedTk?.people || [];
       return Array.isArray(v) ? v.filter((x) => Array.isArray(x) && typeof x[0] === "string")
         .map((x) => ({ name: x[0], has: Math.max(0, parseInt(x[1], 10) || 0), power: Number.isFinite(x[2]) ? x[2] : null, pts: Number.isFinite(x[3]) ? x[3] : 0 })) : [];
     } catch { return []; }
   });
+  useEffect(() => {
+    try {
+      localStorage.setItem("ms-tickets", JSON.stringify({
+        tab, server: serverStr,
+        people: people.map((x) => [x.name, x.has || 0, x.power ?? null, x.pts || 0]),
+      }));
+    } catch {}
+  }, [tab, serverStr, people]);
   useShareParams(tab === "tickets" ? {
     tab: "tickets",
     server: serverStr,
