@@ -151,6 +151,17 @@ textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:8
 .input:focus,#phNotes:focus{outline:none;border-color:var(--accent)}
 #phNotes{min-height:64px;font-family:inherit;font-size:12.5px}
 .confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px}
+.lv{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px}
+.lv.on{border-color:rgba(95,211,148,.45);background:rgba(95,211,148,.06)}
+.lv .lvh{display:flex;align-items:center;gap:8px;font-size:13px;flex-wrap:wrap}
+.lvdot{width:8px;height:8px;border-radius:50%;background:#5FD394;flex:none;display:inline-block;box-shadow:0 0 0 0 rgba(95,211,148,.6);animation:lvp 2s infinite}
+.lvdot.off{background:var(--muted);animation:none}.lvdot.err{background:#EC4441;animation:none}
+@keyframes lvp{0%{box-shadow:0 0 0 0 rgba(95,211,148,.55)}70%{box-shadow:0 0 0 6px rgba(95,211,148,0)}100%{box-shadow:0 0 0 0 rgba(95,211,148,0)}}
+@media (prefers-reduced-motion:reduce){.lvdot{animation:none}}
+.hud .lvchip{display:inline-flex;align-items:center;justify-content:center;gap:4px;border-color:rgba(95,211,148,.55);background:var(--panel);color:var(--fg);font-size:12px;font-weight:700;padding:0}
+.hud .lvchip.off{border-color:var(--line-strong)}
+.hud .lvchip[hidden]{display:none}
+
 .btn[disabled]{opacity:.45;cursor:default;border-color:var(--line)}
 .phstep{display:flex;align-items:center;gap:4px;border-left:1px solid var(--line);padding-left:10px}
 .phstep button{border:1px solid var(--line-strong);background:var(--panel);border-radius:6px;width:24px;height:24px;font-size:11px;cursor:pointer;padding:0;color:var(--fg)}
@@ -454,11 +465,12 @@ select.pin{border-color:var(--line);background:var(--bg);cursor:pointer;padding:
 
     <section class="card" id="cardShare">
       <div class="head"><h2>Share &amp; backup</h2></div>
+      <div id="liveBox"></div>
       <div class="row">
         <button class="btn primary" id="cpPlan">Copy share link</button>
         <button class="btn ghost" id="showImp">Paste plan…</button>
       </div>
-      <p class="note">Anyone who opens the link sees the whole plan: every phase, claim, marking and the roster.</p>
+      <p class="note">A share link is a snapshot: anyone who opens it gets their own copy of the whole plan (every phase, claim, marking and the roster).</p>
       <div id="impBox" hidden>
         <textarea id="impText" placeholder="Paste a share link or a copied plan here"></textarea>
         <div class="row"><button class="btn primary" id="doImp">Load</button><span id="impMsg" class="note"></span></div>
@@ -488,7 +500,7 @@ select.pin{border-color:var(--line);background:var(--bg);cursor:pointer;padding:
         <label id="ghLbl"><input type="checkbox" id="ghChk"> Previous phase</label>
         <span class="phstep" id="phStep"><button id="phPrev" aria-label="Previous phase">&#9664;</button><span>Ph.<span id="phNum">1</span></span><b id="phName"></b><button id="phNext" aria-label="Next phase">&#9654;</button></span>
       </div>
-      <div class="hud"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit map" style="font-size:13px">⤢</button><button id="zsnap" class="snapbtn" aria-label="Save image" title="Save image" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 8.5h3.2l1.6-2.5h6.4l1.6 2.5H20v10H4z"/><circle cx="12" cy="13.2" r="3.3"/></svg></button></div>
+      <div class="hud"><button class="lvchip" id="lvChip" hidden></button><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Fit map" style="font-size:13px">⤢</button><button id="zsnap" class="snapbtn" aria-label="Save image" title="Save image" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 8.5h3.2l1.6-2.5h6.4l1.6 2.5H20v10H4z"/><circle cx="12" cy="13.2" r="3.3"/></svg></button></div>
       <div class="snapmenu" id="snapMenu" hidden>
         <button id="snapView">Current view<small>Exactly what's on screen</small></button>
         <button id="snapArea">Select area<small>Drag a box over the map</small></button>
@@ -564,7 +576,8 @@ if(!Array.isArray(S.phases)||!S.phases.length) S.phases=[{id:uid(),name:"Phase 1
 S.phases=S.phases.map(normPh); S.ph=Math.min(Math.max(0,S.ph|0),S.phases.length-1);
 S.owner=S.phases[S.ph].owner; S.shapes=S.phases[S.ph].shapes;
 const syncPh=()=>{const p=S.phases[S.ph]; if(p){p.owner=S.owner; p.shapes=S.shapes;}};
-const save=()=>{syncPh(); try{const {owner,shapes,...rest}=S; localStorage.setItem(KEY,JSON.stringify(rest))}catch(e){} phMetaLive();};
+let liveHook=null;
+const save=()=>{syncPh(); if(liveHook&&liveHook()){phMetaLive(); return;} try{const {owner,shapes,...rest}=S; localStorage.setItem(KEY,JSON.stringify(rest))}catch(e){} phMetaLive();};
 function phMetaLive(){const p=S.phases[S.ph], el=document.querySelector(`#phList [data-ph="${S.ph}"] .meta`); if(p&&el) el.textContent=phMeta(p);}
 const typeOf=id=>items[id].ty;
 const alById=id=>S.alliances.find(a=>a.id===id);
@@ -919,7 +932,7 @@ $("doImp").onclick=()=>{
   if(code){decodePlan(code).then(o=>msg(loadPlan(o))).catch(bad); return;}
   try{msg(loadPlan(JSON.parse(t)));}catch(e){bad();}
 };
-if(location.hash.indexOf("#p=")===0){
+if(location.hash.indexOf("#p=")===0&&!/[?&]live=/.test(location.search)){
   decodePlan(location.hash.slice(3)).then(o=>{loadPlan(o); snapToast("Shared plan loaded");
     try{history.replaceState(null,"",location.pathname+location.search);}catch(e){}})
   .catch(()=>snapToast("That share link is incomplete. Ask for it again."));}
@@ -1742,7 +1755,187 @@ $("snapCancel").onclick=e=>{e.stopPropagation(); $("snapOv").hidden=true;};
   ov.addEventListener("wheel",e=>{e.preventDefault(); const r=wrap.getBoundingClientRect(); zoomAt(Math.exp(-e.deltaY*0.0015),e.clientX-r.left,e.clientY-r.top);},{passive:false});
 })();
 
-renderKey(); renderMkKey(); renderRoster(); setMode(S.mode); renderAll(); renderTools(); renderPhases(); fit();
+/* ---------- live plans ----------
+ * A live link (?live=<id>) shares one plan between everyone who opens it, through the site's
+ * Firebase Realtime Database (/firebase/config.js; rules in /firebase/database.rules.json).
+ * The plan is stored in small pieces (each marking, claim, target, alliance, phase field, team
+ * and player separately), so people editing different things at the same time don't overwrite
+ * each other. Your own plan on this device is never replaced by a live plan.
+ */
+const LV={id:null,status:"off",here:0,room:null,pres:null,me:null,conn:null,synced:null,z:{},pending:null,pt:0,msg:"",confirm:false};
+const FIREBASE_SDK="https://cdn.jsdelivr.net/npm/firebase@11.10.0/", LIVE_RE=/^[a-z0-9]{12,32}$/;
+function loadScript(src){return new Promise((ok,fail)=>{if(document.querySelector(`script[data-src="${src}"]`)) return ok();
+  const sc=document.createElement("script"); sc.src=src; sc.async=true; sc.dataset.src=src; sc.onload=()=>ok(); sc.onerror=()=>{sc.remove(); fail(new Error("load "+src));}; document.head.appendChild(sc);});}
+let liveDbP=null;
+function liveDb(){
+  if(!liveDbP){
+    liveDbP=(window.ARC_FIREBASE?Promise.resolve():loadScript("/firebase/config.js").catch(()=>{})).then(()=>{
+      const cfg=window.ARC_FIREBASE; if(!cfg||!cfg.databaseURL) throw new Error("not-configured");
+      return loadScript(FIREBASE_SDK+"firebase-app-compat.js").then(()=>loadScript(FIREBASE_SDK+"firebase-database-compat.js")).then(()=>{
+        const fb=window.firebase, app=fb.apps.find(a=>a.name==="arc-live")||fb.initializeApp(cfg,"arc-live"), db=app.database();
+        if(cfg.emulator) db.useEmulator(cfg.emulator.host,cfg.emulator.port);
+        return db;});});
+    liveDbP.catch(()=>{liveDbP=null;});
+  }
+  return liveDbP;
+}
+const TS=()=>window.firebase.database.ServerValue.TIMESTAMP;
+const lkey=k=>encodeURIComponent(String(k)).replace(/\./g,"%2E").replace(/%/g,"~");
+const unkey=k=>decodeURIComponent(k.replace(/~/g,"%"));
+function newLiveId(){const a=new Uint8Array(12); crypto.getRandomValues(a); return Array.from(a,x=>"abcdefghijklmnopqrstuvwxyz0123456789"[x%36]).join("")+"g"+Date.now().toString(36).slice(-3);}
+const liveClient=(()=>{const a=new Uint8Array(8); try{crypto.getRandomValues(a);}catch(e){} return Array.from(a,x=>("0"+x.toString(16)).slice(-2)).join("");})();
+function zOf(k){if(LV.z[k]==null){let m=-1; for(const q in LV.z) if(LV.z[q]>m) m=LV.z[q]; LV.z[k]=m+1;} return LV.z[k];}
+const sharedPlan=()=>{syncPh(); return {alliances:S.alliances,roster:S.roster,mkey:S.mkey,phases:S.phases,tgt:S.tgt,prog:S.prog,chDone:S.chDone,evStart:S.evStart||null};};
+// plan -> { "path": "json string" }
+function flatten(p){
+  const o={}, J=v=>JSON.stringify(v);
+  o["m/mkey"]=J(p.mkey||{labels:{},hidden:{}}); o["m/prog"]=J(p.prog||{}); o["m/ch"]=J(p.chDone||{}); o["m/ev"]=J(p.evStart||null);
+  (p.alliances||[]).forEach((a,i)=>{o["a/"+lkey(a.id)]=J({...a,_z:i});});
+  Object.keys(p.tgt||{}).forEach(id=>{if(p.tgt[id]) o["g/"+lkey(id)]=J([id,p.tgt[id]]);});
+  p.phases.forEach((x,i)=>{const b="p/"+lkey(x.id)+"/";
+    o[b+"n"]=J(x.name); o[b+"t"]=J(x.notes||""); o[b+"o"]=J(i);
+    x.shapes.forEach(it=>{o[b+"i/"+lkey(it.id)]=J({...it,_z:zOf(x.id+":"+it.id)});});
+    Object.keys(x.owner||{}).forEach(r=>{if(x.owner[r]!=null) o[b+"w/"+lkey(r)]=J([r,x.owner[r]]);});});
+  const r=p.roster||{teams:[],players:[]};
+  r.teams.forEach((t,i)=>{o["r/t/"+lkey(t.id)]=J({...t,_z:i});});
+  r.players.forEach(pl=>{o["r/p/"+lkey(pl.id)]=J({...pl,_z:zOf("pl:"+pl.id)});});
+  return o;
+}
+function flatTree(v){const o={};
+  (function walk(n,path){if(n==null) return; if(typeof n==="string"){o[path]=n; return;} if(typeof n!=="object") return; for(const k in n) walk(n[k],path?path+"/"+k:k);})(v,"");
+  delete o.created; delete o.updated; return o;}
+function unflat(fl){
+  const P=(s,d)=>{try{return JSON.parse(s);}catch(e){return d;}};
+  const p={mkey:P(fl["m/mkey"],null),prog:P(fl["m/prog"],{}),chDone:P(fl["m/ch"],{}),evStart:P(fl["m/ev"],null),alliances:[],tgt:{},phases:[],roster:{teams:[],players:[]}};
+  const phs={}, getPh=k=>phs[k]||(phs[k]={id:unkey(k),name:"Phase",notes:"",o:0,shapes:[],owner:{}});
+  Object.keys(fl).forEach(k=>{const a=k.split("/"), v=fl[k];
+    if(a[0]==="p"&&a.length>=3){const x=getPh(a[1]);
+      if(a[2]==="n") x.name=P(v,"Phase"); else if(a[2]==="t") x.notes=P(v,""); else if(a[2]==="o") x.o=P(v,0);
+      else if(a[2]==="i"){const it=P(v,null); if(it&&it.id){LV.z[x.id+":"+it.id]=it._z; x.shapes.push(it);}}
+      else if(a[2]==="w"){const w=P(v,null); if(w) x.owner[w[0]]=w[1];}}
+    else if(a[0]==="a"){const al=P(v,null); if(al&&al.id) p.alliances.push(al);}
+    else if(a[0]==="g"){const g=P(v,null); if(g) p.tgt[g[0]]=g[1];}
+    else if(a[0]==="r"&&a[1]==="t"){const t=P(v,null); if(t&&t.id) p.roster.teams.push(t);}
+    else if(a[0]==="r"&&a[1]==="p"){const pl=P(v,null); if(pl&&pl.id){LV.z["pl:"+pl.id]=pl._z; p.roster.players.push(pl);}}});
+  const bz=(a,b)=>(a._z||0)-(b._z||0), strip=x=>{delete x._z; return x;};
+  p.phases=Object.values(phs).sort((a,b)=>a.o-b.o).map(x=>{x.shapes.sort(bz).forEach(strip); delete x.o; return x;});
+  if(!p.phases.length) p.phases=[{id:uid(),name:"Phase 1",notes:"",owner:{},shapes:[]}];
+  p.alliances.sort(bz).forEach(strip); p.roster.teams.sort(bz).forEach(strip); p.roster.players.sort(bz).forEach(strip);
+  return p;
+}
+function liveTree(fl){const t={}; Object.keys(fl).forEach(k=>{const a=k.split("/"); let n=t; for(let i=0;i<a.length-1;i++) n=n[a[i]]||(n[a[i]]={}); n[a[a.length-1]]=fl[k];}); return t;}
+/* put a shared plan into S, keeping this person's own view (phase, alliance, mode) where it still exists */
+function usePlan(p){
+  const phId=S.phases[S.ph]&&S.phases[S.ph].id;
+  S.alliances=p.alliances||[]; S.tgt=p.tgt||{}; S.prog=p.prog||{}; S.chDone=p.chDone||{};
+  S.roster=normRoster(p.roster); S.mkey={labels:(p.mkey&&p.mkey.labels)||{},hidden:(p.mkey&&p.mkey.hidden)||{}};
+  S.phases=p.phases.map(normPh); S.phases.forEach(x=>{x.shapes=x.shapes.map(migrateShape).filter(Boolean);});
+  const i=S.phases.findIndex(x=>x.id===phId); S.ph=i>=0?i:Math.min(S.ph,S.phases.length-1);
+  S.owner=S.phases[S.ph].owner; S.shapes=S.phases[S.ph].shapes;
+  if(!alById(S.active)) S.active=S.alliances[0]?.id||null;
+  if(typeof S.dcol==="string"&&S.dcol.startsWith("al:")&&!alById(S.dcol.slice(3))) S.dcol=null;
+  const ev=p.evStart||null; if(ev!==(S.evStart||null)){S.evStart=ev; applySchedule();}
+  if(MS.sel&&!findItem(MS.sel)) MS.sel=null;
+}
+function renderEverything(){renderAll(); renderPhases(); renderRoster(); renderMkKey(); renderSel(); renderTools(); renderEvent(); updUndo();}
+function livePush(){
+  if(!LV.room||LV.status!=="live"||!LV.synced) return;
+  const cur=flatten(sharedPlan()), u={}; let n=0;
+  for(const k in cur) if(cur[k]!==LV.synced[k]){u[k]=cur[k]; n++;}
+  for(const k in LV.synced) if(!(k in cur)){u[k]=null; n++;}
+  if(!n) return;
+  u.updated=TS(); LV.synced=cur;
+  LV.room.update(u).catch(()=>{LV.status="error"; renderLive();});
+}
+function liveSel(){const a=document.activeElement; if(!a||a===document.body||!/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return null;
+  let q=a.id?"#"+CSS.escape(a.id):null;
+  if(!q) for(const at of a.attributes) if(/^data-/.test(at.name)){q=`[${at.name}="${String(at.value).replace(/"/g,'\\"')}"]`; break;}
+  if(!q) return null; const r={q}; try{r.s=a.selectionStart; r.e=a.selectionEnd;}catch(e){} return r;}
+const busy=()=>ptrs.size>0||!!mkG;
+function liveApply(v){
+  if(!v){LV.status="missing"; renderLive(); return;}
+  if(busy()){LV.pending=v; clearTimeout(LV.pt); LV.pt=setTimeout(()=>{if(LV.pending){const p=LV.pending; LV.pending=null; liveApply(p);}},200); return;}
+  const remote=flatTree(v), first=!LV.synced, old=LV.synced||{};
+  LV.status="live";
+  const local=flatten(sharedPlan()); let same=Object.keys(remote).length===Object.keys(local).length;
+  if(same) for(const k in remote) if(remote[k]!==local[k]){same=false; break;}
+  LV.synced=remote;
+  if(same&&!first){renderLive(); return;}
+  // others' changes since last time: fold them into your undo history, so undo only takes back your own edits
+  if(!first){
+    const rd={}; for(const k in remote) if(remote[k]!==old[k]) rd[k]=remote[k]; for(const k in old) if(!(k in remote)) rd[k]=null;
+    const base=sharedPlan();
+    const rebase=sj=>{const o=JSON.parse(sj), fl=flatten({...base,phases:o.phases,roster:o.roster,mkey:o.mkey}); for(const k in rd){if(rd[k]==null) delete fl[k]; else fl[k]=rd[k];}
+      const u=unflat(fl); return JSON.stringify({phases:u.phases,roster:u.roster,mkey:u.mkey});};
+    try{hist=hist.slice(-60).map(rebase); fut=fut.map(rebase);}catch(e){hist=[]; fut=[];}
+  } else {hist=[]; fut=[];}
+  const fs=liveSel();
+  usePlan(unflat(remote)); renderEverything(); renderLive();
+  if(fs){const e=document.querySelector(fs.q); if(e){e.focus({preventScroll:true}); try{if(fs.s!=null) e.setSelectionRange(Math.min(fs.s,e.value.length),Math.min(fs.e,e.value.length));}catch(er){}}}
+}
+function liveUrl(id){const base=location.pathname.replace(/index\.html$/,""), q=id?"?live="+id:""; return {path:base+q,full:location.origin+base+q};}
+function liveSetUrl(id){const u=liveUrl(id).path;
+  try{history.replaceState(null,"",u);}catch(e){}
+  try{if(window.parent!==window&&window.parent.location.pathname.replace(/index\.html$/,"")===location.pathname.replace(/index\.html$/,"")) window.parent.history.replaceState(null,"",u);}catch(e){}}
+function liveJoin(id){
+  liveLeaveQuiet();
+  Object.assign(LV,{id,status:"connecting",synced:null,here:0,z:{},msg:"",confirm:false}); renderLive();
+  liveDb().then(db=>{
+    if(LV.id!==id) return;
+    LV.room=db.ref("ruse/"+id);
+    LV.room.on("value",snap=>{if(LV.id===id) liveApply(snap.val());},()=>{if(LV.id!==id) return; LV.status="error"; renderLive();});
+    LV.pres=db.ref("presence/"+id); LV.me=LV.pres.child(liveClient); LV.conn=db.ref(".info/connected");
+    LV.conn.on("value",c=>{if(LV.id!==id) return; if(!c.val()){if(LV.status==="live"){LV.status="connecting"; renderLive();} return;} LV.me.onDisconnect().remove(); LV.me.set(TS());});
+    LV.pres.on("value",snap=>{if(LV.id!==id) return; LV.here=snap.numChildren(); renderLive();});
+  }).catch(e=>{if(LV.id!==id) return; LV.status=e&&e.message==="not-configured"?"not-configured":"error"; renderLive();});
+}
+function liveLeaveQuiet(){
+  try{LV.room&&LV.room.off(); LV.pres&&LV.pres.off(); LV.conn&&LV.conn.off(); LV.me&&LV.me.remove();}catch(e){}
+  Object.assign(LV,{room:null,pres:null,me:null,conn:null,id:null,status:"off",synced:null,pending:null});
+}
+function liveLeave(keep){
+  liveLeaveQuiet(); liveSetUrl(null); hist=[]; fut=[]; LV.confirm=false;
+  if(!keep){let o=null; try{o=JSON.parse(localStorage.getItem(KEY)||"null");}catch(e){}
+    o=o||{}; usePlan({alliances:o.alliances||[],roster:o.roster,mkey:o.mkey,tgt:o.tgt||{},prog:o.prog||seed().prog,chDone:o.chDone||{},evStart:o.evStart||null,
+      phases:Array.isArray(o.phases)&&o.phases.length?o.phases:[{id:uid(),name:"Phase 1",notes:"",owner:{},shapes:[]}]});}
+  save(); renderEverything(); renderLive();
+  snapToast(keep?"Left the live plan. A copy is now your own plan on this device":"Left the live plan. Back to your own plan");
+}
+function liveStart(){
+  LV.msg="Starting…"; renderLive();
+  liveDb().then(db=>{const id=newLiveId(); LV.z={}; const tree=liveTree(flatten(sharedPlan())); tree.created=TS(); tree.updated=TS();
+    return db.ref("ruse/"+id).set(tree).then(()=>id);})
+  .then(id=>{LV.msg=""; liveSetUrl(id); liveJoin(id); copyText(liveUrl(id).full,"Live link copied. Anyone with it can view and edit this plan"); snapToast("Live link copied");})
+  .catch(e=>{LV.msg=e&&e.message==="not-configured"?"Live plans aren’t set up on this site yet.":"Couldn’t start a live plan. Check your connection and try again."; renderLive();});
+}
+function renderLive(){
+  const box=$("liveBox"), chip=$("lvChip"), s=LV.status, n=Math.max(1,LV.here);
+  chip.hidden=!LV.id; chip.className="lvchip"+(s==="live"?"":" off");
+  chip.innerHTML=`<i class="lvdot${s==="live"?"":s==="connecting"?" off":" err"}"></i>`+(s==="live"?n:"");
+  chip.title=s==="live"?`Live plan · ${n} ${n===1?"person":"people"} here`:s==="connecting"?"Connecting to the live plan…":"Live plan offline"; chip.setAttribute("aria-label",chip.title);
+  let h;
+  if(!LV.id) h=`<div class="lv"><div class="lvh"><span class="lvdot off"></span><b>Live plan</b></div><p class="sub">Share a link where everyone sees and edits this plan together, in real time. Your own plan on this device stays as it is.</p><div class="row"><button class="btn primary" data-lv="start">Go live</button>${LV.msg?`<span class="note">${esc(LV.msg)}</span>`:""}</div></div>`;
+  else{
+    h=`<div class="lv${s==="live"?" on":""}"><div class="lvh"><span class="lvdot${s==="live"?"":s==="connecting"?" off":" err"}"></span>`;
+    h+=s==="live"?`<b>Live</b><span class="note">${n} here now · changes save for everyone</span>`:s==="connecting"?"<b>Connecting…</b>":s==="missing"?"<b>This live plan has ended, or the link is wrong</b>":s==="not-configured"?"<b>Live plans aren’t set up on this site yet</b>":"<b>Connection lost. Reconnecting…</b>";
+    h+=`</div><div class="row">${s==="live"?'<button class="btn primary" data-lv="copy">Copy live link</button>':""}${LV.confirm?"":`<button class="btn ghost" data-lv="leave">${s==="live"?"Leave":"Back to my plan"}</button>`}</div>`;
+    if(LV.confirm) h+=`<div class="confirm">Leave the live plan? <button class="btn" data-lv="keep">Keep a copy</button><button class="btn ghost" data-lv="yes">Leave</button><button class="btn ghost" data-lv="no">Stay</button></div>`;
+    h+="</div>";
+  }
+  box.innerHTML=h;
+}
+$("liveBox").addEventListener("click",e=>{const b=e.target.closest("[data-lv]"); if(!b) return; const a=b.dataset.lv;
+  if(a==="start") liveStart();
+  else if(a==="copy") copyText(liveUrl(LV.id).full,"Live link copied. Anyone with it can view and edit this plan");
+  else if(a==="leave"){if(LV.status!=="live") liveLeave(false); else{LV.confirm=true; renderLive();}}
+  else if(a==="no"){LV.confirm=false; renderLive();}
+  else if(a==="yes") liveLeave(false);
+  else if(a==="keep") liveLeave(true);});
+$("lvChip").onclick=()=>{const c=$("cardShare"); c.scrollIntoView({behavior:"smooth",block:"center"});};
+liveHook=()=>{if(!LV.id) return false; livePush(); return true;};
+
+renderKey(); renderMkKey(); renderRoster(); setMode(S.mode); renderAll(); renderTools(); renderPhases(); fit(); renderLive();
+{const m=/[?&]live=([^&#]+)/.exec(location.search); if(m&&LIVE_RE.test(m[1])) liveJoin(m[1]);}
 })();
 </script>
 
