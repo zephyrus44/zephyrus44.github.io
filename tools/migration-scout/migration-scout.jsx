@@ -302,6 +302,30 @@ function TicketCalc({ world, people, setPeople }) {
 
   if (!(world >= 1001)) return <div className="ms-card ms-warn">Enter a server number (1001 or higher).</div>;
 
+  // inputs shared by the table (wide screens) and the cards (phones)
+  const nameEl = (r) => <span className="ms-tk-name">{r.listed?.[1] && <span className="ms-tk-tag">[{r.listed[1]}]</span>}{r.name}</span>;
+  const powerIn = (r, cls = "") => (
+    <input className={"ms-input ms-tk-cell " + cls} style={cls ? null : { width: 82 }} defaultValue={r.power != null ? fmtPower(r.power) : ""}
+      key={r.name + ":" + (r.power ?? "")} inputMode="decimal"
+      onBlur={(e) => { const v = parsePower(e.target.value); if (v != null && v !== r.power) update(r.name, { power: v }); else e.target.value = r.power != null ? fmtPower(r.power) : ""; }}
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      title="Highest power ever reached. Listed players start at today's power." />
+  );
+  const hasIn = (r, cls = "") => (
+    <input className={"ms-input ms-tk-cell " + cls} style={cls ? { textAlign: "center" } : { width: 56, textAlign: "center" }} inputMode="numeric"
+      value={r.has || ""} placeholder="0"
+      onChange={(e) => update(r.name, { has: parseInt(e.target.value.replace(/\D/g, ""), 10) || 0 })} />
+  );
+  const ptsIn = (r, cls = "") => (
+    <input className={"ms-input ms-tk-cell " + cls} style={cls ? null : { width: 78 }} placeholder="0" inputMode="decimal"
+      defaultValue={r.pts ? fmtPower(r.pts) : ""} key={r.name + ":pts:" + (r.pts || 0)}
+      onBlur={(e) => { const v = e.target.value.trim() ? parsePower(e.target.value) : 0; if (v != null && v !== (r.pts || 0)) update(r.name, { pts: v }); else e.target.value = r.pts ? fmtPower(r.pts) : ""; }}
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      title="Individual alliance points. 300K buys 1 ticket in the Alliance Shop." />
+  );
+  const bundleText = (r) => (r.buy && r.buy.pick.length ? r.buy.pick.map((b) => `${b.t}${b.count > 1 ? " ×" + b.count : ""}`).join(", ") : "");
+  const removeBtn = (r) => <button className="ms-tk-x" aria-label={"Remove " + r.name} onClick={() => setPeople(people.filter((p) => p.name !== r.name))}>×</button>;
+
   return (
     <>
       <div className="ms-card">
@@ -368,50 +392,57 @@ function TicketCalc({ world, people, setPeople }) {
           <div className="ms-scroll ms-tk-scroll" style={{ marginTop: 16 }}>
             <table className="ms-table ms-tk-table">
               <thead>
-                <tr><th>Player</th><th>Highest power</th><th style={{ textAlign: "right" }}>Needs</th><th>Has</th><th>Alliance points</th><th style={{ textAlign: "right" }}>To buy</th><th>Bundles (tickets each)</th><th style={{ textAlign: "right" }}>Cost</th><th></th></tr>
+                <tr><th>Player</th><th>Highest power</th><th style={{ textAlign: "right" }}>Needed</th><th>Has</th><th>Alliance points<div className="ms-tk-th2">300K = 1 ticket</div></th><th style={{ textAlign: "right" }}>Alliance<br />Shop</th><th style={{ textAlign: "right" }}>To buy</th><th>Bundles<div className="ms-tk-th2">tickets each</div></th><th style={{ textAlign: "right" }}>Cost</th><th></th></tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.name} className={r.short === 0 ? "ms-tk-done" : ""}>
-                    <td className="ms-tk-name">{r.listed?.[1] && <span className="ms-tk-tag">[{r.listed[1]}]</span>}{r.name}</td>
-                    <td>
-                      <input className="ms-input ms-tk-cell" style={{ width: 92 }} defaultValue={r.power != null ? fmtPower(r.power) : ""}
-                        key={r.name + ":" + (r.power ?? "")}
-                        onBlur={(e) => { const v = parsePower(e.target.value); if (v != null && v !== r.power) update(r.name, { power: v }); else e.target.value = r.power != null ? fmtPower(r.power) : ""; }}
-                        onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                        title="Highest power ever reached. Listed players start at today's power." />
-                    </td>
+                    <td>{nameEl(r)}</td>
+                    <td>{powerIn(r)}</td>
                     <td style={{ textAlign: "right" }}>{r.need ?? "—"}</td>
-                    <td>
-                      <input className="ms-input ms-tk-cell" style={{ width: 64, textAlign: "center" }} inputMode="numeric"
-                        value={r.has || ""} placeholder="0"
-                        onChange={(e) => update(r.name, { has: parseInt(e.target.value.replace(/\D/g, ""), 10) || 0 })} />
-                    </td>
-                    <td>
-                      <div className="ms-row" style={{ gap: 6, flexWrap: "nowrap" }}>
-                        <input className="ms-input ms-tk-cell" style={{ width: 84 }} placeholder="0"
-                          defaultValue={r.pts ? fmtPower(r.pts) : ""} key={r.name + ":pts:" + (r.pts || 0)}
-                          onBlur={(e) => { const v = e.target.value.trim() ? parsePower(e.target.value) : 0; if (v != null && v !== (r.pts || 0)) update(r.name, { pts: v }); else e.target.value = r.pts ? fmtPower(r.pts) : ""; }}
-                          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-                          title="Individual alliance points. 300K buys 1 ticket in the Alliance Shop." />
-                        {r.fromShop ? <span className="ms-tk-shop">+{r.fromShop}</span> : null}
-                      </div>
-                    </td>
+                    <td>{hasIn(r)}</td>
+                    <td>{ptsIn(r)}</td>
+                    <td style={{ textAlign: "right" }} className={r.fromShop ? "ms-tk-shop" : ""}>{r.need == null ? "—" : r.fromShop}</td>
                     <td style={{ textAlign: "right", fontWeight: 600, color: r.short ? "var(--arc-text, #E8EAEE)" : "var(--arc-ok, #5FD394)" }}>
                       {r.short == null ? "—" : r.short || "✓"}
                     </td>
                     <td className="ms-tk-bundles">
-                      {r.buy && r.buy.pick.length ? r.buy.pick.map((b) => `${b.t}${b.count > 1 ? " ×" + b.count : ""}`).join(", ") : "—"}
+                      {bundleText(r) || "—"}
                       {r.buy?.short ? <div className="ms-tk-warn">{r.buy.short} more than bundles can cover</div> : null}
                     </td>
                     <td style={{ textAlign: "right" }}>{r.buy && r.buy.usd ? money(r.buy.usd) : "—"}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <button className="ms-tk-x" aria-label={"Remove " + r.name} onClick={() => setPeople(people.filter((p) => p.name !== r.name))}>×</button>
-                    </td>
+                    <td style={{ textAlign: "right" }}>{removeBtn(r)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="ms-tk-cards">
+            {rows.map((r) => (
+              <div key={r.name} className={"ms-tk-c" + (r.short === 0 ? " done" : "")}>
+                <div className="ms-tk-c-top">
+                  {nameEl(r)}
+                  {r.short === 0 && <span className="ms-tk-c-res">✓ Covered</span>}
+                  {removeBtn(r)}
+                </div>
+                <div className="ms-tk-c-nums">
+                  <div><span>Needed</span><b>{r.need ?? "—"}</b></div>
+                  <div><span>Alliance Shop</span><b className={r.fromShop ? "ms-tk-shop" : ""}>{r.need == null ? "—" : r.fromShop}</b><i>300K pts each</i></div>
+                  <div><span>To buy</span><b>{r.short ?? "—"}</b>{r.buy?.usd ? <i>{money(r.buy.usd)}</i> : null}</div>
+                </div>
+                <div className="ms-tk-c-grid">
+                  <label><span>Highest power</span>{powerIn(r, "full")}</label>
+                  <label><span>Has</span>{hasIn(r, "full")}</label>
+                  <label><span>Alliance points</span>{ptsIn(r, "full")}</label>
+                </div>
+                {(bundleText(r) || r.buy?.short) ? (
+                  <div className="ms-tk-c-foot">
+                    {bundleText(r) ? <>Bundles to buy (tickets each): {bundleText(r)}</> : null}
+                    {r.buy?.short ? <span className="ms-tk-warn"> · {r.buy.short} more than bundles can cover</span> : null}
+                  </div>
+                ) : null}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -422,7 +453,7 @@ function TicketCalc({ world, people, setPeople }) {
         2, 3, 5 and 10 ticket bundles ({BUNDLES.slice(0, 4).map((b) => money(b.usd)).join(", ")}) once each per migration,
         and the 20 ticket bundle ({money(99.99)}) up to 3 times; the table picks the cheapest mix that covers what's missing.
         Tickets also come from the Alliance Shop for 300K individual alliance points each: enter a player's points
-        and the tickets they can get there (+n) are used before bundles.
+        and the tickets they can get there are counted before bundles.
         Prices are in US dollars.{" "}
         Ticket table and player power from{" "}
         <a className="ms-link" href="https://dengsden.com/avatar/migration/" target="_blank" rel="noopener">dengsden.com</a>.
@@ -577,16 +608,42 @@ export default function MigrationScout() {
     .ms-tk-add { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--arc-line, #232934); }
     .ms-tk-add .ms-input:first-child { flex: 1 1 180px; width: auto; }
     .ms-tk-scroll { overflow-x: auto; }
-    .ms-tk-table { min-width: 900px; }
+    .ms-tk-table { min-width: 740px; }
     .ms-tk-table td { vertical-align: middle; }
-    .ms-tk-table th { white-space: nowrap; }
+    .ms-tk-table th { white-space: nowrap; vertical-align: bottom; }
+    .ms-tk-table th, .ms-tk-table td { padding-left: 10px; padding-right: 10px; }
     .ms-tk-table td.ms-tk-name { max-width: 200px; }
     .ms-tk-cell { height: 34px; font-size: 14px; padding: 0 8px; }
     .ms-tk-table tr.ms-tk-done td { background: var(--arc-ok-soft, #173326); }
     .ms-tk-table tr.ms-tk-done:hover td { background: color-mix(in srgb, var(--arc-ok, #5FD394) 18%, var(--arc-panel, #161A21)); }
     .ms-tk-table tr.ms-tk-done td:first-child { box-shadow: inset 3px 0 0 var(--arc-ok, #5FD394); }
-    .ms-tk-bundles { color: var(--arc-mut, #8B93A1); font-size: 13px; white-space: nowrap; }
-    .ms-tk-shop { color: var(--arc-ok, #5FD394); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+    .ms-tk-bundles { color: var(--arc-mut, #8B93A1); font-size: 13px; }
+    .ms-tk-shop { color: var(--arc-ok, #5FD394); font-weight: 600; }
+    .ms-wide { max-width: 1120px; }
+    .ms-wide > .ms-sub, .ms-wide > .ms-note { max-width: 72ch; }
+    .ms-tk-cards { display: none; }
+    .ms-tk-c { border: 1px solid var(--arc-line, #232934); border-radius: 12px; background: var(--arc-bg, #0E1116); padding: 12px 12px 12px 14px; }
+    .ms-tk-c.done { background: var(--arc-ok-soft, #173326); border-color: color-mix(in srgb, var(--arc-ok, #5FD394) 40%, transparent);
+      box-shadow: inset 3px 0 0 var(--arc-ok, #5FD394); }
+    .ms-tk-c-top { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+    .ms-tk-c-top .ms-tk-tag { font-weight: 500; }
+    .ms-tk-c-res { flex: none; font-size: 13.5px; font-weight: 500; color: var(--arc-mut, #8B93A1); }
+    .ms-tk-c-res b { color: var(--arc-text, #E8EAEE); font-weight: 600; }
+    .ms-tk-c.done .ms-tk-c-res { color: var(--arc-ok, #5FD394); font-weight: 600; }
+    .ms-tk-c-top .ms-tk-x { margin: -6px -6px -6px 0; }
+    .ms-tk-c-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; padding: 10px 0;
+      border-top: 1px solid var(--arc-line, #232934); border-bottom: 1px solid var(--arc-line, #232934); }
+    .ms-tk-c.done .ms-tk-c-nums { border-color: color-mix(in srgb, var(--arc-ok, #5FD394) 25%, transparent); }
+    .ms-tk-c-nums > div { display: flex; flex-direction: column; min-width: 0; }
+    .ms-tk-c-nums span { font-size: 12px; color: var(--arc-mut, #8B93A1); }
+    .ms-tk-c-nums b { font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 1px; }
+    .ms-tk-c-nums i { font-style: normal; font-size: 12px; color: var(--arc-mut, #8B93A1); }
+    .ms-tk-th2 { font-size: 11.5px; color: var(--arc-dim, #5F6774); font-weight: 400; }
+    .ms-tk-c-grid { display: grid; grid-template-columns: 1.1fr .7fr 1.2fr; gap: 8px; margin-top: 10px; }
+    .ms-tk-c-grid label { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .ms-tk-c-grid label > span { font-size: 12px; color: var(--arc-mut, #8B93A1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ms-tk-cell.full { width: 100%; min-width: 0; height: 40px; }
+    .ms-tk-c-foot { margin-top: 10px; font-size: 12.5px; color: var(--arc-mut, #8B93A1); line-height: 1.5; }
     .ms-tk-warn { color: var(--arc-warn, #F0B35A); font-size: 12px; }
     .ms-tk-x { width: 30px; height: 30px; border-radius: 8px; border: 0; background: transparent; color: var(--arc-mut, #8B93A1);
       font-size: 18px; cursor: pointer; }
@@ -633,6 +690,13 @@ export default function MigrationScout() {
     .ms-chip:hover { color: var(--arc-text, #E8EAEE); background: var(--arc-raise, #1C222B); }
     .ms-chip.on, .ms-chip.on:hover { color: var(--arc-bg, #0E1116); font-weight: 600; }
     .ms-scroll { max-height: 440px; overflow-y: auto; }
+    @media (max-width: 760px) {
+      .ms-tk-scroll { display: none; }
+      .ms-tk-cards { display: grid; gap: 8px; margin-top: 16px; }
+      .ms-tk-head .ms-stats { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+      .ms-tk-search { width: 100%; }
+      .ms-tk-add .ms-input:nth-child(2) { flex: 1 1 140px; width: auto !important; }
+    }
     @media (max-width: 600px) {
       .ms-root { padding: 28px 16px 56px; }
       .ms-title { font-size: 26px; }
@@ -647,7 +711,7 @@ export default function MigrationScout() {
   return (
     <div className="ms-root">
       <style>{css}</style>
-      <div className="ms-wrap">
+      <div className={"ms-wrap" + (tab === "tickets" ? " ms-wide" : "")}>
         <div className="ms-eyebrow">Avatar Realms Collide · All times UTC</div>
         <h1 className="ms-title">Migration Scout</h1>
         <div className="ms-sub">
