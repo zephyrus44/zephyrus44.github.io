@@ -250,48 +250,6 @@ function usePlayers(world) {
   return state.world === world ? state : { world, players: null, asOf: null };
 }
 
-// Local currency from the browser's language/region; rates from open.er-api.com (refreshed daily)
-const REGION_CURRENCY = {
-  US: "USD", CA: "CAD", MX: "MXN", BR: "BRL", AR: "ARS", CL: "CLP", CO: "COP", PE: "PEN",
-  GB: "GBP", IE: "EUR", FR: "EUR", DE: "EUR", ES: "EUR", IT: "EUR", NL: "EUR", BE: "EUR", AT: "EUR",
-  PT: "EUR", FI: "EUR", GR: "EUR", SK: "EUR", SI: "EUR", EE: "EUR", LV: "EUR", LT: "EUR", LU: "EUR",
-  MT: "EUR", CY: "EUR", HR: "EUR", CH: "CHF", SE: "SEK", NO: "NOK", DK: "DKK", PL: "PLN", CZ: "CZK",
-  HU: "HUF", RO: "RON", BG: "BGN", TR: "TRY", UA: "UAH", RU: "RUB", IL: "ILS", AE: "AED", SA: "SAR",
-  EG: "EGP", ZA: "ZAR", NG: "NGN", KE: "KES", IN: "INR", PK: "PKR", BD: "BDT", LK: "LKR",
-  CN: "CNY", HK: "HKD", TW: "TWD", JP: "JPY", KR: "KRW", SG: "SGD", MY: "MYR", TH: "THB",
-  ID: "IDR", PH: "PHP", VN: "VND", AU: "AUD", NZ: "NZD",
-};
-const CURRENCIES = [...new Set(["USD", ...Object.values(REGION_CURRENCY)])].sort();
-const localCurrency = () => {
-  try {
-    for (const l of navigator.languages || [navigator.language]) {
-      const r = new Intl.Locale(l).maximize().region;
-      if (r && REGION_CURRENCY[r]) return REGION_CURRENCY[r];
-    }
-  } catch {}
-  return "USD";
-};
-function useRates() {
-  const [rates, setRates] = useState(() => {
-    try { const c = JSON.parse(localStorage.getItem("ms-rates") || "null"); if (c?.rates) return c; } catch {}
-    return null;
-  });
-  useEffect(() => {
-    if (rates && Date.now() - rates.at < 12 * 3600e3) return;
-    let alive = true;
-    fetch("https://open.er-api.com/v6/latest/USD")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((d) => {
-        if (!alive || d.result !== "success") return;
-        const v = { at: Date.now(), rates: d.rates };
-        setRates(v);
-        try { localStorage.setItem("ms-rates", JSON.stringify(v)); } catch {}
-      })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
-  return rates?.rates || null;
-}
 const fmtPower = (p) => (p >= 1e6 ? (p / 1e6).toFixed(p >= 1e8 ? 0 : 1).replace(/\.0$/, "") + "M" : p >= 1e3 ? Math.round(p / 1e3) + "K" : String(p));
 const parsePower = (s) => {
   const m = String(s).trim().toLowerCase().replace(/,/g, "").match(/^(\d+(?:\.\d+)?)\s*([kmb]?)$/);
@@ -299,22 +257,15 @@ const parsePower = (s) => {
   return Math.round(parseFloat(m[1]) * ({ k: 1e3, m: 1e6, b: 1e9 }[m[2]] || 1));
 };
 
-function TicketCalc({ world, people, setPeople, currency, setCurrency }) {
+function TicketCalc({ world, people, setPeople }) {
   const table = useTicketTable();
   const { players, asOf } = usePlayers(world);
-  const rates = useRates();
   const [q, setQ] = useState("");
   const [ally, setAlly] = useState("");
   const [addName, setAddName] = useState("");
   const [addPower, setAddPower] = useState("");
 
-  const rate = currency === "USD" ? 1 : rates?.[currency];
-  const money = (usd) => {
-    const cur = rate ? currency : "USD";
-    try {
-      return new Intl.NumberFormat(undefined, { style: "currency", currency: cur }).format(usd * (rate || 1));
-    } catch { return cur + " " + (usd * (rate || 1)).toFixed(2); }
-  };
+  const money = (usd) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(usd);
 
   const byName = useMemo(() => new Map((players || []).map((p) => [p[0], p])), [players]);
   const alliances = useMemo(() => {
@@ -413,12 +364,6 @@ function TicketCalc({ world, people, setPeople, currency, setCurrency }) {
               <div className="ms-stat"><div className="k">Tickets to buy</div><div className="v">{totalShort}</div></div>
               <div className="ms-stat"><div className="k">Total cost</div><div className="v">{money(totalUsd)}</div></div>
             </div>
-            <div className="ms-field" style={{ marginLeft: "auto" }}>
-              <label htmlFor="ms-cur">Currency</label>
-              <select id="ms-cur" className="ms-input" style={{ width: 110 }} value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
           </div>
           <div className="ms-scroll ms-tk-scroll" style={{ marginTop: 16 }}>
             <table className="ms-table ms-tk-table">
@@ -478,9 +423,7 @@ function TicketCalc({ world, people, setPeople, currency, setCurrency }) {
         and the 20 ticket bundle ({money(99.99)}) up to 3 times; the table picks the cheapest mix that covers what's missing.
         Tickets also come from the Alliance Shop for 300K individual alliance points each: enter a player's points
         and the tickets they can get there (+n) are used before bundles.
-        {currency !== "USD" && (rate
-          ? " Prices are converted from US dollars at today's exchange rate; the in-game price in your country may differ."
-          : " Exchange rates couldn't be loaded, so prices are in US dollars.")}{" "}
+        Prices are in US dollars.{" "}
         Ticket table and player power from{" "}
         <a className="ms-link" href="https://dengsden.com/avatar/migration/" target="_blank" rel="noopener">dengsden.com</a>.
       </div>
@@ -504,7 +447,7 @@ export default function MigrationScout() {
   const [offset, setOffset] = useState(() => num("offset") ?? 0);
   const [posFilter, setPosFilter] = useState(() => num("pos") ?? 0); // 0 = all
   const [tab, setTab] = useState(() => (urlParam("tab") === "tickets" ? "tickets" : "worlds"));
-  // ticket calculator: people as [name, has, highest power if typed in], currency
+  // ticket calculator: people as [name, has, highest power if typed in, alliance points]
   const [people, setPeople] = useState(() => {
     try {
       const v = JSON.parse(urlParam("p") || "[]");
@@ -512,15 +455,10 @@ export default function MigrationScout() {
         .map((x) => ({ name: x[0], has: Math.max(0, parseInt(x[1], 10) || 0), power: Number.isFinite(x[2]) ? x[2] : null, pts: Number.isFinite(x[3]) ? x[3] : 0 })) : [];
     } catch { return []; }
   });
-  const [currency, setCurrency] = useState(() => {
-    const c = (urlParam("cur") || "").toUpperCase();
-    return CURRENCIES.includes(c) ? c : localCurrency();
-  });
   useShareParams(tab === "tickets" ? {
     tab: "tickets",
     server: serverStr,
     p: people.length ? JSON.stringify(people.map((x) => x.pts ? [x.name, x.has || 0, x.power ?? null, x.pts] : x.power != null ? [x.name, x.has || 0, x.power] : [x.name, x.has || 0])) : "",
-    cur: currency !== localCurrency() ? currency : "",
   } : {
     server: serverStr,
     event: eventN !== defaultEvent ? eventN : "",
@@ -733,7 +671,7 @@ export default function MigrationScout() {
               </div>
             </div>
           </div>
-          <TicketCalc world={validServer ? server : null} people={people} setPeople={setPeople} currency={currency} setCurrency={setCurrency} />
+          <TicketCalc world={validServer ? server : null} people={people} setPeople={setPeople} />
         </>)}
 
         {tab === "worlds" && (<>
