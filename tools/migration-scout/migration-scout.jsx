@@ -257,6 +257,134 @@ const parsePower = (s) => {
   return Math.round(parseFloat(m[1]) * ({ k: 1e3, m: 1e6, b: 1e9 }[m[2]] || 1));
 };
 
+/* Summary picture of the ticket list: drawn on a canvas, sized so it stays
+ * close to 5:4 however many players there are (1 to 4 columns). */
+function drawTicketImage({ world, rows, totals, money }) {
+  const S = 2; // pixel density
+  const C = {
+    bg: "#0E1116", panel: "#161A21", raise: "#1C222B", line: "#232934", text: "#E8EAEE",
+    mut: "#8B93A1", dim: "#5F6774", ok: "#5FD394", okSoft: "#173326", accent: "#7EA0FF", gold: "#F4BF41",
+  };
+  const F = '"Geist", Inter, system-ui, sans-serif';
+  const n = rows.length;
+  const PAD = 48, COL_W = 440, GAP = 24, ROW_H = 46, HEAD_H = 236, COLHEAD_H = 34, FOOT_H = 64;
+  let best = null;
+  for (let cols = 1; cols <= 4; cols++) {
+    if (cols > 1 && n <= (cols - 1) * 6) break;
+    const per = Math.ceil(n / cols);
+    const W = Math.max(960, PAD * 2 + cols * COL_W + (cols - 1) * GAP);
+    const H = HEAD_H + COLHEAD_H + per * ROW_H + FOOT_H;
+    const score = Math.abs(Math.log((W / H) / 1.25));
+    if (!best || score < best.score) best = { cols, per, W, H, score };
+  }
+  const { cols, per, W, H } = best;
+  const colW = (W - PAD * 2 - (cols - 1) * GAP) / cols;
+
+  const cv = document.createElement("canvas");
+  cv.width = W * S; cv.height = H * S;
+  const g = cv.getContext("2d");
+  g.scale(S, S);
+  const txt = (s, x, y, { size = 16, weight = 400, color = C.text, align = "left", max } = {}) => {
+    g.font = `${weight} ${size}px ${F}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle";
+    let t = String(s);
+    if (max && g.measureText(t).width > max) { while (t.length > 1 && g.measureText(t + "…").width > max) t = t.slice(0, -1); t += "…"; }
+    g.fillText(t, x, y);
+    return g.measureText(t).width;
+  };
+  const rr = (x, y, w, h, r, fill) => { g.beginPath(); g.roundRect(x, y, w, h, r); g.fillStyle = fill; g.fill(); };
+
+  // background
+  g.fillStyle = C.bg; g.fillRect(0, 0, W, H);
+  const glow = g.createRadialGradient(W, 0, 0, W, 0, 700);
+  glow.addColorStop(0, "rgba(90,159,230,0.16)"); glow.addColorStop(1, "rgba(90,159,230,0)");
+  g.fillStyle = glow; g.fillRect(0, 0, W, H);
+
+  // header
+  g.save(); g.translate(PAD, 44);
+  g.beginPath(); g.moveTo(11, 0); g.lineTo(22, 11); g.lineTo(11, 22); g.lineTo(0, 11); g.closePath(); g.fillStyle = C.gold; g.fill();
+  g.beginPath(); g.moveTo(11, 6); g.lineTo(16, 11); g.lineTo(11, 16); g.lineTo(6, 11); g.closePath(); g.fillStyle = C.bg; g.fill();
+  g.restore();
+  txt("ARC Tools · Migration Scout", PAD + 34, 55, { size: 18, weight: 600, color: C.mut });
+  const day = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+  txt(day, W - PAD, 55, { size: 18, color: C.mut, align: "right" });
+  txt(`Migration tickets · World ${world}`, PAD, 108, { size: 40, weight: 700 });
+
+  const stats = [["People", String(n)], ...(totals.shop ? [["From Alliance Shop", String(totals.shop)]] : []),
+    ["Tickets to buy", String(totals.short)], ["Total cost", money(totals.usd)]];
+  let sx = PAD;
+  for (const [k, v] of stats) {
+    txt(k, sx, 160, { size: 15, weight: 500, color: C.mut });
+    const w = txt(v, sx, 192, { size: 28, weight: 700 });
+    sx += Math.max(w, g.measureText(k).width) + 44;
+  }
+
+  // columns: name | needed | shop | buy | cost
+  const nums = [["Needed", 58], ["Shop", 52], ["Buy", 48], ["Cost", 92]];
+  const numW = nums.reduce((a, x) => a + x[1], 0);
+  for (let c = 0; c < cols; c++) {
+    const x0 = PAD + c * (colW + GAP), y0 = HEAD_H;
+    const list = rows.slice(c * per, (c + 1) * per);
+    if (!list.length) continue;
+    rr(x0, y0, colW, COLHEAD_H + list.length * ROW_H, 12, C.panel);
+    txt("Player", x0 + 14, y0 + COLHEAD_H / 2 + 1, { size: 13, weight: 500, color: C.mut });
+    let nx = x0 + colW - 14;
+    for (let i = nums.length - 1; i >= 0; i--) { txt(nums[i][0], nx, y0 + COLHEAD_H / 2 + 1, { size: 13, weight: 500, color: C.mut, align: "right" }); nx -= nums[i][1]; }
+    list.forEach((r, i) => {
+      const y = y0 + COLHEAD_H + i * ROW_H, cy = y + ROW_H / 2;
+      const done = r.short === 0;
+      if (done) {
+        g.fillStyle = C.okSoft;
+        g.beginPath(); g.roundRect(x0, y, colW, ROW_H, i === list.length - 1 ? [0, 0, 12, 12] : 0); g.fill();
+        g.fillStyle = C.ok; g.fillRect(x0, y, 3, ROW_H);
+      }
+      g.fillStyle = C.line; g.fillRect(x0, y, colW, 1);
+      const tag = r.listed?.[1] ? `[${r.listed[1]}] ` : "";
+      const nameMax = colW - 28 - numW;
+      let tx = x0 + 14;
+      if (tag) tx += txt(tag, tx, cy, { size: 15, color: C.mut, max: nameMax });
+      txt(r.name, tx, cy, { size: 15, weight: 500, max: Math.max(20, nameMax - (tx - x0 - 14)) });
+      let cx = x0 + colW - 14;
+      const vals = [
+        [r.need ?? "—", C.text, 400],
+        [r.fromShop || (r.need == null ? "—" : 0), r.fromShop ? C.ok : C.dim, r.fromShop ? 600 : 400],
+        [done ? "✓" : r.short ?? "—", done ? C.ok : C.text, 700],
+        [r.buy && r.buy.usd ? money(r.buy.usd) : "—", r.buy && r.buy.usd ? C.text : C.dim, 500],
+      ];
+      for (let k = vals.length - 1; k >= 0; k--) { txt(vals[k][0], cx, cy, { size: 15, weight: vals[k][2], color: vals[k][1], align: "right" }); cx -= nums[k][1]; }
+    });
+  }
+
+  // footer
+  txt("Shop = Alliance Shop tickets (300K points each) · Buy = tickets from Bundle Shop bundles · Prices in US dollars",
+    PAD, H - 34, { size: 13.5, color: C.dim, max: W - PAD * 2 - 230 });
+  txt("zephyrus44.github.io", W - PAD, H - 34, { size: 14, color: C.mut, align: "right" });
+  return cv;
+}
+
+async function saveTicketImage(opts) {
+  try { await document.fonts.load('600 16px "Geist"'); await document.fonts.load('700 16px "Geist"'); } catch {}
+  const cv = drawTicketImage(opts);
+  const blob = await new Promise((res) => cv.toBlob(res, "image/png"));
+  if (!blob) return "error";
+  const name = `migration-tickets-${opts.world}.png`;
+  const file = new File([blob], name, { type: "image/png" });
+  const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+  if (touch && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return "shared"; } catch (e) { if (e && e.name === "AbortError") return "cancelled"; }
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  return "saved";
+}
+async function copyTicketImage(opts) {
+  try { await document.fonts.load('600 16px "Geist"'); } catch {}
+  const cv = drawTicketImage(opts);
+  const blob = await new Promise((res) => cv.toBlob(res, "image/png"));
+  await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+}
+
 function TicketCalc({ world, people, setPeople }) {
   const table = useTicketTable();
   const { players, asOf } = usePlayers(world);
@@ -264,6 +392,8 @@ function TicketCalc({ world, people, setPeople }) {
   const [ally, setAlly] = useState("");
   const [addName, setAddName] = useState("");
   const [addPower, setAddPower] = useState("");
+  const [imgMsg, setImgMsg] = useState("");
+  const canCopyImage = typeof window !== "undefined" && !!(navigator.clipboard && window.ClipboardItem) && !(window.matchMedia && matchMedia("(pointer: coarse)").matches);
 
   const money = (usd) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(usd);
 
@@ -289,6 +419,7 @@ function TicketCalc({ world, people, setPeople }) {
   const totalShop = rows.reduce((a, r) => a + (r.fromShop || 0), 0);
   const totalShort = rows.reduce((a, r) => a + (r.short || 0), 0);
   const totalUsd = rows.reduce((a, r) => a + (r.buy ? r.buy.usd : 0), 0);
+  const imgOpts = () => ({ world, rows, totals: { shop: rows.reduce((a, r) => a + (r.fromShop || 0), 0), short: rows.reduce((a, r) => a + (r.short || 0), 0), usd: totalUsd }, money });
 
   const update = (name, patch) => setPeople(people.map((p) => (p.name === name ? { ...p, ...patch } : p)));
   const toggle = (p) => setPeople(chosen.has(p[0]) ? people.filter((x) => x.name !== p[0]) : [...people, { name: p[0], has: 0 }]);
@@ -387,6 +518,20 @@ function TicketCalc({ world, people, setPeople }) {
               {!!totalShop && <div className="ms-stat"><div className="k">From Alliance Shop</div><div className="v">{totalShop}</div></div>}
               <div className="ms-stat"><div className="k">Tickets to buy</div><div className="v">{totalShort}</div></div>
               <div className="ms-stat"><div className="k">Total cost</div><div className="v">{money(totalUsd)}</div></div>
+            </div>
+            <div className="ms-row ms-tk-imgbtns">
+              {canCopyImage && (
+                <button className="ms-btn" onClick={async () => {
+                  try { await copyTicketImage(imgOpts()); setImgMsg("Image copied"); } catch { setImgMsg("Couldn't copy, use Save image"); }
+                  setTimeout(() => setImgMsg(""), 2500);
+                }}>Copy image</button>
+              )}
+              <button className="ms-btn" onClick={async () => {
+                const r = await saveTicketImage(imgOpts());
+                setImgMsg(r === "saved" ? "Image saved" : r === "error" ? "Couldn't make the image" : "");
+                setTimeout(() => setImgMsg(""), 2500);
+              }}>{canCopyImage ? "Save image" : "Share image"}</button>
+              {imgMsg && <span className="ms-tk-sub" style={{ marginTop: 0 }}>{imgMsg}</span>}
             </div>
           </div>
           <div className="ms-scroll ms-tk-scroll" style={{ marginTop: 16 }}>
@@ -621,6 +766,7 @@ export default function MigrationScout() {
     .ms-tk-shop { color: var(--arc-ok, #5FD394); font-weight: 600; }
     .ms-wide { max-width: 1120px; }
     .ms-wide > .ms-sub, .ms-wide > .ms-note { max-width: 72ch; }
+    .ms-tk-imgbtns { gap: 8px; flex-wrap: wrap; align-items: center; }
     .ms-tk-cards { display: none; }
     .ms-tk-c { border: 1px solid var(--arc-line, #232934); border-radius: 12px; background: var(--arc-bg, #0E1116); padding: 12px 12px 12px 14px; }
     .ms-tk-c.done { background: var(--arc-ok-soft, #173326); border-color: color-mix(in srgb, var(--arc-ok, #5FD394) 40%, transparent);
