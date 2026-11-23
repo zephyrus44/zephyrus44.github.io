@@ -355,7 +355,7 @@ function drawTicketImage({ world, rows, totals, money }) {
   }
 
   // footer
-  txt("Shop = Alliance Shop tickets (300K points each) · Buy = tickets from Bundle Shop bundles · Prices in US dollars",
+  txt("Shop = Alliance Shop tickets (300,000 points each) · Buy = tickets from Bundle Shop bundles · Prices in US dollars",
     PAD, H - 34, { size: 13.5, color: C.dim, max: W - PAD * 2 - 230 });
   txt("zephyrus44.github.io", W - PAD, H - 34, { size: 14, color: C.mut, align: "right" });
   return cv;
@@ -447,12 +447,25 @@ function TicketCalc({ world, people, setPeople }) {
       value={r.has || ""} placeholder="0"
       onChange={(e) => update(r.name, { has: parseInt(e.target.value.replace(/\D/g, ""), 10) || 0 })} />
   );
+  // alliance points: digits only, shown with commas as you type (1,300,000)
   const ptsIn = (r, cls = "") => (
-    <input className={"ms-input ms-tk-cell " + cls} style={cls ? null : { width: 78 }} placeholder="0" inputMode="decimal"
-      defaultValue={r.pts ? fmtPower(r.pts) : ""} key={r.name + ":pts:" + (r.pts || 0)}
-      onBlur={(e) => { const v = e.target.value.trim() ? parsePower(e.target.value) : 0; if (v != null && v !== (r.pts || 0)) update(r.name, { pts: v }); else e.target.value = r.pts ? fmtPower(r.pts) : ""; }}
-      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-      title="Individual alliance points. 300K buys 1 ticket in the Alliance Shop." />
+    <input className={"ms-input ms-tk-cell " + cls} style={cls ? null : { width: 104 }} placeholder="0" inputMode="numeric"
+      value={r.pts ? r.pts.toLocaleString("en-US") : ""}
+      onChange={(e) => {
+        const el = e.target, caret = el.selectionStart ?? el.value.length;
+        const digitsBefore = el.value.slice(0, caret).replace(/\D/g, "").length;
+        const v = parseInt(el.value.replace(/\D/g, "").slice(0, 12), 10) || 0;
+        update(r.name, { pts: v });
+        // keep the caret after the same digit once commas are added or removed
+        requestAnimationFrame(() => {
+          try {
+            let i = 0, seen = 0;
+            while (i < el.value.length && seen < digitsBefore) { if (/\d/.test(el.value[i])) seen++; i++; }
+            el.setSelectionRange(i, i);
+          } catch {}
+        });
+      }}
+      title="Individual alliance points. 300,000 buys 1 ticket in the Alliance Shop." />
   );
   const bundleText = (r) => (r.buy && r.buy.pick.length ? r.buy.pick.map((b) => `${b.t}${b.count > 1 ? " ×" + b.count : ""}`).join(", ") : "");
   const removeBtn = (r) => <button className="ms-tk-x" aria-label={"Remove " + r.name} onClick={() => setPeople(people.filter((p) => p.name !== r.name))}>×</button>;
@@ -537,7 +550,7 @@ function TicketCalc({ world, people, setPeople }) {
           <div className="ms-scroll ms-tk-scroll" style={{ marginTop: 16 }}>
             <table className="ms-table ms-tk-table">
               <thead>
-                <tr><th>Player</th><th>Highest power</th><th style={{ textAlign: "right" }}>Needed</th><th>Has</th><th>Alliance points<div className="ms-tk-th2">300K = 1 ticket</div></th><th style={{ textAlign: "right" }}>Alliance<br />Shop</th><th style={{ textAlign: "right" }}>To buy</th><th>Bundles<div className="ms-tk-th2">tickets each</div></th><th style={{ textAlign: "right" }}>Cost</th><th></th></tr>
+                <tr><th>Player</th><th>Highest power</th><th style={{ textAlign: "right" }}>Needed</th><th>Has</th><th>Alliance points<div className="ms-tk-th2">300,000 = 1 ticket</div></th><th style={{ textAlign: "right" }}>Alliance<br />Shop</th><th style={{ textAlign: "right" }}>To buy</th><th>Bundles<div className="ms-tk-th2">tickets each</div></th><th style={{ textAlign: "right" }}>Cost</th><th></th></tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
@@ -572,7 +585,7 @@ function TicketCalc({ world, people, setPeople }) {
                 </div>
                 <div className="ms-tk-c-nums">
                   <div><span>Needed</span><b>{r.need ?? "—"}</b></div>
-                  <div><span>Alliance Shop</span><b className={r.fromShop ? "ms-tk-shop" : ""}>{r.need == null ? "—" : r.fromShop}</b><i>300K pts each</i></div>
+                  <div><span>Alliance Shop</span><b className={r.fromShop ? "ms-tk-shop" : ""}>{r.need == null ? "—" : r.fromShop}</b><i>300,000 pts each</i></div>
                   <div><span>To buy</span><b>{r.short ?? "—"}</b>{r.buy?.usd ? <i>{money(r.buy.usd)}</i> : null}</div>
                 </div>
                 <div className="ms-tk-c-grid">
@@ -597,7 +610,7 @@ function TicketCalc({ world, people, setPeople }) {
         at today's power: change it if their highest was more. Each player buys their own bundles. The Bundle Shop has
         2, 3, 5 and 10 ticket bundles ({BUNDLES.slice(0, 4).map((b) => money(b.usd)).join(", ")}) once each per migration,
         and the 20 ticket bundle ({money(99.99)}) up to 3 times; the table picks the cheapest mix that covers what's missing.
-        Tickets also come from the Alliance Shop for 300K individual alliance points each: enter a player's points
+        Tickets also come from the Alliance Shop for 300,000 individual alliance points each: enter a player's points
         and the tickets they can get there are counted before bundles.
         Prices are in US dollars.{" "}
         Ticket table and player power from{" "}
