@@ -482,28 +482,61 @@ function drawTicketImage({ world, rows, totals, money }) {
   return cv;
 }
 
-async function saveTicketImage(opts) {
+// Draw the picture once and keep it as a PNG, so it can be previewed before saving.
+async function makeTicketImage(opts) {
   try { await document.fonts.load('600 16px "Geist"'); await document.fonts.load('700 16px "Geist"'); } catch {}
   const cv = drawTicketImage(opts);
   const blob = await new Promise((res) => cv.toBlob(res, "image/png"));
-  if (!blob) return "error";
-  const name = `migration-tickets-${opts.world}.png`;
-  const file = new File([blob], name, { type: "image/png" });
+  if (!blob) throw new Error("image");
+  return { blob, url: URL.createObjectURL(blob), name: `migration-tickets-${opts.world}.png`, w: cv.width / 2, h: cv.height / 2 };
+}
+async function saveTicketImage(img) {
+  const file = new File([img.blob], img.name, { type: "image/png" });
   const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
   if (touch && navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file] }); return "shared"; } catch (e) { if (e && e.name === "AbortError") return "cancelled"; }
   }
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = name;
+  a.href = img.url; a.download = img.name;
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   return "saved";
 }
-async function copyTicketImage(opts) {
-  try { await document.fonts.load('600 16px "Geist"'); } catch {}
-  const cv = drawTicketImage(opts);
-  const blob = await new Promise((res) => cv.toBlob(res, "image/png"));
-  await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+const copyTicketImage = (img) => navigator.clipboard.write([new ClipboardItem({ "image/png": img.blob })]);
+
+function ImagePreview({ img, onClose, canCopy }) {
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    const k = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", k);
+    const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
+    return () => { document.removeEventListener("keydown", k); document.body.style.overflow = prev; };
+  }, []);
+  const flash = (m) => { setMsg(m); setTimeout(() => setMsg(""), 2500); };
+  return (
+    <div className="ms-pv" role="dialog" aria-modal="true" aria-label="Image preview" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="ms-pv-box">
+        <div className="ms-pv-head">
+          <span>Preview</span>
+          <span className="ms-tk-sub" style={{ marginTop: 0 }}>{img.w} × {img.h}</span>
+          <button className="ms-tk-x" aria-label="Close preview" onClick={onClose}>×</button>
+        </div>
+        <div className="ms-pv-img"><img src={img.url} alt="Migration tickets summary" /></div>
+        <div className="ms-pv-actions">
+          {msg && <span className="ms-tk-sub" style={{ marginTop: 0, marginRight: "auto" }}>{msg}</span>}
+          <button className="ms-btn ghost" onClick={onClose}>Close</button>
+          {canCopy && (
+            <button className="ms-btn" onClick={async () => {
+              try { await copyTicketImage(img); flash("Image copied"); } catch { flash("Couldn't copy, use Save"); }
+            }}>Copy</button>
+          )}
+          <button className="ms-btn ms-pv-main" onClick={async () => {
+            const r = await saveTicketImage(img);
+            if (r === "saved") flash("Image saved");
+          }}>{canCopy ? "Save" : "Share"}</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function TicketCalc({ world, people, setPeople }) {
@@ -514,6 +547,7 @@ function TicketCalc({ world, people, setPeople }) {
   const [addName, setAddName] = useState("");
   const [addPower, setAddPower] = useState("");
   const [imgMsg, setImgMsg] = useState("");
+  const [preview, setPreview] = useState(null);
   const [findQ, setFindQ] = useState("");
   const [hideDone, setHideDone] = useState(false);
   const canCopyImage = typeof window !== "undefined" && !!(navigator.clipboard && window.ClipboardItem) && !(window.matchMedia && matchMedia("(pointer: coarse)").matches);
@@ -660,18 +694,12 @@ function TicketCalc({ world, people, setPeople }) {
                 <a className="ms-link ms-tk-bundlelink" href="https://dengsden.com/avatar/bundles/#q=Migration" target="_blank" rel="noopener">See the bundles ↗</a></div>
             </div>
             <div className="ms-row ms-tk-imgbtns">
-              {canCopyImage && (
-                <button className="ms-btn" onClick={async () => {
-                  try { await copyTicketImage(imgOpts()); setImgMsg("Image copied"); } catch { setImgMsg("Couldn't copy, use Save image"); }
-                  setTimeout(() => setImgMsg(""), 2500);
-                }}>Copy image</button>
-              )}
               <button className="ms-btn" onClick={async () => {
-                const r = await saveTicketImage(imgOpts());
-                setImgMsg(r === "saved" ? "Image saved" : r === "error" ? "Couldn't make the image" : "");
-                setTimeout(() => setImgMsg(""), 2500);
-              }}>{canCopyImage ? "Save image" : "Share image"}</button>
+                try { setPreview(await makeTicketImage(imgOpts())); }
+                catch { setImgMsg("Couldn't make the image"); setTimeout(() => setImgMsg(""), 2500); }
+              }}>Image</button>
               {imgMsg && <span className="ms-tk-sub" style={{ marginTop: 0 }}>{imgMsg}</span>}
+              {preview && <ImagePreview img={preview} canCopy={canCopyImage} onClose={() => { URL.revokeObjectURL(preview.url); setPreview(null); }} />}
             </div>
           </div>
           {rows.length > 5 && (
@@ -964,6 +992,22 @@ export default function MigrationScout() {
     .ms-wide { max-width: 1120px; }
     .ms-wide > .ms-sub, .ms-wide > .ms-note { max-width: 72ch; }
     .ms-tk-imgbtns { gap: 8px; flex-wrap: wrap; align-items: center; }
+    .ms-pv { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 16px;
+      background: rgba(5, 7, 10, .72); animation: ms-pv-in .16s ease-out; }
+    @keyframes ms-pv-in { from { opacity: 0; } }
+    .ms-pv-box { width: min(920px, 100%); max-height: calc(100dvh - 32px); display: flex; flex-direction: column;
+      background: var(--arc-panel, #161A21); border: 1px solid var(--arc-line-2, #2E3542); border-radius: 14px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.5); overflow: hidden; }
+    .ms-pv-head { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 18px; border-bottom: 1px solid var(--arc-line, #232934);
+      font-size: 15px; font-weight: 600; }
+    .ms-pv-head .ms-tk-x { margin-left: auto; }
+    .ms-pv-img { flex: 1; min-height: 0; overflow: auto; padding: 16px; background: var(--arc-bg, #0E1116); display: grid; place-items: center; }
+    .ms-pv-img img { display: block; max-width: 100%; max-height: calc(100dvh - 190px); height: auto; object-fit: contain;
+      border-radius: 8px; box-shadow: 0 0 0 1px var(--arc-line, #232934); }
+    .ms-pv-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 16px;
+      border-top: 1px solid var(--arc-line, #232934); }
+    .ms-pv-main { background: var(--arc-accent, #7EA0FF); border-color: var(--arc-accent, #7EA0FF); color: var(--arc-accent-ink, #0B1020); font-weight: 600; }
+    .ms-pv-main:hover { background: color-mix(in srgb, var(--arc-accent, #7EA0FF) 88%, #fff); }
     .ms-tk-find { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 16px; }
     .ms-tk-find .ms-input { flex: 1 1 220px; width: auto; max-width: 360px; }
     .ms-tk-hide { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--arc-mut, #8B93A1); cursor: pointer; }
