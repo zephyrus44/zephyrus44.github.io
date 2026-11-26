@@ -75,6 +75,7 @@ const PAIRS = [
   { wheel: "Sapphire Fire Katara",     tgl: "Mad King Bumi",  el: "earth", unlock: 504, release: Date.UTC(2026, 6, 22) },
   { wheel: "Rangi",                    tgl: "Kelsang",        el: "air",   unlock: 546, release: Date.UTC(2026, 8, 16) },
   { wheel: "Yun",                      tgl: "Varrick",        el: "water", unlock: 588, release: Date.UTC(2026, 9, 28) },
+  { wheel: "Asami Sato",               tgl: "Tenzin",         el: "air",   unlock: 630, release: Date.UTC(2026, 10, 25) },
 ];
 
 // Each hero's element and what they're used for. "Lead" = has a leader skill.
@@ -109,6 +110,8 @@ const HEROES = {
   "Rangi":                    { el: "fire",  roles: ["Siege"] },
   "Yun":                      { el: "earth", roles: ["Versatile"] },
   "Varrick":                  { el: "water", roles: ["Hunt"] },
+  "Tenzin":                   { el: "air",   roles: ["Siege"] },
+  "Asami Sato":               { el: "fire",  roles: ["Versatile"] },
 };
 const ROLE_INFO = {
   Lead: "Leader skill",
@@ -118,7 +121,7 @@ const ROLE_INFO = {
   Hunt: "Skulls, dark spirits",
   Gathering: "Gathering",
 };
-const NO_PORTRAIT = new Set();
+const NO_PORTRAIT = new Set(["Tenzin", "Asami Sato"]);
 const IMG_BASE = "tools/hero-cycle/heroes/";
 const slug = (n) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const heroInfo = (n) => HEROES[n] || { el: "air", roles: [] };
