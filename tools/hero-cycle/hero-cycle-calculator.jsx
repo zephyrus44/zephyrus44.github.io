@@ -111,7 +111,7 @@ const HEROES = {
   "Yun":                      { el: "earth", roles: ["Versatile"] },
   "Varrick":                  { el: "water", roles: ["Hunt"] },
   "Tenzin":                   { el: "air",   roles: ["Siege"] },
-  "Asami Sato":               { el: "fire",  roles: ["Versatile"] },
+  "Asami Sato":               { el: "fire",  roles: ["Lead", "Versatile"] },
 };
 const ROLE_INFO = {
   Lead: "Leader skill",
