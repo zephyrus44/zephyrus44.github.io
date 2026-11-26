@@ -121,7 +121,7 @@ const ROLE_INFO = {
   Hunt: "Skulls, dark spirits",
   Gathering: "Gathering",
 };
-const NO_PORTRAIT = new Set(["Tenzin", "Asami Sato"]);
+const NO_PORTRAIT = new Set();
 const IMG_BASE = "tools/hero-cycle/heroes/";
 const slug = (n) => n.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const heroInfo = (n) => HEROES[n] || { el: "air", roles: [] };
